@@ -26,17 +26,9 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 视频展示：https://www.bilibili.com/video/BV1z912YpECB
 
 ### 界面展示
-![afaaaddd5831755531faf4cf8b5bf0e3](https://github.com/user-attachments/assets/3908f151-fe34-4395-b948-912897a8a041)
-![image](https://github.com/user-attachments/assets/86f9a7d4-1155-4c89-948e-8fe658753fbd)
-
-
-### 功能展示
-![image](https://github.com/user-attachments/assets/d8444026-8961-4abb-82ef-552202fa24e9)
-
-![image](https://github.com/user-attachments/assets/bd621138-92bd-45e1-b1a6-c605cfff3827)
-![image](https://github.com/user-attachments/assets/e661a949-7861-404e-b031-410857f02e14)
-![image](https://github.com/user-attachments/assets/b527cff8-d42f-4072-ac33-b3810eab96aa)
-
+![image](https://github.com/user-attachments/assets/345a5fe9-f1cc-489a-99c4-100c619bf788)
+![image](https://github.com/user-attachments/assets/849bf2ae-5074-44e7-9235-f9b18ac9b836)
+![image](https://github.com/user-attachments/assets/9c5acea2-1522-41ea-ac1e-e41ad941a609)
 
 ### 适合什么题
   - 没有套娃的取证题目
@@ -44,6 +36,15 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 ### 更新
 ![image](https://github.com/user-attachments/assets/7104b3cd-8023-4909-9268-bc65d495211e)
 
+### 各种文档
+- 软件使用说明书(持续更新)：
+https://docs.qq.com/doc/DWGt4YU1nd1VuTW9k
+- 常见问题解决：
+https://docs.qq.com/doc/DWGdId2VKU05mVWN0
+- 升级须知+离线须知
+https://docs.qq.com/doc/DWHlFclJuUklyRHBN
+- 启动无反应(没有找到WMIC命令)
+https://www.ithome.com/0/781/543.htm
   
 ### 你都更新了点啥
 
