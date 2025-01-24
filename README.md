@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="https://ctf.mzy0.com"><img src="https://github.com/Tokeii0/LovelyMem/blob/main/res/logo.png" width="250" height="250" alt="lovelymem"></a>
+  <a href="https://ctf.dog"><img src="https://github.com/Tokeii0/LovelyMem/blob/main/res/logo.png" width="250" height="250" alt="lovelymem"></a>
 </p>
 <div align="center">
 
@@ -70,9 +70,9 @@ https://www.ithome.com/0/781/543.htm
 12. 📚 新增 **vol2** 常备知识功能，方便学习使用。  
 13. 🖥️ 现在支持通过 **memprocfs**、**vol2** 和 **vol3** 三种途径导出文件，支持快速将 `memdump` 转为 GIMP 文件。
 
-这样看起来更简洁活泼，也更容易阅读了！
 
 ### 其他
+
 远离内卷，还CTF圈一个朗朗乾坤
 
 愿望是取证像喝水一样简单
