@@ -27,9 +27,7 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 视频展示：https://www.bilibili.com/video/BV1z912YpECB
 
 ### 界面展示
-![image](https://github.com/user-attachments/assets/345a5fe9-f1cc-489a-99c4-100c619bf788)
-![image](https://github.com/user-attachments/assets/849bf2ae-5074-44e7-9235-f9b18ac9b836)
-![image](https://github.com/user-attachments/assets/9c5acea2-1522-41ea-ac1e-e41ad941a609)
+![image](https://github.com/user-attachments/assets/22f8c9e5-f85e-4f29-baa0-914bda63c09b)
 
 ### 适合什么题
   - 没有套娃的取证题目
