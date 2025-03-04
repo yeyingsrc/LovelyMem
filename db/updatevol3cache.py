@@ -6,10 +6,9 @@ import shutil
 with open('config/base_config.yaml', 'r', encoding='utf-8') as file:
     config = yaml.safe_load(file)
 
-symbols_path = config['tools']['volatility3_symbols']['path']
+symbols_path = "../Tools/volatility3/volatility3/symbols"
 symbols_path = os.path.abspath(symbols_path)
 symbols_path = symbols_path.replace("\\", "/")
-
 
 def update_identifier_cache():
     shutil.copy("db/identifier.cache", "db/identifier_new.cache")
@@ -18,7 +17,7 @@ def update_identifier_cache():
         cursor = conn.cursor()
         cursor.execute("""
             UPDATE cache
-            SET location = REPLACE(location, 'E:/Tools/volatility3/symbols', ?)
+            SET location = REPLACE(location, 'D:/Lovelymemv0.85/Tools/volatility3/volatility3/symbols', ?)
         """, (symbols_path,))
         conn.commit()
         print("volatility3数据库更新成功")
@@ -36,5 +35,3 @@ def update_identifier_cache():
         os.remove(os.path.join(target_path, "identifier.cache"))
     shutil.copy("db/identifier_new.cache", target_path)
     os.rename(os.path.join(target_path, "identifier_new.cache"), os.path.join(target_path, "identifier.cache"))
-
-update_identifier_cache()

@@ -1,4 +1,6 @@
 import re
+import os
+import csv
 
 plugin_info = {
     "title": "字符串提取", 
@@ -12,7 +14,15 @@ def run(file_path):
         content = f.read()
     
     strings = re.findall(b'[\x20-\x7E]{4,}', content)
-    print("提取的字符串:")
-    for s in strings[:20]:  # 只打印前20个字符串
-        print(s.decode())
-    print(f"总共提取了 {len(strings)} 个字符串")
+    
+    output_dir = 'output'
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, 'extracted_strings.csv')
+    
+    with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Index', 'String'])
+        for index, s in enumerate(strings, 1):
+            writer.writerow([index, s.decode(errors='replace')])
+    
+    print(f"已提取 {len(strings)} 个字符串并保存到 {output_file}")
