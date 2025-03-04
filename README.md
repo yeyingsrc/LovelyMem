@@ -16,13 +16,6 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 </div>
 
 
-### 相关流程
-1. 进群 856729462
-2. 群文件下载 最新版本软件 ，替换最新的授权服务器更换文件
-3. 在线授权直接在群内 发送 #获取授权，然后根据提示发送授权码即可
-4. 如果要离线授权，私聊 群主 即可
-5. 在线授权用户退群=永久放弃授权(一般来说退群不会删除授权，再进群被我发现了就会删除)
-
 
 ### 这是什么
 一款基于memprocfs、Volatility2、Volatility3的快捷内存取证工具
@@ -44,14 +37,6 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 ### 更新
 ![image](https://github.com/user-attachments/assets/7104b3cd-8023-4909-9268-bc65d495211e)
 
-### 各种文档
-- 软件使用说明书(持续更新)：
-https://docs.qq.com/doc/DWGt4YU1nd1VuTW9k
-- 常见问题解决：
-https://docs.qq.com/doc/DWGdId2VKU05mVWN0
-- 升级须知+离线须知
-https://docs.qq.com/doc/DWHlFclJuUklyRHBN
-- 启动无反应(没有找到WMIC命令)
 https://www.ithome.com/0/781/543.htm
   
 ### 你都更新了点啥
