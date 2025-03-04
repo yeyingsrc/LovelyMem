@@ -56,20 +56,6 @@ class QuickCheckArea(QWidget):
         self.setStyleSheet(quick_check_style)
         layout = QVBoxLayout(self)
         
-        # 添加用户信息显示
-        self.user_info_widget = QWidget()
-        user_info_layout = QHBoxLayout(self.user_info_widget)
-        
-        self.user_avatar = QLabel()
-        self.user_avatar.setFixedSize(100, 100)
-        self.user_avatar.mousePressEvent = self.avatar_clicked
-        self.click_count = 0
-        user_info_layout.addWidget(self.user_avatar)
-        
-        self.user_info_label = QLabel()
-        user_info_layout.addWidget(self.user_info_label)
-        
-        layout.addWidget(self.user_info_widget)
         
         # 新增高级功能组
         advanced_buttons = [
