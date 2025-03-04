@@ -159,9 +159,6 @@ class QuickCheckArea(QWidget):
     def start_AI_assistant(self):
         import subprocess,os
         # 检测一下OfflineLicense文件是否存在
-        if not os.path.exists('OfflineLicense'):
-            QMessageBox.warning(self, "失败", "该功能仅支持有离线授权用户使用")
-            return
         print("正在启动AI助手")
         subprocess.Popen(["../Tools/python3/python.exe", "AItools\gradio_ui.py"])
         
