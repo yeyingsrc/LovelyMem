@@ -64,6 +64,10 @@ other_tools:
   EvtxECmd:
     path: "../Tools/EvtxECmd/EvtxECmd.exe"
 ```
+### 运行
+上面相关内容配置好之后
+
+`python main.py`
 
 ### 插件开发
 下面这是一个解压文件的插件例子，其他插件例子可以参考`extensions`文件夹下面内容
