@@ -744,7 +744,7 @@ class DeletePresetDialog(QDialog):
         super().__init__()
         self.setWindowTitle("删除预设")
         self.setLayout(QVBoxLayout())
-        self.setWindowIcon(QIcon("res\logo.ico"))
+        self.setWindowIcon(QIcon(r"res\logo.ico"))
 
         self.checkboxes = []
         for preset in presets:

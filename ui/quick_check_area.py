@@ -160,7 +160,7 @@ class QuickCheckArea(QWidget):
         import subprocess,os
         # 检测一下OfflineLicense文件是否存在
         print("正在启动AI助手")
-        subprocess.Popen(["../Tools/python3/python.exe", "AItools\gradio_ui.py"])
+        subprocess.Popen([r"../Tools/python3/python.exe", r"AItools\gradio_ui.py"])
         
     def show_config_dialog(self):
         """显示配置对话框"""

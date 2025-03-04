@@ -24,7 +24,7 @@ def main():
             #print("警告：QApplication 实例已存在，使用现有实例。")
             pass
 
-        app.setWindowIcon(QIcon("res\logo.ico"))
+        app.setWindowIcon(QIcon(r"res\logo.ico"))
         splash_pix = QPixmap(r"res/logo_200.png")
         splash = QSplashScreen(splash_pix)
         splash.show()

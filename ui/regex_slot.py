@@ -12,7 +12,7 @@ class NewRegexDialog(QDialog):
         super().__init__()
         self.setWindowTitle("添加正则表达式")
         self.setLayout(QVBoxLayout())
-        self.setWindowIcon(QIcon("res\logo.ico"))
+        self.setWindowIcon(QIcon(r"res\logo.ico"))
 
         self.regex_input = QLineEdit()
         self.regex_input.setPlaceholderText("输入正则表达式")
@@ -66,7 +66,7 @@ class NewRegexGroupDialog(QDialog):
         super().__init__()
         self.setWindowTitle("新增/编辑正则组")
         self.setLayout(QVBoxLayout())
-        self.setWindowIcon(QIcon("res\logo.ico"))
+        self.setWindowIcon(QIcon(r"res\logo.ico"))
 
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("输入正则组名称")
@@ -116,7 +116,7 @@ class DeleteRegexGroupDialog(QDialog):
         super().__init__()
         self.setWindowTitle("删除正则组")
         self.setLayout(QVBoxLayout())
-        self.setWindowIcon(QIcon("res\logo.ico"))
+        self.setWindowIcon(QIcon(r"res\logo.ico"))
 
         self.checkboxes = []
         for group, file in groups:

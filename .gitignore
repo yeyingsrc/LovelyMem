@@ -171,3 +171,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 error_log.txt
+output/image_info.txt
