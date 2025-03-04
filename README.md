@@ -15,7 +15,9 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
   <a href=".."><img src="https://img.shields.io/badge/Python%20-%203.10.11-def1f2?style=flat-square" alt="python"></a>
 </div>
 
+### 开发不易请我喝杯咖啡吧
 
+![image](https://github.com/user-attachments/assets/d2f81d8a-a445-44ad-9069-664e053340d7)
 
 ### 这是什么
 一款基于memprocfs、Volatility2、Volatility3的快捷内存取证工具
@@ -63,6 +65,81 @@ other_tools:
     path: "../Tools/EvtxECmd/EvtxECmd.exe"
 ```
 
+### 插件开发
+下面这是一个解压文件的插件例子，其他插件例子可以参考`extensions`文件夹下面内容
+```
+import zipfile
+import os
+
+# 插件信息字典,包含插件的基本信息
+plugin_info = {
+    "title": "解压文件",  # 插件标题
+    "description": "解压ZIP、RAR等压缩文件",  # 插件描述
+    "usage": "选择一个压缩文件,然后点击此插件",  # 使用说明
+    "category": "文件操作"  # 插件类别
+}
+
+def run(file_path):
+    """
+    插件的主要执行函数
+    
+    参数:
+    file_path (str): 要处理的文件的路径
+    
+    返回:
+    None
+    """
+    # 检查文件是否存在
+    if not os.path.exists(file_path):
+        print(f"错误: 文件 {file_path} 不存在")
+        return
+
+    # 获取文件扩展名
+    _, file_extension = os.path.splitext(file_path)
+    
+    # 根据文件扩展名选择相应的解压方法
+    if file_extension.lower() == '.zip':
+        extract_zip(file_path)
+    else:
+        print(f"不支持的文件类型: {file_extension}")
+
+def extract_zip(file_path):
+    """
+    解压ZIP文件
+    
+    参数:
+    file_path (str): ZIP文件的路径，即文件槽内文件路径
+    
+    返回:
+    None
+    """
+    try:
+        # 创建输出目录
+        output_dir = os.path.join('output', 'extracted_files')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # 解压文件
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(output_dir)
+        
+        print(f"文件已成功解压到: {output_dir}")
+        
+        # 列出解压后的文件
+        print("解压的文件列表:")
+        for root, dirs, files in os.walk(output_dir):
+            for file in files:
+                print(os.path.join(root, file))
+    
+    except zipfile.BadZipFile:
+        print("错误: 无效的ZIP文件")
+    except Exception as e:
+        print(f"解压过程中发生错误: {str(e)}")
+
+# 注意: 如果需要支持其他类型的压缩文件(如RAR),
+# 可以添加相应的解压函数并在run()中调用
+
+```
+
 
 ### 适合什么题
   - 没有套娃的取证题目
@@ -70,14 +147,13 @@ other_tools:
   
 ### 几个问题
 
-Q:为什么一开始收费，突然就现在开源？
+Q: 为什么一开始收费，现在突然开源了？
 
-A：在项目开始收费的时候就立了个flag,要么star1000,要么被人逆了，很明显为什么
+A: 这个项目一开始收费时，我就给自己立了个flag：要么GitHub星标破1000，要么被人破解。结果显而易见，哈哈。我也不怪那位破解的大佬，毕竟技术无罪，大家一起努力嘛，共同进步！
 
-Q:开源之后还更新吗
+Q: 开源之后还会继续更新吗？
 
-A:更啊,这个项目是我第一个这么高star的项目，只要我有时间就会一直更新，也希望各位师傅多多参与~
-
+A: 当然会更！这可是我第一个星标这么高的项目，只要我有时间，就会一直维护下去。也欢迎各位大佬多多参与，一起把项目做得更好～
 
 
 
