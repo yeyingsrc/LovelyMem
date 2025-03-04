@@ -8,6 +8,7 @@ from plugin.quickcheck import QuickCheck
 from db.updatevol3cache import update_identifier_cache
 from core.task_scheduler import TaskSchedulerDialog
 from plugin.report_editor import ReportEditor
+from ui.config_dialog import ConfigDialog
 
 class CollapsibleButtonGroup(QWidget):
     def __init__(self, title, buttons, favorite_manager):
@@ -62,6 +63,7 @@ class QuickCheckArea(QWidget):
             QPushButton("任务编排"),
             QPushButton("报告编辑器"),
             QPushButton("AIlovelymem"),
+            QPushButton("设置"),
         ]
         self.advanced_group = CollapsibleButtonGroup("高级功能", advanced_buttons, self.favorite_manager)
         layout.addWidget(self.advanced_group)
@@ -82,6 +84,7 @@ class QuickCheckArea(QWidget):
         advanced_buttons[0].clicked.connect(self.show_task_scheduler)
         advanced_buttons[1].clicked.connect(self.show_report_editor)
         advanced_buttons[2].clicked.connect(self.start_AI_assistant)
+        advanced_buttons[3].clicked.connect(self.show_config_dialog)
         # 为其他高级功能按钮添加连接
         
 
@@ -161,4 +164,8 @@ class QuickCheckArea(QWidget):
             return
         print("正在启动AI助手")
         subprocess.Popen(["../Tools/python3/python.exe", "AItools\gradio_ui.py"])
-
+        
+    def show_config_dialog(self):
+        """显示配置对话框"""
+        dialog = ConfigDialog(self)
+        dialog.exec_()
