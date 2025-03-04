@@ -94,7 +94,7 @@ class Vol3Area(QWidget):
         settings_layout = QHBoxLayout()
         self.offline_checkbox = QCheckBox("离线模式")
         self.offline_checkbox.setToolTip("启用离线模式 (--offline)")
-        self.offline_checkbox.setChecked(True)  # Set checked by default
+        self.offline_checkbox.setChecked(False)  # Set checked by default
         settings_layout.addWidget(self.offline_checkbox)
         settings_layout.addStretch()
         settings_group.setLayout(settings_layout)
