@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -169,3 +170,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+error_log.txt

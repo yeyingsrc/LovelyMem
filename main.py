@@ -10,11 +10,6 @@ from PySide6.QtWidgets import QApplication, QSplashScreen
 from core.output_redirector import setup_output_redirection
 from ui.main_window import MainWindow
 
-# 设置日志
-logging.basicConfig(filename='app_log.txt', level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 def main():
     # 确保必要的目录存在
     for directory in ['db', 'output', 'packed_files', 'config']:
