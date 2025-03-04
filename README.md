@@ -29,6 +29,41 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 ### 界面展示
 ![image](https://github.com/user-attachments/assets/22f8c9e5-f85e-4f29-baa0-914bda63c09b)
 
+### 具体准备
+根据config文件夹下面的base_config.yaml自助配置以下内容
+```
+tools:
+  memprocfs:
+    path: "../Tools/MemProcFS/MemProcFS.exe"
+  volatility2:
+    path: "../Tools/volatility2/vol.exe"
+  volatility2_python:
+    path: "../Tools/volatility2_python/vol.py"
+  volatility3:
+    path: "../Tools/volatility3/vol.py"
+  volatility3_symbols:
+    path: "../Tools/volatility3/symbols"
+  gimp:
+    path: "../Tools/gimp/bin/gimp-console-2.10.exe"
+  volatility2_plugin:
+    path: "../Tools/volatility2_plugin"
+
+base_tools:
+  python310:
+    path: "../Tools/python3/python.exe"
+  python27:
+    path: "../Tools/python27/python27.exe" 
+  strings:
+    path: "../Tools/other/strings.exe"
+
+other_tools:
+  RegistryExplorer:
+    path: "../Tools/RegistryExplorer/RegistryExplorer.exe"
+  EvtxECmd:
+    path: "../Tools/EvtxECmd/EvtxECmd.exe"
+```
+
+
 ### 适合什么题
   - 没有套娃的取证题目
   - *Windows*内存取证
