@@ -21,3 +21,28 @@ base_tools:
     path: "../Tools/python27/python27.exe" 
   strings:
     path: "../Tools/other/strings.exe"
+
+other_tools:
+  RegistryExplorer:
+    path: "../Tools/RegistryExplorer/RegistryExplorer.exe"
+  EvtxECmd:
+    path: "../Tools/EvtxECmd/EvtxECmd.exe"
+
+base_config:
+  proxy:
+    url: "http://127.0.0.1:7890"
+
+LLM_CONFIG:
+  openai_api_key: ""
+  openai_organization: ""
+  openai_api_base: "https://api.openai.com/v1"
+  openai_api_version: "2023-05-15"
+  openai_api_type: "open_ai"
+  openai_model: "gpt-4"
+  openai_temperature: 0.7
+  openai_max_tokens: 2000
+  openai_top_p: 1.0
+  openai_frequency_penalty: 0.0
+  openai_presence_penalty: 0.0
+  openai_request_timeout: 60
+  openai_proxy: ""
