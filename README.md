@@ -34,10 +34,6 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 ### 适合什么题
   - 没有套娃的取证题目
   - *Windows*内存取证
-### 更新
-![image](https://github.com/user-attachments/assets/7104b3cd-8023-4909-9268-bc65d495211e)
-
-https://www.ithome.com/0/781/543.htm
   
 ### 你都更新了点啥
 
