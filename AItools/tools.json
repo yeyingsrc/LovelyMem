@@ -1,0 +1,227 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_pslist",
+            "description": "列出进程列表",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "type": "number",
+                        "description": "如果用户有需求提取指定进程，则使用r参数,1为开启搜索,0为不执行搜索"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "当1为开启搜索时,使用此参数，一般为进程名"
+                    }
+                },
+                "required": ["value","name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_netscan",
+            "description": "列出网络连接",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "string": {
+                        "type": "string",
+                        "description": "无意义内容,通用占位符"
+                    }
+                },
+                "required": ["string"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_filescan",
+            "description": "列出文件",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "string": {
+                        "type": "string",
+                        "description": "从句意中猜测一般使用最小化英文单词，例如桌面，使用desktop"
+                    }
+                },
+                "required": ["string"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_dumpfile",
+            "description": "导出文件",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "offset": {
+                        "type": "string",
+                        "description": "一般是filescan之后的步骤，内存地址，一般是指偏移量0x开头,一般跳过lnk等无意义文件"
+                    }
+                },
+                "required": ["offset"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "readfile",
+            "description": "读取文件",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "文件名"
+                    }
+                },
+                "required": ["filename"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "getoutputlist",
+            "description": "列出output目录下的文件，当前文件列表，大部分时候可以从这个工具下面找到一些可用的文件",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "string": {
+                        "type": "string",
+                        "description": "无意义占位符"
+                    }
+                },
+                "required": ["string"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_malfind",
+            "description": "查看内存中的恶意文件和的恶意程序",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "string": {
+                        "type": "string",
+                        "description": "无意义占位符"
+                    }
+                },
+                "required": ["string"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_privileges",
+            "description": "查看对应进程有哪些权限",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "string",
+                        "description": "通常为进程PID"
+                    }
+                },
+                "required": ["pid"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_cmdline",
+            "description": "查看进程命令行",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "string",
+                        "description": "通常为进程PID，若没指定pid则返回None"
+                    }
+                },
+                "required": ["pid"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_dlllist",
+            "description": "列出dll列表",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "number",
+                        "description": "通常为进程PID，数字类型"
+                    }
+                },
+                "required": ["pid"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_userassist",
+            "description": "能够追踪文件的最后一次执行时间以及执行次数",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "string": {
+                        "type": "string",
+                        "description": "无意义占位符"
+                    }
+                },
+                "required": ["string"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "readevilent",
+            "description": "查看恶意程序信息",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "一般来说是findevil.csv，如果是规则则查看yara.csv"
+                    }
+                },
+                "required": ["filename"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "vol3_custom",
+            "description": "自定义执行命令，已有参数python vol3.py -f memory，后面为根据需求补全的参数一般前面要加上windows，例如windows.pstree",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "string": {
+                        "type": "string",
+                        "description": "执行的命令，已有参数python vol3.py -f memory，后面为根据需求补全的参数，例如pstree，后面可以加更多参数，要符合volatility3,注意是windows环境的命令"
+                    }
+                },
+                "required": ["string"]
+            }
+        }
+    }
+]
