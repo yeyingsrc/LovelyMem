@@ -7,7 +7,7 @@ CONFIG_FILE = "AItools/config.json"
 
 # 默认配置
 DEFAULT_CONFIG = {
-    "api_key": "sk-cc562470ba7e4dfdb2a94139c6202334",
+    "api_key": "",
     "base_url": "https://api.deepseek.com",
     "model": "deepseek-chat"
 }
