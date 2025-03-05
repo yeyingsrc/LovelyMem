@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+import webbrowser
 from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QIcon, QPixmap, QMouseEvent
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
@@ -108,13 +109,23 @@ class WelcomeDialog(QDialog):
         checkbox_layout.addStretch()
         content_layout.addLayout(checkbox_layout)
         
-        # 确定按钮
+        # 按钮区域
         button_layout = QHBoxLayout()
+        
+        # 添加"我来点star"按钮
+        self.star_button = QPushButton("我来点star")
+        self.star_button.setMinimumWidth(100)
+        self.star_button.clicked.connect(self.open_github)
+        button_layout.addWidget(self.star_button)
+        
         button_layout.addStretch()
+        
+        # 确定按钮
         self.ok_button = QPushButton("开始使用")
         self.ok_button.setMinimumWidth(100)
         self.ok_button.clicked.connect(self.on_ok_clicked)
         button_layout.addWidget(self.ok_button)
+        
         content_layout.addLayout(button_layout)
         
         frame_layout.addLayout(content_layout)
@@ -166,6 +177,20 @@ class WelcomeDialog(QDialog):
             }}
         """)
         
+        # GitHub按钮样式
+        self.star_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #2da44e;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }}
+            QPushButton:hover {{
+                background-color: #2c974b;
+            }}
+        """)
+        
         # 确定按钮样式
         self.ok_button.setStyleSheet(f"""
             QPushButton {{
@@ -183,6 +208,10 @@ class WelcomeDialog(QDialog):
     def toggle_dont_show(self, checked):
         """复选框状态变化时的处理函数"""
         self.dont_show_again = checked
+    
+    def open_github(self):
+        """打开GitHub页面"""
+        webbrowser.open("https://github.com/Tokeii0/LovelyMem")
     
     def on_ok_clicked(self):
         """点击确定按钮时的处理函数"""
