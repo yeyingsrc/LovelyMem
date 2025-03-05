@@ -171,7 +171,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 error_log.txt
-output/image_info.txt
+output/*
 db/presets.db
 db/presets.db
 update_list.json
