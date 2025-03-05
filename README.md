@@ -30,6 +30,7 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 
 ### 界面展示
 ![image](https://github.com/user-attachments/assets/22f8c9e5-f85e-4f29-baa0-914bda63c09b)
+![image](https://github.com/user-attachments/assets/3e9c0905-bb41-4053-aec2-26fa3a499ccb)
 
 ### 具体准备
 根据config文件夹下面的base_config.yaml自助配置以下内容，或者直接在软件中通过"高级功能"下的"设置"按钮进行图形化配置。
@@ -72,7 +73,7 @@ other_tools:
 - **快速检查**：提供常用取证功能的快速访问
 - **任务编排**：可以创建和执行自定义的取证任务流程
 - **报告编辑器**：方便生成和编辑取证报告
-- **AI助手**：提供AI辅助分析功能（需要离线授权）
+- **AI助手**：提供AI辅助分析功能
 - **配置设置**：通过图形界面轻松配置工具路径、LLM设置和代理设置
 
 ### 运行
