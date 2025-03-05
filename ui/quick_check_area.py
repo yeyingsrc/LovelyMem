@@ -9,6 +9,7 @@ from db.updatevol3cache import update_identifier_cache
 from core.task_scheduler import TaskSchedulerDialog
 from plugin.report_editor import ReportEditor
 from ui.config_dialog import ConfigDialog
+from PySide6.QtWidgets import QApplication
 
 class CollapsibleButtonGroup(QWidget):
     def __init__(self, title, buttons, favorite_manager):
@@ -114,42 +115,45 @@ class QuickCheckArea(QWidget):
     def show_task_scheduler(self):
         dialog = TaskSchedulerDialog(self)
         dialog.task_execute.connect(self.execute_task_flow)
-        dialog.exec_()
+        # 使用非模态方式显示对话框
+        dialog.show()
 
-    def execute_task_flow(self, stages):
-        dialog = TaskSchedulerDialog(self)  # 保持对话框的引用
+    def execute_task_flow(self, tasks):
+        """执行任务流程
         
-        for stage in stages:
-            stage_name = stage["stage"]
-            tasks = stage["tasks"]
-            
-            # 显示当前执行的阶段
-            self.main_window.cmd_output.append(f"\n=== 执行{stage_name} ===\n")
-            
-            for task in tasks:
-                try:
-                    area, function = task.split(" - ", 1)
-                    self.main_window.cmd_output.append(f"正在执行: {function}")
-                    
-                    if area == "MemProcFS":
-                        self.main_window.execute_memprocfs_function(function)
-                    elif area == "Volatility 2":
-                        self.main_window.execute_vol2_function(function)
-                    elif area == "Volatility 3":
-                        self.main_window.execute_vol3_function(function)
-                    elif area == "快速检查":
-                        self.main_window.execute_quick_check_function(function)
-                    
-                except Exception as e:
-                    QMessageBox.warning(self, "错误", f"执行任务 '{task}' 时发生错误：{str(e)}")
+        参数:
+            tasks: 从流程图获取的任务序列，每个任务是一个包含 area 和 task 键的字典
+        """
+        # 显示当前执行的任务流程
+        self.main_window.cmd_output.append("\n=== 开始执行任务流程 ===\n")
+        
+        for i, task in enumerate(tasks):
+            try:
+                area = task["area"]
+                function = task["task"]
                 
-            # 每个阶段执行完后暂停，等待用户确认
-            reply = QMessageBox.question(self, f"{stage_name}完成", 
-                                       f"{stage_name}已执行完成，是否继续执行下一阶段？",
-                                       QMessageBox.Yes | QMessageBox.No)
-            if reply == QMessageBox.No:
-                dialog.show()  # 重新显示任务编排窗口
-                return  # 仅退出执行，不关闭窗口
+                # 显示当前执行的任务
+                self.main_window.cmd_output.append(f"正在执行 [{i+1}/{len(tasks)}]: {area} - {function}")
+                
+                # 根据任务区域执行相应的功能
+                if area == "MemProcFS":
+                    self.main_window.execute_memprocfs_function(function)
+                elif area == "Volatility 2":
+                    self.main_window.execute_vol2_function(function)
+                elif area == "Volatility 3":
+                    self.main_window.execute_vol3_function(function)
+                elif area == "快速检查":
+                    self.main_window.execute_quick_check_function(function)
+                
+                # 每个任务执行后短暂暂停，让用户有时间查看输出
+                QApplication.processEvents()
+                
+            except Exception as e:
+                QMessageBox.warning(self, "错误", f"执行任务 '{area} - {function}' 时发生错误：{str(e)}")
+                break
+        
+        # 任务流程执行完成
+        self.main_window.cmd_output.append("\n=== 任务流程执行完成 ===\n")
 
     def show_report_editor(self):
         self.report_editor = ReportEditor()

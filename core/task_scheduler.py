@@ -27,8 +27,10 @@ class TaskSchedulerDialog(QDialog):
         self.resize(1200, 800)  # 扩大窗口尺寸以适应流程图
         self.parent = parent
         
-        # 设置窗口标志，不强制置顶
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+        # 设置窗口标志，确保可以关闭且不会置顶
+        self.setWindowFlags(Qt.Window)
+        # 明确移除置顶标志
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, False)
         
         # 设置UI组件
         self.setup_ui()
@@ -76,10 +78,14 @@ class TaskSchedulerDialog(QDialog):
         execute_button = QPushButton("执行")
         execute_button.clicked.connect(self.execute_tasks)
         
+        close_button = QPushButton("关闭")
+        close_button.clicked.connect(self.accept)
+        
         bottom_layout.addWidget(save_button)
         bottom_layout.addWidget(load_button)
         bottom_layout.addStretch(1)  # 添加弹性空间
         bottom_layout.addWidget(execute_button)
+        bottom_layout.addWidget(close_button)
         
         main_layout.addLayout(bottom_layout)
 
@@ -146,7 +152,7 @@ class TaskSchedulerDialog(QDialog):
             if reply == QMessageBox.Yes:
                 # 发送任务列表信号
                 self.task_execute.emit(tasks)
-                # 不再隐藏对话框
+                # 不关闭对话框，保持界面打开
         except Exception as e:
             QMessageBox.warning(self, "错误", f"执行任务失败：{str(e)}")
 
