@@ -2,6 +2,9 @@ import os
 import re
 import time
 import binascii
+import mmap
+import concurrent.futures
+from threading import Lock
 
 from PySide6.QtCore import QObject, Signal
 
@@ -42,60 +45,230 @@ class QuickCheck:
         ]
         self.compiled_patterns = [re.compile(pattern.encode("utf-8") if isinstance(pattern, str) else pattern) for pattern in self.patterns]
         self.context_bytes = 16  # 匹配结果前后的上下文字节数
+        self.use_mmap = True  # 默认使用内存映射
+        self.num_threads = 4  # 默认线程数
+        self.progress_lock = Lock()  # 用于线程安全地更新进度
+
+    def process_chunk(self, chunk, chunk_offset, patterns, file_size=None, check_interruption=None):
+        """处理一个数据块，寻找匹配"""
+        results = []
+        
+        for pattern in patterns:
+            if check_interruption and check_interruption():
+                break
+                
+            matches = pattern.finditer(chunk)
+            for match in matches:
+                # 获取匹配结果
+                match_bytes = match.group()
+                decoded_match = match.group().decode("utf-8", errors="ignore")
+                
+                # 计算在整个文件中的绝对位置
+                absolute_position = chunk_offset + match.start()
+                
+                # 获取上下文字节
+                start_context = max(0, match.start() - self.context_bytes)
+                end_context = min(len(chunk), match.end() + self.context_bytes)
+                context_data = chunk[start_context:end_context]
+                
+                # 转换为十六进制
+                hex_data = binascii.hexlify(context_data).decode('ascii')
+                
+                # 添加到结果
+                results.append({
+                    'match': decoded_match,
+                    'position': absolute_position,
+                    'hex': hex_data,
+                    'raw_data': context_data,
+                    'match_start': match.start() - start_context,  # 相对于上下文的起始位置
+                    'match_length': match.end() - match.start()    # 匹配长度
+                })
+                
+        return results
 
     def extract_strings(self, image_path, callback=None, check_interruption=None):
         file_size = os.path.getsize(image_path)
-        chunk_size = 1024 * 1024  # 1MB chunks
         results = []
-        processed_bytes = 0
         last_update_time = time.time()
+        total_progress = 0
 
-        with open(image_path, "rb") as f:
-            while True:
-                if check_interruption and check_interruption():
-                    break
-
-                chunk = f.read(chunk_size)
-                if not chunk:
-                    break
-
-                for pattern in self.compiled_patterns:
-                    if check_interruption and check_interruption():
-                        break
-                    matches = pattern.finditer(chunk)
-                    for match in matches:
-                        # 获取匹配结果
-                        match_bytes = match.group()
-                        decoded_match = match.group().decode("utf-8", errors="ignore")
-                        
-                        # 计算在整个文件中的绝对位置
-                        absolute_position = processed_bytes + match.start()
-                        
-                        # 获取上下文字节
-                        start_context = max(0, match.start() - self.context_bytes)
-                        end_context = min(len(chunk), match.end() + self.context_bytes)
-                        context_data = chunk[start_context:end_context]
-                        
-                        # 转换为十六进制
-                        hex_data = binascii.hexlify(context_data).decode('ascii')
-                        
-                        # 添加到结果
-                        results.append({
-                            'match': decoded_match,
-                            'position': absolute_position,
-                            'hex': hex_data,
-                            'raw_data': context_data,
-                            'match_start': match.start() - start_context,  # 相对于上下文的起始位置
-                            'match_length': match.end() - match.start()    # 匹配长度
-                        })
-
-                processed_bytes += len(chunk)
+        # 更新进度的辅助函数
+        def update_progress(progress_increment):
+            nonlocal total_progress, last_update_time
+            with self.progress_lock:
+                total_progress += progress_increment
                 current_time = time.time()
                 if current_time - last_update_time > 0.1:  # 每0.1秒更新一次进度
-                    progress = (processed_bytes / file_size) * 100
                     if callback:
-                        callback(progress)
+                        callback(min(total_progress, 99.9))  # 确保不超过100%
                     last_update_time = current_time
+
+        if self.use_mmap:
+            # 使用内存映射方式处理文件
+            try:
+                with open(image_path, "rb") as f:
+                    # 创建内存映射
+                    with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mmapped_file:
+                        # 如果启用多线程，则将文件分成多个块并行处理
+                        if self.num_threads > 1:
+                            chunk_size = len(mmapped_file) // self.num_threads
+                            chunks = []
+                            
+                            # 准备文件块
+                            for i in range(self.num_threads):
+                                start = i * chunk_size
+                                end = start + chunk_size if i < self.num_threads - 1 else len(mmapped_file)
+                                
+                                # 读取块数据
+                                mmapped_file.seek(start)
+                                chunk_data = mmapped_file.read(end - start)
+                                chunks.append((chunk_data, start))
+                            
+                            # 使用线程池并行处理
+                            with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+                                futures = []
+                                for chunk_data, offset in chunks:
+                                    future = executor.submit(
+                                        self.process_chunk,
+                                        chunk_data,
+                                        offset,
+                                        self.compiled_patterns,
+                                        file_size,
+                                        check_interruption
+                                    )
+                                    futures.append(future)
+                                
+                                # 收集结果
+                                completed = 0
+                                for future in concurrent.futures.as_completed(futures):
+                                    if check_interruption and check_interruption():
+                                        break
+                                    chunk_results = future.result()
+                                    results.extend(chunk_results)
+                                    
+                                    # 更新进度
+                                    completed += 1
+                                    progress_increment = (completed / len(futures)) * 100
+                                    update_progress(progress_increment)
+                                    
+                        else:
+                            # 单线程模式下对整个映射文件进行处理
+                            for pattern in self.compiled_patterns:
+                                if check_interruption and check_interruption():
+                                    break
+                                    
+                                # 搜索整个映射文件
+                                offset = 0
+                                while True:
+                                    if check_interruption and check_interruption():
+                                        break
+                                    
+                                    # 在当前位置查找匹配
+                                    match = pattern.search(mmapped_file, offset)
+                                    if not match:
+                                        break
+                                        
+                                    # 获取匹配结果
+                                    match_bytes = match.group()
+                                    decoded_match = match.group().decode("utf-8", errors="ignore")
+                                    
+                                    # 计算绝对位置
+                                    absolute_position = match.start()
+                                    
+                                    # 获取上下文字节
+                                    start_context = max(0, match.start() - self.context_bytes)
+                                    end_context = min(file_size, match.end() + self.context_bytes)
+                                    
+                                    # 定位到上下文起始位置并读取数据
+                                    mmapped_file.seek(start_context)
+                                    context_data = mmapped_file.read(end_context - start_context)
+                                    
+                                    # 转换为十六进制
+                                    hex_data = binascii.hexlify(context_data).decode('ascii')
+                                    
+                                    # 添加到结果
+                                    results.append({
+                                        'match': decoded_match,
+                                        'position': absolute_position,
+                                        'hex': hex_data,
+                                        'raw_data': context_data,
+                                        'match_start': match.start() - start_context,  # 相对于上下文的起始位置
+                                        'match_length': match.end() - match.start()    # 匹配长度
+                                    })
+                                    
+                                    # 移动到下一个搜索位置
+                                    offset = match.end()
+                                    
+                                    # 更新进度
+                                    current_progress = (offset / file_size) * 100
+                                    update_progress(current_progress)
+                return results
+            except Exception as e:
+                print(f"使用内存映射时出错: {str(e)}，回退到标准模式")
+                # 如果内存映射失败，回退到标准模式
+                self.use_mmap = False
+        
+        # 标准模式处理文件（当内存映射禁用或失败时）
+        chunk_size = 1024 * 1024  # 1MB chunks
+        
+        # 对于多线程模式，我们先准备所有块
+        if self.num_threads > 1:
+            chunks = []
+            offset = 0
+            
+            with open(image_path, "rb") as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    chunks.append((chunk, offset))
+                    offset += len(chunk)
+            
+            # 使用线程池并行处理块
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+                futures = []
+                for chunk_data, chunk_offset in chunks:
+                    future = executor.submit(
+                        self.process_chunk,
+                        chunk_data,
+                        chunk_offset,
+                        self.compiled_patterns,
+                        file_size,
+                        check_interruption
+                    )
+                    futures.append(future)
+                
+                # 收集结果
+                completed = 0
+                for future in concurrent.futures.as_completed(futures):
+                    if check_interruption and check_interruption():
+                        break
+                    chunk_results = future.result()
+                    results.extend(chunk_results)
+                    
+                    # 更新进度
+                    completed += 1
+                    progress_increment = (completed / len(futures)) * 100
+                    update_progress(progress_increment)
+        else:
+            # 单线程模式
+            processed_bytes = 0
+            
+            with open(image_path, "rb") as f:
+                while True:
+                    if check_interruption and check_interruption():
+                        break
+
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+
+                    chunk_results = self.process_chunk(chunk, processed_bytes, self.compiled_patterns, file_size, check_interruption)
+                    results.extend(chunk_results)
+                    
+                    processed_bytes += len(chunk)
+                    progress = (processed_bytes / file_size) * 100
+                    update_progress(progress)
 
         return results
 
