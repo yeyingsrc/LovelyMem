@@ -399,7 +399,138 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
             thread = Thread(target=process_dump)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
-# 导出该文件(vol2-dumpfile)
+
+# 进程转储后通过GIMP打开 vol2
+class Vol2PidDumpPlugin(CellPlugin):
+    @property
+    def name(self) -> str:
+        return "进程转储toDmp(volatility2)"
+    
+    @property
+    def description(self) -> str:
+        return "导出dmp文件"
+        
+    @property
+    def category(self) -> str:
+        return "进程转储"
+        
+    @property
+    def file_pattern(self) -> str:
+        return "*"
+        
+    @property
+    def column_patterns(self) -> List[str]:
+        return ["*PID*"]
+
+    def process_cells(self, df: pd.DataFrame, selected_cells: List[tuple]) -> pd.DataFrame:
+        # 提取所选单元格内容
+        from plugin.vol2 import Vol2Plugin
+        image_path = get_image_info_file()[0]
+        gimppath = readconfig()[3]
+        # 处理每个选中的单元格
+        for row, col in selected_cells:
+            value = get_sorted_cell_value(df, row, col).strip('"')
+            print(f"获取到的 PID 值: {value}")
+            # 使用线程执行耗时操作
+            def process_dump():
+                Vol2Plugin(image_path).vol2_memdump(value)
+
+            from threading import Thread
+            thread = Thread(target=process_dump)
+            thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
+            thread.start()
+        return df
+
+# 进程转储后通过GIMP打开 vol3
+class Vol3PidDumptoGimpPlugin(CellPlugin):
+    @property
+    def name(self) -> str:
+        return "进程转储toDmp(volatility3)"
+    
+    @property
+    def description(self) -> str:
+        return "导出dmp文件"
+        
+    @property
+    def category(self) -> str:
+        return "进程转储"
+        
+    @property
+    def file_pattern(self) -> str:
+        return "*"
+        
+    @property
+    def column_patterns(self) -> List[str]:
+        return ["*PID*"]
+
+    def process_cells(self, df: pd.DataFrame, selected_cells: List[tuple]) -> pd.DataFrame:
+        # 提取所选单元格内容
+        from plugin.vol3 import Vol3Plugin
+        image_path = get_image_info_file()[0]
+        gimppath = readconfig()[3]
+        for row, col in selected_cells:
+            value = get_sorted_cell_value(df, row, col).strip('"')
+            print(f"获取到的 PID 值： {value}")
+            # 使用线程执行耗时操作
+            def process_dump():
+                Vol3Plugin(image_path).vol3memmap(value)
+                
+                while not os.path.exists(f'output/pid.{value}.dmp'):
+                    print(f"PID {value} 的进程转储尚未导出，等待中...")
+                    import time
+                    time.sleep(1)
+                print(f"PID {value} 的进程转储已导出到 output/pid.{value}.dmp")
+
+            from threading import Thread
+            thread = Thread(target=process_dump)
+            thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
+            thread.start()
+
+# 进程转储后通过GIMP打开 memprocfs
+class MemprocfsPidDumptoGimpPlugin(CellPlugin):
+    @property
+    def name(self) -> str:
+        return "进程转储toDmp(memprocfs)"
+    
+    @property
+    def description(self) -> str:
+        return "导出dmp文件"
+        
+    @property
+    def category(self) -> str:
+        return "进程转储"
+        
+    @property
+    def file_pattern(self) -> str:
+        return "*"
+        
+    @property
+    def column_patterns(self) -> List[str]:
+        return ["*PID*"]
+
+    def process_cells(self, df: pd.DataFrame, selected_cells: List[tuple]) -> pd.DataFrame:
+        # 提取所选单元格内容
+        from plugin.memprocfs import MemprocfsPlugin
+        image_path = get_image_info_file()[0]
+        gimppath = readconfig()[3]
+        for row, col in selected_cells:
+            value = get_sorted_cell_value(df, row, col).strip('"')
+            print(f"获取到的 PID 值： {value}")
+            # 使用线程执行耗时操作
+            def process_dump():
+                procmemfile = rf'M:/pid/{value}/minidump/minidump.dmp'
+                os.makedirs('tmp', exist_ok=True)
+                newpath = rf'output/minidump_pid_{value}.dmp'
+                shutil.copy(procmemfile, newpath)
+                print(f'[+] 执行成功!已导出进程 {value} 的 minidump.dmp')
+
+            from threading import Thread
+            thread = Thread(target=process_dump)
+            thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
+            thread.start()
+
+
+
 class Vol2DumpFilePlugin(CellPlugin):
     @property
     def name(self) -> str:
