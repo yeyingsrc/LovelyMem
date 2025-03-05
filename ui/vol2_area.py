@@ -14,11 +14,11 @@ class Vol2Button(QPushButton):
         self.setFont(font)
 
 class CollapsibleButtonGroup(QWidget):
-    def __init__(self, title, buttons, favorite_manager):
+    def __init__(self, title, buttons, main_window):
         super().__init__()
         self.title = title
         self.buttons = buttons
-        self.favorite_manager = favorite_manager
+        self.main_window = main_window
         self.is_expanded = False
         self.setup_ui()
 
@@ -42,25 +42,26 @@ class CollapsibleButtonGroup(QWidget):
             self.content_layout.addWidget(button, row, col)
         self.content_widget.setVisible(False)
         layout.addWidget(self.content_widget)
-
+        
+        # 添加右键菜单功能
         for button in self.buttons:
             button.setContextMenuPolicy(Qt.CustomContextMenu)
             button.customContextMenuRequested.connect(lambda pos, btn=button: self.show_context_menu(pos, btn))
 
     def show_context_menu(self, pos, button):
-        context_menu = self.favorite_manager.create_context_menu(button, source_area="Vol2")
-        context_menu.exec_(button.mapToGlobal(pos))
+        if hasattr(self.main_window, 'preset_manager'):
+            context_menu = self.main_window.preset_manager.create_context_menu(button, source_area="Vol2")
+            context_menu.exec_(button.mapToGlobal(pos))
 
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded
         self.content_widget.setVisible(self.is_expanded)
 
 class Vol2Area(QWidget):
-    def __init__(self, favorite_manager, main_window):
-        super().__init__()
+    def __init__(self, main_window, parent=None):
+        super().__init__(parent)
         self.setStyleSheet(vol2_style)
 
-        self.favorite_manager = favorite_manager
         self.main_window = main_window
         self.vol2_plugin = Vol2Plugin('')
 
@@ -108,7 +109,7 @@ class Vol2Area(QWidget):
             ("控制台(consoles)", lambda: self.button_clicked(self.vol2_plugin.vol2_consoles)),
         ]
         basic_buttons = [self.create_button(text, func) for text, func in basic_functions]
-        self.basic_group = CollapsibleButtonGroup("基本功能", basic_buttons, self.favorite_manager)
+        self.basic_group = CollapsibleButtonGroup("基本功能", basic_buttons, self.main_window)
         layout.addWidget(self.basic_group)
 
         # 进程分析组
@@ -124,7 +125,7 @@ class Vol2Area(QWidget):
             ("DLL列表(dlllist)", lambda: self.button_clicked(self.vol2_plugin.vol2_dlllist)),
         ]
         process_buttons = [self.create_button(text, func) for text, func in process_functions]
-        self.process_group = CollapsibleButtonGroup("进程分析", process_buttons, self.favorite_manager)
+        self.process_group = CollapsibleButtonGroup("进程分析", process_buttons, self.main_window)
         layout.addWidget(self.process_group)
 
         # 内存和模块分析组
@@ -139,7 +140,7 @@ class Vol2Area(QWidget):
             ("驱动IRP钩子检测(driverirp)", lambda: self.button_clicked(self.vol2_plugin.vol2_driverirp)),
         ]
         memory_buttons = [self.create_button(text, func) for text, func in memory_functions]
-        self.memory_group = CollapsibleButtonGroup("内存和模块分析", memory_buttons, self.favorite_manager)
+        self.memory_group = CollapsibleButtonGroup("内存和模块分析", memory_buttons, self.main_window)
         layout.addWidget(self.memory_group)
 
         # 文件系统和注册表分析组
@@ -153,7 +154,7 @@ class Vol2Area(QWidget):
             ("审计策略(auditpol)", lambda: self.button_clicked(self.vol2_plugin.vol2_auditpol)),
         ]
         file_registry_buttons = [self.create_button(text, func) for text, func in file_registry_functions]
-        self.file_registry_group = CollapsibleButtonGroup("文件和注册表分析", file_registry_buttons, self.favorite_manager)
+        self.file_registry_group = CollapsibleButtonGroup("文件和注册表分析", file_registry_buttons, self.main_window)
         layout.addWidget(self.file_registry_group)
 
         # 网络分析组
@@ -163,7 +164,7 @@ class Vol2Area(QWidget):
 
         ]
         network_buttons = [self.create_button(text, func) for text, func in network_functions]
-        self.network_group = CollapsibleButtonGroup("网络分析", network_buttons, self.favorite_manager)
+        self.network_group = CollapsibleButtonGroup("网络分析", network_buttons, self.main_window)
         layout.addWidget(self.network_group)
 
         # 用户活动组
@@ -181,7 +182,7 @@ class Vol2Area(QWidget):
             ("编辑框(editbox)", lambda: self.button_clicked(self.vol2_plugin.vol2_editbox)),
         ]
         user_activity_buttons = [self.create_button(text, func) for text, func in user_activity_functions]
-        self.user_activity_group = CollapsibleButtonGroup("用户活动", user_activity_buttons, self.favorite_manager)
+        self.user_activity_group = CollapsibleButtonGroup("用户活动", user_activity_buttons, self.main_window)
         layout.addWidget(self.user_activity_group)
 
         # 系统信息组
@@ -194,7 +195,7 @@ class Vol2Area(QWidget):
             ("系统回调(callbacks)", lambda: self.button_clicked(self.vol2_plugin.vol2_callbacks)),  
         ]
         system_info_buttons = [self.create_button(text, func) for text, func in system_info_functions]
-        self.system_info_group = CollapsibleButtonGroup("系统信息", system_info_buttons, self.favorite_manager)
+        self.system_info_group = CollapsibleButtonGroup("系统信息", system_info_buttons, self.main_window)
         layout.addWidget(self.system_info_group)
 
         # 恶意代码和钩子检测组
@@ -207,7 +208,7 @@ class Vol2Area(QWidget):
             ("符号链接扫描(symlinkscan)", lambda: self.button_clicked(self.vol2_plugin.vol2_symlinkscan)),
         ]
         malware_buttons = [self.create_button(text, func) for text, func in malware_functions]
-        self.malware_group = CollapsibleButtonGroup("恶意代码和钩子检测", malware_buttons, self.favorite_manager)
+        self.malware_group = CollapsibleButtonGroup("恶意代码和钩子检测", malware_buttons, self.main_window)
         layout.addWidget(self.malware_group)
 
         # 文件导出组
@@ -234,7 +235,7 @@ class Vol2Area(QWidget):
             export_layout.addWidget(button)
         export_layout.addLayout(custom_export_layout)
 
-        self.export_group = CollapsibleButtonGroup("文件导出", [export_widget], self.favorite_manager)
+        self.export_group = CollapsibleButtonGroup("文件导出", [export_widget], self.main_window)
         layout.addWidget(self.export_group)
 
         # 扩展功能组
@@ -246,7 +247,7 @@ class Vol2Area(QWidget):
             ("截图(screenshot)", lambda: self.button_clicked(self.vol2_plugin.vol2_screenshot)),
         ]
         extended_buttons = [self.create_button(text, func) for text, func in extended_functions]
-        self.extended_group = CollapsibleButtonGroup("扩展功能", extended_buttons, self.favorite_manager)
+        self.extended_group = CollapsibleButtonGroup("扩展功能", extended_buttons, self.main_window)
         layout.addWidget(self.extended_group)
 
     def update_mem_path(self):

@@ -16,8 +16,7 @@ from ui.memprocfs_area import MemProcFSArea
 from ui.vol2_area import Vol2Area
 from ui.vol3_area import Vol3Area
 from ui.quick_check_area import QuickCheckArea
-from ui.favorite_button_group import FavoriteButtonGroup
-from ui.favorite_manager import FavoriteManager
+from ui.preset_manager import PresetManager
 from ui.file_menu_area import FileMenuArea  # 新增导入
 from ui.main_window_rightpanel import RightPanel
 from core.loadmem import MemImageLoader
@@ -88,7 +87,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.91")
+        title_label = QLabel("Lovelymem Ver 0.92")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -141,15 +140,8 @@ class MainWindow(QMainWindow):
         self.file_menu_area.load_image_signal.connect(self.load_image)  # 连接信号到新的load_image方法
         left_layout.addWidget(self.file_menu_area)
 
-        # 创建喜爱管理器
-        self.favorite_manager = FavoriteManager(None)
-
-        # 创建喜爱按钮组并添加到文件菜单区域之后
-        self.favorite_group = FavoriteButtonGroup(self.favorite_manager)
-        left_layout.addWidget(self.favorite_group)
-
-        # 设置喜爱管理器的favorite_group
-        self.favorite_manager.favorite_group = self.favorite_group
+        # 创建预设管理器
+        self.preset_manager = PresetManager()
 
         # 创建标签页控件并应用样式
         self.tab_widget = QTabWidget()
@@ -157,10 +149,10 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.tab_widget)
 
         # 创建各个功能区域
-        self.memprocfs_area = MemProcFSArea(self.favorite_manager, self)
-        self.vol2_area = Vol2Area(self.favorite_manager, self)  # 传入 self 作为 main_window 参数
-        self.vol3_area = Vol3Area(self.favorite_manager, self)
-        self.quick_check_area = QuickCheckArea(self.favorite_manager, self)
+        self.memprocfs_area = MemProcFSArea(self, self)
+        self.vol2_area = Vol2Area(self, self)  # 传入 self 作为 main_window 参数
+        self.vol3_area = Vol3Area(self, self)
+        self.quick_check_area = QuickCheckArea(self, self)
 
         # 将功能区域添加到标签页中，并设置图标
         self.tab_widget.addTab(self.memprocfs_area, "MemProcFS")
@@ -177,20 +169,16 @@ class MainWindow(QMainWindow):
         self.right_panel.setStyleSheet(splitter_style)  # 应用新的样式到右侧面板
         upper_layout.addWidget(self.right_panel, 5)  # 右侧占比1
 
-
-
-        # 设置喜爱管理器的right_panel
-        self.favorite_manager.right_panel = self.right_panel
+        # 设置预设管理器的right_panel
+        self.preset_manager.right_panel = self.right_panel
 
         # 连接预设添加信号
-        self.favorite_manager.preset_added.connect(self.right_panel.add_button_to_preset)
+        self.preset_manager.preset_added.connect(self.right_panel.add_button_to_preset)
 
         # 连接RightPanel的信号
         self.right_panel.pack_files_signal.connect(self.pack_files)
         self.right_panel.clear_files_signal.connect(self.clear_files)
         self.right_panel.execute_preset_signal.connect(self.execute_preset)
-
-
 
         # 设置文件树
         self.file_tree = self.right_panel.file_tree
@@ -281,7 +269,7 @@ class MainWindow(QMainWindow):
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.91 - {image_path}")
+                title_label.setText(f"Lovelymem Ver 0.92 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -332,7 +320,7 @@ class MainWindow(QMainWindow):
         os.system("taskkill /F /IM python27.exe")
         print("[+] 卸载镜像成功")
         # 标题修改
-        self.setWindowTitle("Lovelymem Ver 0.91")
+        self.setWindowTitle("Lovelymem Ver 0.92")
 
     def refresh_file_list(self):
         current_files = self.file_manager.get_file_list()

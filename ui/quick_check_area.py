@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QLabel, QHBoxLayout, QMessageBox
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QLabel, QHBoxLayout, QMessageBox, QMenu
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from ui.styles import quick_check_style
@@ -11,12 +11,18 @@ from plugin.report_editor import ReportEditor
 from ui.config_dialog import ConfigDialog
 from PySide6.QtWidgets import QApplication
 
+class QuickCheckButton(QPushButton):
+    def __init__(self, text, function=None):
+        super().__init__(text)
+        if function:
+            self.clicked.connect(function)
+
 class CollapsibleButtonGroup(QWidget):
-    def __init__(self, title, buttons, favorite_manager):
+    def __init__(self, title, buttons, main_window):
         super().__init__()
         self.title = title
         self.buttons = buttons
-        self.favorite_manager = favorite_manager
+        self.main_window = main_window
         self.is_expanded = True
         self.setup_ui()
 
@@ -25,7 +31,7 @@ class CollapsibleButtonGroup(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self.title_button = QPushButton(self.title)
+        self.title_button = QuickCheckButton(self.title)
         self.title_button.clicked.connect(self.toggle_expand)
         layout.addWidget(self.title_button)
 
@@ -37,23 +43,24 @@ class CollapsibleButtonGroup(QWidget):
             self.content_layout.addWidget(button, row, col)
         self.content_widget.setVisible(True)
         layout.addWidget(self.content_widget)
-
+        
+        # 添加右键菜单功能
         for button in self.buttons:
             button.setContextMenuPolicy(Qt.CustomContextMenu)
             button.customContextMenuRequested.connect(lambda pos, btn=button: self.show_context_menu(pos, btn))
 
     def show_context_menu(self, pos, button):
-        context_menu = self.favorite_manager.create_context_menu(button, source_area="QuickCheck")
-        context_menu.exec_(button.mapToGlobal(pos))
+        if hasattr(self.main_window, 'preset_manager'):
+            context_menu = self.main_window.preset_manager.create_context_menu(button, source_area="QuickCheck")
+            context_menu.exec_(button.mapToGlobal(pos))
 
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded
         self.content_widget.setVisible(self.is_expanded)
 
 class QuickCheckArea(QWidget):
-    def __init__(self, favorite_manager, main_window):
-        super().__init__()
-        self.favorite_manager = favorite_manager
+    def __init__(self, main_window, parent=None):
+        super().__init__(parent)
         self.main_window = main_window
         self.setStyleSheet(quick_check_style)
         layout = QVBoxLayout(self)
@@ -66,7 +73,7 @@ class QuickCheckArea(QWidget):
             QPushButton("AIlovelymem"),
             QPushButton("设置"),
         ]
-        self.advanced_group = CollapsibleButtonGroup("高级功能", advanced_buttons, self.favorite_manager)
+        self.advanced_group = CollapsibleButtonGroup("高级功能", advanced_buttons, self.main_window)
         layout.addWidget(self.advanced_group)
         # 其他功能组
         
@@ -77,7 +84,7 @@ class QuickCheckArea(QWidget):
 
         other_buttons[0].clicked.connect(self.show_knowledge_base)
         other_buttons[1].clicked.connect(self.update_vol3_cache)
-        self.other_group = CollapsibleButtonGroup("其他功能", other_buttons, self.favorite_manager)
+        self.other_group = CollapsibleButtonGroup("其他功能", other_buttons, self.main_window)
         layout.addWidget(self.other_group)
 
 

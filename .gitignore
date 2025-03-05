@@ -172,3 +172,5 @@ cython_debug/
 .pypirc
 error_log.txt
 output/image_info.txt
+db/presets.db
+db/presets.db

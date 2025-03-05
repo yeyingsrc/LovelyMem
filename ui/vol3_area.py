@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QScrollArea, QGroupBox, QCheckBox
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QScrollArea, QGroupBox, QCheckBox, QMenu
 from PySide6.QtCore import Qt
 from ui.styles import memprocfs_style, get_current_theme, apply_color_scheme, is_dark_mode
 import ui.styles
@@ -28,11 +28,11 @@ class Vol3Button(QPushButton):
 
 
 class CollapsibleButtonGroup(QWidget):
-    def __init__(self, title, buttons, favorite_manager):
+    def __init__(self, title, buttons, main_window):
         super().__init__()
         self.title = title
         self.buttons = buttons
-        self.favorite_manager = favorite_manager
+        self.main_window = main_window
         self.is_expanded = False
         self.setup_ui()
 
@@ -51,19 +51,21 @@ class CollapsibleButtonGroup(QWidget):
         self.content_layout.setHorizontalSpacing(2)
         self.content_layout.setVerticalSpacing(2)
         for i, button in enumerate(self.buttons):
-            row = i // 3
+            row = i // 3  # 每行3个按钮
             col = i % 3
             self.content_layout.addWidget(button, row, col)
         self.content_widget.setVisible(False)
         layout.addWidget(self.content_widget)
-
+        
+        # 添加右键菜单功能
         for button in self.buttons:
             button.setContextMenuPolicy(Qt.CustomContextMenu)
             button.customContextMenuRequested.connect(lambda pos, btn=button: self.show_context_menu(pos, btn))
 
     def show_context_menu(self, pos, button):
-        context_menu = self.favorite_manager.create_context_menu(button, source_area="Vol3")
-        context_menu.exec_(button.mapToGlobal(pos))
+        if hasattr(self.main_window, 'preset_manager'):
+            context_menu = self.main_window.preset_manager.create_context_menu(button, source_area="Vol3")
+            context_menu.exec_(button.mapToGlobal(pos))
 
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded
@@ -78,9 +80,8 @@ class CollapsibleButtonGroup(QWidget):
 
 
 class Vol3Area(QWidget):
-    def __init__(self, favorite_manager, main_window):
-        super().__init__()
-        self.favorite_manager = favorite_manager
+    def __init__(self, main_window, parent=None):
+        super().__init__(parent)
         self.main_window = main_window
         self.vol3_plugin = None
         self.setup_ui()
@@ -196,7 +197,7 @@ class Vol3Area(QWidget):
 
         for group_name, functions in function_groups.items():
             buttons = [Vol3Button(text, partial(self.button_clicked, func)) for text, func in functions]
-            group = CollapsibleButtonGroup(group_name, buttons, self.favorite_manager)
+            group = CollapsibleButtonGroup(group_name, buttons, self.main_window)
             content_layout.addWidget(group)
 
         content_layout.addStretch(1)
