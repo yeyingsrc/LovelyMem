@@ -96,12 +96,6 @@ class QuickCheckArea(QWidget):
         self.user_avatar.setPixmap(QPixmap(avatar_path).scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         self.user_info_label.setText(user_info)
 
-    def avatar_clicked(self, event):
-        self.click_count += 1
-        if self.click_count == random.randint(30, 100):
-            QMessageBox.information(self, "恭喜", "恭喜获得离线授权5折券！")
-            self.click_count = 0
-
     def update_vol3_cache(self):
         reply = QMessageBox.question(self, "提示", "一般来说如果没有更换路径位置不需要点击这里\n强制重置VOL3缓存会删除本地已经有的vol3缓存\n强制构建默认镜像索引，是否继续？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
