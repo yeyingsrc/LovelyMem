@@ -657,3 +657,8 @@ class MainWindow(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+
+    def open_config_dialog(self):
+        from ui.config_dialog import ConfigDialog
+        config_dialog = ConfigDialog(self)
+        config_dialog.exec()

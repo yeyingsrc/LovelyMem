@@ -174,3 +174,5 @@ error_log.txt
 output/image_info.txt
 db/presets.db
 db/presets.db
+update_list.json
+CteateUpdateJson.py

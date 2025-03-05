@@ -23,5 +23,6 @@
     },
     "font_settings": {
         "font_family": "汉仪文黑-85W"
-    }
+    },
+    "first_run_reminder": true
 }
