@@ -124,7 +124,11 @@ class Vol3Area(QWidget):
                 ("命令行参数(cmdline)", "vol3_cmdline"), 
                 ("进程加载模块(ldrmodules)", "vol3_ldrmodules"), 
                 ("进程权限(privileges)", "vol3_privileges"),
-                
+                ("空心进程检测(hollowprocesses)", "vol3_hollowprocesses"),
+                ("进程虚假化检测(processghosting)", "vol3_processghosting"),
+                ("隐藏进程检测(psxview)", "vol3_psxview"),
+                ("线程信息(threads)", "vol3_threads"),
+                ("可疑线程检测(suspicious_threads)", "vol3_suspicious_threads"),
             ],
             "系统信息": [
                 ("系统基本信息(info)", "vol3_info"),
@@ -150,12 +154,16 @@ class Vol3Area(QWidget):
                 ("Windows版本信息(verinfo)", "vol3_verinfo"),
                 ("虚拟内存映射表(virtmap)", "vol3_virtmap"),
                 ("已卸载模块(unloadedmodules)", "vol3_unloadedmodules"),
+                ("KPCR信息(kpcrs)", "vol3_kpcrs"),
+                ("定时器信息(timers)", "vol3_timers"),
+                ("导入地址表(IAT)", "vol3_iat"),
             ],
             "文件和网络": [
                 ("文件对象扫描(filescan)", "vol3_filescan"), 
                 ("互斥体对象扫描(mutantscan)", "vol3_mutantscan"), 
                 ("网络连接扫描(netscan)", "vol3_netscan"),
                 ("网络连接状态(netstat)", "vol3_netstat"),
+                ("Shim缓存内存分析(shimcachemem)", "vol3_shimcachemem"),
             ],
             "注册表": [
                 ("注册表证书信息(certificates)", "vol3_registry.certificates"), 
@@ -163,6 +171,7 @@ class Vol3Area(QWidget):
                 ("注册表Hive扫描(hivescan)", "vol3_registry.hivescan"), 
                 ("注册表键值查看(printkey)", "vol3_registry.printkey"),
                 ("用户操作记录(userassist)", "vol3_registry.userassist"),
+                ("注册表单元格获取(registry.getcellroutine)", "vol3_registry.getcellroutine"),
             ],
             "恶意代码检测": [
                 ("内存注入检测(malfind)", "vol3_malfind"), 
@@ -176,22 +185,8 @@ class Vol3Area(QWidget):
                 ("密码哈希转储(hashdump)", "vol3_hashdump"), 
                 ("LSA密钥转储(lsadump)", "vol3_lsadump"), 
                 ("服务SID查询(getservicesids)", "vol3_getservicesids"),
-            ],
-            
-            "新版本新增功能": [
-                ("已卸载模块(unloadedmodules)", "vol3_unloadedmodules"),
-                ("空心进程检测(hollowprocesses)", "vol3_hollowprocesses"),
-                ("KPCR信息(kpcrs)", "vol3_kpcrs"),
-                ("进程虚假化检测(processghosting)", "vol3_processghosting"),
-                ("隐藏进程检测(psxview)", "vol3_psxview"),
-                ("注册表单元格获取(registry.getcellroutine)", "vol3_registry.getcellroutine"),
-                ("Shim缓存内存分析(shimcachemem)", "vol3_shimcachemem"),
-                ("可疑线程检测(suspicious_threads)", "vol3_suspicious_threads"),
                 ("服务差异分析(svcdiff)", "vol3_svcdiff"),
                 ("服务列表(svclist)", "vol3_svclist"),
-                ("线程信息(threads)", "vol3_threads"),
-                ("定时器信息(timers)", "vol3_timers"),
-                ("导入地址表(IAT)", "vol3_iat"),
             ],
         }
 
