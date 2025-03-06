@@ -91,6 +91,7 @@ class MemProcFSArea(QWidget):
             ("导出全部Eventlog", self.memprocfs_plugin.copy_alleventlog2output),
             ("导出全部注册表", self.memprocfs_plugin.copy_all_registry2output),
             ("导出全部证书", self.memprocfs_plugin.copy_all_certificates2output),
+            ("获取产品id", self.memprocfs_plugin.get_product_id),
         ]
         basic_buttons = [self.create_button(text, func) for text, func in basic_functions]
         self.basic_group = CollapsibleButtonGroup("基本功能", basic_buttons, self.main_window)

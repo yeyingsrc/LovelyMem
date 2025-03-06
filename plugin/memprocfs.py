@@ -115,6 +115,16 @@ class memprocfsplugin:
         self.new_window_memprofs_systeminfo.show()
         shutil.copy(systeminfopath, 'output/systeminfo.txt')
 
+    # 获取产品id M:\registry\HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductId
+    def get_product_id(self):
+        product_txt = r'M:/registry/HKLM/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProductId'
+        self.new_window_memprofs_product_id = QuicklyView('MemPorcfs-产品id', (800, 600))
+        self.new_window_memprofs_product_id.load_file_content(product_txt)
+        self.new_window_memprofs_product_id.show()
+        shutil.copy(product_txt, 'output/product_id.txt')
+        print('导出产品id完成')
+        
+
     def copy_alleventlog2output(self):
         eventlog_path = r'M:/misc/eventlog'
         shutil.copytree(eventlog_path, 'output/eventlog')
