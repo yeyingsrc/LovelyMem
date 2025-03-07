@@ -4,7 +4,7 @@ import time
 import binascii
 import mmap
 import concurrent.futures
-from threading import Lock
+from threading import Lock, Thread
 
 from PySide6.QtCore import QObject, Signal
 
@@ -19,19 +19,51 @@ class QuickCheckWorker(QObject):
         self.image_path = image_path
         self.quick_check = QuickCheck(regex)
         self.is_interrupted = False
+        self.current_progress = 0  # 添加当前进度变量
+        self.timer_active = False
 
     def run(self):
         try:
             self.is_interrupted = False
-            results = self.quick_check.run(self.image_path, self.progress.emit, self.check_interruption)
+            self.current_progress = 0  # 重置进度
+            # 启动一个定时器线程来平滑地更新进度
+            self.timer_active = True
+            timer_thread = Thread(target=self.smooth_progress_timer)
+            timer_thread.daemon = True
+            timer_thread.start()
+            
+            results = self.quick_check.run(self.image_path, self.update_real_progress, self.check_interruption)
+            
+            # 停止定时器线程
+            self.timer_active = False
+            timer_thread.join(timeout=1.0)
+            
             if not self.is_interrupted:
-                self.progress.emit(100)  # 确保进度达到100%
+                # 确保进度达到100%
+                self.progress.emit(100)
                 self.finished.emit(results)  # 发送结果列表
         except Exception as e:
+            self.timer_active = False
             self.error.emit(str(e))
+
+    def smooth_progress_timer(self):
+        """平滑进度更新定时器"""
+        displayed_progress = 0
+        while self.timer_active and displayed_progress < 99:
+            # 确保显示的进度不超过实际进度
+            target = min(self.current_progress, 99)
+            if displayed_progress < target:
+                displayed_progress += 1
+                self.progress.emit(displayed_progress)
+            time.sleep(0.05)  # 每50毫秒更新一次，可以根据需要调整
+
+    def update_real_progress(self, value):
+        """更新实际进度"""
+        self.current_progress = value
 
     def requestInterruption(self):
         self.is_interrupted = True
+        self.timer_active = False
 
     def check_interruption(self):
         return self.is_interrupted
@@ -98,9 +130,9 @@ class QuickCheck:
             with self.progress_lock:
                 total_progress += progress_increment
                 current_time = time.time()
-                if current_time - last_update_time > 0.1:  # 每0.1秒更新一次进度
-                    if callback:
-                        callback(min(total_progress, 99.9))  # 确保不超过100%
+                # 移除时间间隔限制，确保每次进度变化都会更新
+                if callback:
+                    callback(min(total_progress, 99.9))  # 确保不超过100%
                     last_update_time = current_time
 
         if self.use_mmap:
@@ -140,16 +172,17 @@ class QuickCheck:
                                 
                                 # 收集结果
                                 completed = 0
+                                total_chunks = len(futures)
                                 for future in concurrent.futures.as_completed(futures):
                                     if check_interruption and check_interruption():
                                         break
                                     chunk_results = future.result()
                                     results.extend(chunk_results)
                                     
-                                    # 更新进度
+                                    # 更新进度，使用更小的增量实现平滑效果
                                     completed += 1
-                                    progress_increment = (completed / len(futures)) * 100
-                                    update_progress(progress_increment)
+                                    progress_increment = (1.0 / total_chunks) * 99  # 使用99而不是100，留出最后的1%
+                                    update_progress(progress_increment / 10)  # 将每个增量分成10个小步骤
                                     
                         else:
                             # 单线程模式下对整个映射文件进行处理
@@ -199,9 +232,16 @@ class QuickCheck:
                                     # 移动到下一个搜索位置
                                     offset = match.end()
                                     
-                                    # 更新进度
-                                    current_progress = (offset / file_size) * 100
-                                    update_progress(current_progress)
+                                    # 更新进度，使用更小的增量实现平滑效果
+                                    current_progress = (offset / file_size) * 99  # 使用99而不是100，留出最后的1%
+                                    # 计算增量并分成小步骤
+                                    increment = current_progress - total_progress
+                                    if increment > 0:
+                                        small_steps = 10  # 将每个增量分成10个小步骤
+                                        for i in range(small_steps):
+                                            update_progress(increment / small_steps)
+                                    else:
+                                        update_progress(0.1)  # 至少有一些进度更新
                 return results
             except Exception as e:
                 print(f"使用内存映射时出错: {str(e)}，回退到标准模式")
@@ -240,16 +280,17 @@ class QuickCheck:
                 
                 # 收集结果
                 completed = 0
+                total_chunks = len(futures)
                 for future in concurrent.futures.as_completed(futures):
                     if check_interruption and check_interruption():
                         break
                     chunk_results = future.result()
                     results.extend(chunk_results)
                     
-                    # 更新进度
+                    # 更新进度，使用更小的增量实现平滑效果
                     completed += 1
-                    progress_increment = (completed / len(futures)) * 100
-                    update_progress(progress_increment)
+                    progress_increment = (1.0 / total_chunks) * 99  # 使用99而不是100，留出最后的1%
+                    update_progress(progress_increment / 10)  # 将每个增量分成10个小步骤
         else:
             # 单线程模式
             processed_bytes = 0
@@ -267,8 +308,16 @@ class QuickCheck:
                     results.extend(chunk_results)
                     
                     processed_bytes += len(chunk)
-                    progress = (processed_bytes / file_size) * 100
-                    update_progress(progress)
+                    # 修改进度更新逻辑，使用更小的增量实现平滑效果
+                    progress = (processed_bytes / file_size) * 99  # 使用99而不是100，留出最后的1%
+                    # 将每个增量分成更小的步骤
+                    increment = progress - total_progress
+                    if increment > 0:
+                        small_steps = 10  # 将每个增量分成10个小步骤
+                        for i in range(small_steps):
+                            update_progress(increment / small_steps)
+                    else:
+                        update_progress(0.1)  # 至少有一些进度更新
 
         return results
 

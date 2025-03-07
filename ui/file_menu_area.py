@@ -1,6 +1,5 @@
 import multiprocessing
-
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -86,6 +85,7 @@ class FileMenuArea(QWidget):
         self.quick_check_worker = None
         self.quick_check_button = None
         self.is_searching = False
+        self.string_search_results = None
         self.setup_ui()
 
     def setup_ui(self):
@@ -132,6 +132,12 @@ class FileMenuArea(QWidget):
         self.quick_check_button.setEnabled(False)
         self.set_button_progress(0)
 
+        # 立即开始显示进度动画
+        self.progress_timer = QTimer()
+        self.progress_timer.timeout.connect(self.update_smooth_progress)
+        self.current_smooth_progress = 0
+        self.progress_timer.start(50)  # 每50毫秒更新一次
+
         self.quick_check_thread = QThread()
         self.quick_check_worker = QuickCheckWorker(self.image_path, regex)
         # 配置高级选项
@@ -149,6 +155,11 @@ class FileMenuArea(QWidget):
         self.quick_check_worker.error.connect(self.show_error)
 
         self.quick_check_thread.start()
+
+    def update_smooth_progress(self):
+        if self.is_searching and self.current_smooth_progress < 99:
+            self.current_smooth_progress += 1
+            self.set_button_progress(self.current_smooth_progress)
 
     def set_button_progress(self, value):
         style = f"""
@@ -173,14 +184,44 @@ class FileMenuArea(QWidget):
 
     def update_search_progress(self, value):
         if self.is_searching:
-            self.set_button_progress(value)
+            # 只更新实际进度，不直接设置按钮进度
+            self.target_progress = value
 
     def on_quick_check_finished(self, results):
+        # 确保进度条到达100%
+        self.set_button_progress(100)
+        
+        # 延迟一小段时间后再结束搜索状态，确保用户能看到100%
+        QTimer.singleShot(500, self.finish_search)
+        
+        # 保存结果以便延迟处理
+        self.search_results = results
+    
+    def finish_search(self):
         self.is_searching = False
         self.quick_check_button.setEnabled(True)
         self.quick_check_button.setStyleSheet("")
-        self.quick_check_button.setText("搜索镜像字符串")
-
+        self.quick_check_button.setText("搜索字符串")
+        
+        # 停止进度定时器
+        if hasattr(self, 'progress_timer') and self.progress_timer.isActive():
+            self.progress_timer.stop()
+            
+        # 处理搜索结果
+        if hasattr(self, 'search_results'):
+            self.process_search_results(self.search_results)
+            
+    def process_search_results(self, results):
+        # 处理搜索结果的逻辑
+        if hasattr(self, 'string_search_results') and self.string_search_results:
+            self.string_search_results.deleteLater()
+        
+        # 创建新的结果显示区域
+        from ui.string_search_results import StringSearchResults
+        self.string_search_results = StringSearchResults(results, self.image_path)
+        self.add_tab_signal.emit(self.string_search_results, "字符串搜索结果")
+        
+        # 清理资源
         if self.quick_check_worker:
             self.quick_check_worker.deleteLater()
         if self.quick_check_thread:
