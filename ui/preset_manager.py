@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QMenu
 from PySide6.QtCore import QObject, Signal
+from PySide6.QtGui import QAction
 import sqlite3
 import os
 
@@ -18,6 +19,17 @@ class PresetManager(QObject):
         add_to_preset_action.triggered.connect(lambda: self.add_to_preset(button.text(), source_area))
 
         return context_menu
+    
+    # 新增方法，返回预设操作的列表而不是菜单
+    def create_preset_actions(self, button, source_area):
+        actions = []
+        
+        # 创建"添加到预设"操作
+        add_to_preset_action = QAction("添加到预设")
+        add_to_preset_action.triggered.connect(lambda: self.add_to_preset(button.text(), source_area))
+        actions.append(add_to_preset_action)
+        
+        return actions
 
     def add_to_preset(self, button_text, source_area):
         if self.right_panel:

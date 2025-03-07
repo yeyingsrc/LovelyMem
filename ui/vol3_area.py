@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QScrollArea, QGroupBox, QCheckBox, QMenu, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QScrollArea, QGroupBox, QCheckBox, QMenu, QLabel, QDialog, QDialogButtonBox, QFormLayout
 from PySide6.QtCore import Qt
 from ui.styles import memprocfs_style, get_current_theme, apply_color_scheme, is_dark_mode
 import ui.styles
@@ -63,9 +63,63 @@ class CollapsibleButtonGroup(QWidget):
             button.customContextMenuRequested.connect(lambda pos, btn=button: self.show_context_menu(pos, btn))
 
     def show_context_menu(self, pos, button):
+        context_menu = QMenu(self)
+        
+        # 添加"添加到预设"菜单项 - 直接添加到菜单，而不是子菜单
         if hasattr(self.main_window, 'preset_manager'):
-            context_menu = self.main_window.preset_manager.create_context_menu(button, source_area="Vol3")
-            context_menu.exec_(button.mapToGlobal(pos))
+            # 获取预设菜单的动作，而不是子菜单
+            preset_actions = self.main_window.preset_manager.create_preset_actions(button, source_area="Vol3")
+            for action in preset_actions:
+                context_menu.addAction(action)
+        
+        # 添加"参数执行"菜单项
+        param_action = context_menu.addAction("参数执行")
+        param_action.triggered.connect(lambda: self.execute_with_params(button))
+        
+        context_menu.exec_(button.mapToGlobal(pos))
+
+    def execute_with_params(self, button):
+        # 获取按钮对应的功能名称
+        button_text = button.text()
+        
+        # 创建参数输入对话框
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"为 {button_text} 输入参数")
+        dialog.resize(400, 150)
+        
+        layout = QFormLayout(dialog)
+        
+        # 创建参数输入框
+        param_input = QLineEdit()
+        param_input.setPlaceholderText("输入参数 (例如: --pid=1234 或 --dump)")
+        layout.addRow("参数:", param_input)
+        
+        # 创建按钮
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+        
+        # 显示对话框并获取结果
+        if dialog.exec_() == QDialog.Accepted:
+            params = param_input.text().strip()
+            if params:
+                # 查找Vol3Area实例
+                vol3_area = self.find_vol3_area()
+                if vol3_area:
+                    # 执行带参数的命令
+                    vol3_area.execute_with_params(button, params)
+                else:
+                    QMessageBox.warning(self, "错误", "无法找到Vol3Area实例")
+    
+    def find_vol3_area(self):
+        # 向上查找Vol3Area实例
+        parent = self.parent()
+        while parent:
+            if isinstance(parent, Vol3Area):
+                return parent
+            parent = parent.parent()
+        return None
 
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded
@@ -275,6 +329,79 @@ class Vol3Area(QWidget):
                 QMessageBox.warning(self, "警告", f"Vol3Plugin 中没有 {func_name} 方法！")
         else:
             QMessageBox.warning(self, "警告", "Vol3Plugin 未正确初始化！")
+    
+    # 添加新方法：带参数执行命令
+    def execute_with_params(self, button, params):
+        new_mem_path = self.update_mem_path()
+        if not new_mem_path:
+            QMessageBox.warning(self, "警告", "请先载入内存镜像文件！")
+            return
+        
+        # 获取按钮文本和对应的命令
+        button_text = button.text()
+        plugin_name = button.toolTip() if button.toolTip() else button_text
+        
+        # 解析参数
+        param_list = params.split()
+        
+        # 构造并执行命令
+        try:
+            # 确定输出类型
+            output_type = 'quick' if plugin_name in self.vol3_plugin.txt_plugins else 'csv'
+            
+            # 构造基本命令
+            cmd = [
+                f'"{self.vol3_plugin.pythonpath}"',
+                f'"{self.vol3_plugin.volatility3}"',
+                '-f',
+                f'"{new_mem_path}"'
+            ]
+            
+            # 添加离线模式参数（如果启用）
+            if self.offline_checkbox.isChecked():
+                cmd.append('--offline')
+            
+            # 添加输出类型
+            cmd.extend([
+                '-r',
+                output_type
+            ])
+            
+            # 添加插件名称（确保以windows.开头）
+            plugin_cmd = plugin_name
+            if not plugin_cmd.startswith("windows."):
+                plugin_cmd = f"windows.{plugin_cmd}"
+            
+            # 添加用户输入的参数
+            full_cmd = f"{plugin_cmd} {' '.join(param_list)}"
+            cmd.append(full_cmd)
+            str_params = '_'.join(param_list)
+            # 输出文件名
+            clean_plugin_name = plugin_name.replace("windows.", "")
+            output_file = f'output/output_vol3_{clean_plugin_name}_{str_params}.{"txt" if clean_plugin_name in self.vol3_plugin.txt_plugins else "csv"}'
+            
+            print(f"[*] 正在执行命令：{' '.join(cmd)}")
+            
+            # 创建工作线程并执行
+            worker = WorkerThread(cmd)
+            
+            def on_task_complete(success, msg, output):
+                if success:
+                    print(f"[+] 命令执行成功：{full_cmd}")
+                    self.vol3_plugin.on_task_completed(success, msg, output, output_file, f'{clean_plugin_name}(带参数)')
+                else:
+                    print(f"[×] 命令执行失败：{full_cmd}")
+                    print(f"错误信息：{msg}")
+                    QMessageBox.warning(self, "执行失败", f"命令执行失败：{msg}")
+            
+            worker.task_completed.connect(on_task_complete)
+            worker.start()
+            self.vol3_plugin.workers.append(worker)
+            
+        except Exception as e:
+            error_msg = f"执行命令时出错：{str(e)}"
+            print(f"[×] {error_msg}")
+            QMessageBox.warning(self, "错误", error_msg)
 
     def update_styles(self):
        

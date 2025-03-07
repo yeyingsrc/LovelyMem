@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox, QLabel, QDialog, QDialogButtonBox, QFormLayout
 from PySide6.QtCore import Qt
 from ui.styles import vol2_style, button_style
 import ui.styles
@@ -56,9 +56,63 @@ class CollapsibleButtonGroup(QWidget):
             button.customContextMenuRequested.connect(lambda pos, btn=button: self.show_context_menu(pos, btn))
 
     def show_context_menu(self, pos, button):
+        context_menu = QMenu(self)
+        
+        # 添加"添加到预设"菜单项 - 修改为直接添加到菜单，而不是子菜单
         if hasattr(self.main_window, 'preset_manager'):
-            context_menu = self.main_window.preset_manager.create_context_menu(button, source_area="Vol2")
-            context_menu.exec_(button.mapToGlobal(pos))
+            # 获取预设菜单的动作，而不是子菜单
+            preset_actions = self.main_window.preset_manager.create_preset_actions(button, source_area="Vol2")
+            for action in preset_actions:
+                context_menu.addAction(action)
+        
+        # 添加"参数执行"菜单项
+        param_action = context_menu.addAction("参数执行")
+        param_action.triggered.connect(lambda: self.execute_with_params(button))
+        
+        context_menu.exec_(button.mapToGlobal(pos))
+
+    def execute_with_params(self, button):
+        # 获取按钮对应的功能名称
+        button_text = button.text()
+        
+        # 创建参数输入对话框
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"为 {button_text} 输入参数")
+        dialog.resize(400, 150)
+        
+        layout = QFormLayout(dialog)
+        
+        # 创建参数输入框
+        param_input = QLineEdit()
+        param_input.setPlaceholderText("输入参数 (例如: -p 1234 或 -v)")
+        layout.addRow("参数:", param_input)
+        
+        # 创建按钮
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+        
+        # 显示对话框并获取结果
+        if dialog.exec_() == QDialog.Accepted:
+            params = param_input.text().strip()
+            if params:
+                # 查找Vol2Area实例
+                vol2_area = self.find_vol2_area()
+                if vol2_area:
+                    # 执行带参数的命令
+                    vol2_area.execute_with_params(button, params)
+                else:
+                    QMessageBox.warning(self, "错误", "无法找到Vol2Area实例")
+    
+    def find_vol2_area(self):
+        # 向上查找Vol2Area实例
+        parent = self.parent()
+        while parent:
+            if isinstance(parent, Vol2Area):
+                return parent
+            parent = parent.parent()
+        return None
 
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded
@@ -99,6 +153,7 @@ class Vol2Area(QWidget):
         profile_label = QLabel("Profile:")
         self.profile_combo = QComboBox()
         self.profile_combo.setStyleSheet(ui.styles.button_style)
+        self.profile_combo.setMinimumWidth(250)  # 增加下拉框的最小宽度，使其显示更完整
         profile_label_layout.addWidget(profile_label)
         profile_label_layout.addWidget(self.profile_combo)
         profile_label_layout.addStretch()
@@ -469,7 +524,6 @@ class Vol2Area(QWidget):
         if not self.vol2_plugin.mem_path:
             QMessageBox.warning(self, "警告", "请先载入内存镜像文件！")
             return
-        
         # 构造并执行命令
         try:
             # 构造完整的命令
@@ -489,6 +543,52 @@ class Vol2Area(QWidget):
             self.vol2_plugin.run_plugin_with_custom_command(
                 cmd, 
                 f'自定义命令({command})'
+            )
+        except Exception as e:
+            QMessageBox.warning(self, "错误", f"执行命令时出错：{str(e)}")
+
+    # 添加新方法：带参数执行命令
+    def execute_with_params(self, button, params):
+        self.update_mem_path()
+        if not self.vol2_plugin.mem_path:
+            QMessageBox.warning(self, "警告", "请先载入内存镜像文件！")
+            return
+        
+        # 获取按钮文本和对应的命令
+        button_text = button.text()
+        command_name = button.toolTip() if button.toolTip() else button_text
+        
+        # 解析参数
+        param_list = params.split()
+        
+        # 构造并执行命令
+        try:
+            # 构造基本命令
+            cmd = [
+                self.vol2_plugin.python27,
+                self.vol2_plugin.volatility2,
+                f'--plugin={self.vol2_plugin.volatility2_plugin}',
+                '-f',
+                self.vol2_plugin.mem_path,
+                f'--profile={self.vol2_plugin.profile}',
+                command_name
+            ]
+            
+            # 添加用户输入的参数
+            cmd.extend(param_list)
+            str_params = '_'.join(param_list)
+            # 添加输出参数
+            output_type = 'text'  # 默认使用text格式以便查看完整结果
+            output_file = f'output/output_vol2_{command_name}_{str_params}.txt'
+            cmd.extend([
+                f'--output={output_type}',
+                f'--output-file={output_file}'
+            ])
+            
+            # 使用run_plugin_with_custom_command执行命令
+            self.vol2_plugin.run_plugin_with_custom_command(
+                cmd, 
+                f'{button_text}(带参数)'
             )
         except Exception as e:
             QMessageBox.warning(self, "错误", f"执行命令时出错：{str(e)}")
