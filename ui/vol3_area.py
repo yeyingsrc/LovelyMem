@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QScrollArea, QGroupBox, QCheckBox, QMenu
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QScrollArea, QGroupBox, QCheckBox, QMenu, QLabel
 from PySide6.QtCore import Qt
 from ui.styles import memprocfs_style, get_current_theme, apply_color_scheme, is_dark_mode
 import ui.styles
@@ -84,6 +84,8 @@ class Vol3Area(QWidget):
         super().__init__(parent)
         self.main_window = main_window
         self.vol3_plugin = None
+        self.button_groups = []  # 存储所有按钮组
+        self.all_buttons = []    # 存储所有按钮
         self.setup_ui()
         self.update_styles()
 
@@ -93,10 +95,21 @@ class Vol3Area(QWidget):
         # Create settings group box for offline mode
         settings_group = QGroupBox("设置")
         settings_layout = QHBoxLayout()
+        
+        # 添加离线模式复选框
         self.offline_checkbox = QCheckBox("离线模式")
         self.offline_checkbox.setToolTip("启用离线模式 (--offline)")
         self.offline_checkbox.setChecked(False)  # Set checked by default
         settings_layout.addWidget(self.offline_checkbox)
+        
+        # 添加搜索框
+        search_label = QLabel("搜索按钮:")
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("输入关键词搜索按钮...")
+        self.search_input.textChanged.connect(self.filter_buttons)
+        settings_layout.addWidget(search_label)
+        settings_layout.addWidget(self.search_input)
+        
         settings_layout.addStretch()
         settings_group.setLayout(settings_layout)
         main_layout.addWidget(settings_group)
@@ -194,9 +207,41 @@ class Vol3Area(QWidget):
             buttons = [Vol3Button(text, partial(self.button_clicked, func)) for text, func in functions]
             group = CollapsibleButtonGroup(group_name, buttons, self.main_window)
             content_layout.addWidget(group)
+            self.button_groups.append(group)
+            self.all_buttons.extend([(button, group, text) for button, (text, _) in zip(buttons, functions)])
 
         content_layout.addStretch(1)
         main_layout.addWidget(scroll_area)
+
+    def filter_buttons(self, search_text):
+        """根据搜索文本过滤按钮"""
+        if not search_text:
+            # 如果搜索框为空，恢复所有按钮组的可见性
+            for group in self.button_groups:
+                group.setVisible(True)
+                group.content_widget.setVisible(group.is_expanded)
+            return
+            
+        search_text = search_text.lower()
+        
+        # 隐藏所有按钮组
+        for group in self.button_groups:
+            group.setVisible(False)
+            
+        # 显示包含匹配按钮的组，并展开这些组
+        for button, group, button_text in self.all_buttons:
+            if search_text in button_text.lower():
+                group.setVisible(True)
+                group.content_widget.setVisible(True)  # 展开包含匹配按钮的组
+                # 高亮匹配的按钮
+                if search_text in button.text().lower():
+                    # 设置匹配按钮的样式为高亮
+                    button.setStyleSheet(ui.styles.button_style + "background-color: rgba(0, 150, 255, 0.3);")
+                else:
+                    button.setStyleSheet(ui.styles.button_style)
+            else:
+                # 恢复未匹配按钮的样式
+                button.setStyleSheet(ui.styles.button_style)
 
     def update_mem_path(self):
         new_mem_path = self.main_window.get_current_mem_path()

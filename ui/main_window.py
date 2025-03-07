@@ -564,6 +564,7 @@ class MainWindow(QMainWindow):
             # 更新各个区域的样式
             self.memprocfs_area.setStyleSheet(ui.styles.memprocfs_style)
             self.vol2_area.setStyleSheet(ui.styles.memprocfs_style)
+            self.vol2_area.update_styles()  # 添加这行，确保Vol2区域的按钮样式也被更新
             self.vol3_area.update_styles()
             self.quick_check_area.setStyleSheet(ui.styles.quick_check_style)
             self.right_panel.setStyleSheet(ui.styles.right_panel_style)

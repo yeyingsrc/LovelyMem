@@ -1,6 +1,7 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox, QLabel
 from PySide6.QtCore import Qt
 from ui.styles import vol2_style, button_style
+import ui.styles
 from plugin.vol2 import Vol2Plugin
 
 class Vol2Button(QPushButton):
@@ -12,6 +13,10 @@ class Vol2Button(QPushButton):
         font = self.font()
         font.setPointSize(font.pointSize() - 4)
         self.setFont(font)
+        self.update_style()
+    
+    def update_style(self):
+        self.setStyleSheet(ui.styles.button_style)
 
 class CollapsibleButtonGroup(QWidget):
     def __init__(self, title, buttons, main_window):
@@ -21,6 +26,8 @@ class CollapsibleButtonGroup(QWidget):
         self.main_window = main_window
         self.is_expanded = False
         self.setup_ui()
+        # 确保在初始化时应用当前样式
+        self.update_styles()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -56,6 +63,12 @@ class CollapsibleButtonGroup(QWidget):
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded
         self.content_widget.setVisible(self.is_expanded)
+    
+    def update_styles(self):
+        self.title_button.update_style()
+        for button in self.buttons:
+            if isinstance(button, Vol2Button):
+                button.update_style()
 
 class Vol2Area(QWidget):
     def __init__(self, main_window, parent=None):
@@ -64,7 +77,12 @@ class Vol2Area(QWidget):
 
         self.main_window = main_window
         self.vol2_plugin = Vol2Plugin('')
-
+        self.button_groups = []  # 存储所有按钮组
+        self.all_buttons = []    # 存储所有按钮
+        
+        # 初始化时调用一次样式更新
+        self.current_button_style = button_style
+        
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_content = QWidget()
@@ -72,12 +90,31 @@ class Vol2Area(QWidget):
 
         layout = QVBoxLayout(scroll_content)
 
-        # 添加 Profile 下拉框
-        self.profile_group = QGroupBox("Profile")
+        # 添加 Profile 下拉框和搜索框
+        self.profile_group = QGroupBox("设置")
         profile_layout = QVBoxLayout(self.profile_group)
+        
+        # Profile 下拉框
+        profile_label_layout = QHBoxLayout()
+        profile_label = QLabel("Profile:")
         self.profile_combo = QComboBox()
-        self.profile_combo.setStyleSheet(button_style)
-        profile_layout.addWidget(self.profile_combo)
+        self.profile_combo.setStyleSheet(ui.styles.button_style)
+        profile_label_layout.addWidget(profile_label)
+        profile_label_layout.addWidget(self.profile_combo)
+        profile_label_layout.addStretch()
+        profile_layout.addLayout(profile_label_layout)
+        
+        # 添加搜索框
+        search_layout = QHBoxLayout()
+        search_label = QLabel("搜索按钮:")
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("输入关键词搜索按钮...")
+        self.search_input.textChanged.connect(self.filter_buttons)
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(self.search_input)
+        search_layout.addStretch()
+        profile_layout.addLayout(search_layout)
+        
         layout.addWidget(self.profile_group)
 
         # 添加自定义命令区域
@@ -90,7 +127,41 @@ class Vol2Area(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(scroll_area)
+        
+        # 初始化完成后更新所有样式
+        self.update_styles()
 
+    def filter_buttons(self, search_text):
+        """根据搜索文本过滤按钮"""
+        if not search_text:
+            # 如果搜索框为空，恢复所有按钮组的可见性
+            for group in self.button_groups:
+                group.setVisible(True)
+                group.content_widget.setVisible(group.is_expanded)
+            # 恢复所有按钮的样式
+            self.update_button_styles()
+            return
+            
+        search_text = search_text.lower()
+        search_terms = [term.strip() for term in search_text.split() if term.strip()]
+        
+        # 隐藏所有按钮组
+        for group in self.button_groups:
+            group.setVisible(False)
+            
+        # 显示包含匹配按钮的组，并展开这些组
+        for button, group, button_text in self.all_buttons:
+            # 检查按钮文本是否匹配所有搜索词（AND逻辑）
+            button_text_lower = button_text.lower()
+            is_match = all(term in button_text_lower for term in search_terms)
+            
+            if is_match:
+                group.setVisible(True)
+                group.content_widget.setVisible(True)  # 展开包含匹配按钮的组
+        
+        # 对所有可见组应用当前主题样式
+        self.update_button_styles()
+        
     def create_function_groups(self, layout):
         # 基本功能组（保持不变）
         basic_functions = [
@@ -111,6 +182,8 @@ class Vol2Area(QWidget):
         basic_buttons = [self.create_button(text, func) for text, func in basic_functions]
         self.basic_group = CollapsibleButtonGroup("基本功能", basic_buttons, self.main_window)
         layout.addWidget(self.basic_group)
+        self.button_groups.append(self.basic_group)
+        self.all_buttons.extend([(button, self.basic_group, text) for button, (text, _) in zip(basic_buttons, basic_functions)])
 
         # 进程分析组
         process_functions = [
@@ -127,6 +200,8 @@ class Vol2Area(QWidget):
         process_buttons = [self.create_button(text, func) for text, func in process_functions]
         self.process_group = CollapsibleButtonGroup("进程分析", process_buttons, self.main_window)
         layout.addWidget(self.process_group)
+        self.button_groups.append(self.process_group)
+        self.all_buttons.extend([(button, self.process_group, text) for button, (text, _) in zip(process_buttons, process_functions)])
 
         # 内存和模块分析组
         memory_functions = [
@@ -142,6 +217,8 @@ class Vol2Area(QWidget):
         memory_buttons = [self.create_button(text, func) for text, func in memory_functions]
         self.memory_group = CollapsibleButtonGroup("内存和模块分析", memory_buttons, self.main_window)
         layout.addWidget(self.memory_group)
+        self.button_groups.append(self.memory_group)
+        self.all_buttons.extend([(button, self.memory_group, text) for button, (text, _) in zip(memory_buttons, memory_functions)])
 
         # 文件系统和注册表分析组
         file_registry_functions = [
@@ -156,16 +233,18 @@ class Vol2Area(QWidget):
         file_registry_buttons = [self.create_button(text, func) for text, func in file_registry_functions]
         self.file_registry_group = CollapsibleButtonGroup("文件和注册表分析", file_registry_buttons, self.main_window)
         layout.addWidget(self.file_registry_group)
+        self.button_groups.append(self.file_registry_group)
+        self.all_buttons.extend([(button, self.file_registry_group, text) for button, (text, _) in zip(file_registry_buttons, file_registry_functions)])
 
         # 网络分析组
         network_functions = [
             ("网络扫描(netscan)", lambda: self.button_clicked(self.vol2_plugin.vol2_netscan)),
-
-
         ]
         network_buttons = [self.create_button(text, func) for text, func in network_functions]
         self.network_group = CollapsibleButtonGroup("网络分析", network_buttons, self.main_window)
         layout.addWidget(self.network_group)
+        self.button_groups.append(self.network_group)
+        self.all_buttons.extend([(button, self.network_group, text) for button, (text, _) in zip(network_buttons, network_functions)])
 
         # 用户活动组
         user_activity_functions = [
@@ -184,6 +263,8 @@ class Vol2Area(QWidget):
         user_activity_buttons = [self.create_button(text, func) for text, func in user_activity_functions]
         self.user_activity_group = CollapsibleButtonGroup("用户活动", user_activity_buttons, self.main_window)
         layout.addWidget(self.user_activity_group)
+        self.button_groups.append(self.user_activity_group)
+        self.all_buttons.extend([(button, self.user_activity_group, text) for button, (text, _) in zip(user_activity_buttons, user_activity_functions)])
 
         # 系统信息组
         system_info_functions = [
@@ -197,6 +278,8 @@ class Vol2Area(QWidget):
         system_info_buttons = [self.create_button(text, func) for text, func in system_info_functions]
         self.system_info_group = CollapsibleButtonGroup("系统信息", system_info_buttons, self.main_window)
         layout.addWidget(self.system_info_group)
+        self.button_groups.append(self.system_info_group)
+        self.all_buttons.extend([(button, self.system_info_group, text) for button, (text, _) in zip(system_info_buttons, system_info_functions)])
 
         # 恶意代码和钩子检测组
         malware_functions = [
@@ -210,6 +293,8 @@ class Vol2Area(QWidget):
         malware_buttons = [self.create_button(text, func) for text, func in malware_functions]
         self.malware_group = CollapsibleButtonGroup("恶意代码和钩子检测", malware_buttons, self.main_window)
         layout.addWidget(self.malware_group)
+        self.button_groups.append(self.malware_group)
+        self.all_buttons.extend([(button, self.malware_group, text) for button, (text, _) in zip(malware_buttons, malware_functions)])
 
         # 文件导出组
         export_functions = [
@@ -224,7 +309,7 @@ class Vol2Area(QWidget):
         custom_export_layout = QHBoxLayout()
         self.custom_export_input = QLineEdit()
         self.custom_export_input.setPlaceholderText("输入文件扩展名(如 pdf)")
-        custom_export_button = QPushButton("导出指定格式")
+        custom_export_button = Vol2Button("导出指定格式")
         custom_export_button.clicked.connect(self.custom_export)
         custom_export_layout.addWidget(self.custom_export_input)
         custom_export_layout.addWidget(custom_export_button)
@@ -237,6 +322,12 @@ class Vol2Area(QWidget):
 
         self.export_group = CollapsibleButtonGroup("文件导出", [export_widget], self.main_window)
         layout.addWidget(self.export_group)
+        self.button_groups.append(self.export_group)
+        # 由于这个组的结构特殊，我们需要单独处理
+        for button, (text, _) in zip(export_buttons, export_functions):
+            self.all_buttons.append((button, self.export_group, text))
+        # 添加自定义导出按钮
+        self.all_buttons.append((custom_export_button, self.export_group, "导出指定格式"))
 
         # 扩展功能组
         extended_functions = [
@@ -249,6 +340,8 @@ class Vol2Area(QWidget):
         extended_buttons = [self.create_button(text, func) for text, func in extended_functions]
         self.extended_group = CollapsibleButtonGroup("扩展功能", extended_buttons, self.main_window)
         layout.addWidget(self.extended_group)
+        self.button_groups.append(self.extended_group)
+        self.all_buttons.extend([(button, self.extended_group, text) for button, (text, _) in zip(extended_buttons, extended_functions)])
 
     def update_mem_path(self):
         new_mem_path = self.main_window.get_current_mem_path()
@@ -269,6 +362,8 @@ class Vol2Area(QWidget):
             button = Vol2Button(text.strip())
         
         button.clicked.connect(func)
+        # 确保按钮应用当前主题样式
+        button.update_style()
         return button
 
     def button_clicked(self, func):
@@ -313,12 +408,34 @@ class Vol2Area(QWidget):
         print(f"Profile 已更新为: {new_profile}")
 
     def update_button_styles(self):
-        for group in self.findChildren(CollapsibleButtonGroup):
-            group.title_button.setStyleSheet(button_style)
-            for button in group.buttons:
-                if isinstance(button, QPushButton):
-                    button.setStyleSheet(button_style)
-        self.update()  # 强制更新界���
+        """向后兼容的方法，调用update_styles"""
+        self.update_styles()
+        
+    def update_styles(self):
+        """更新所有按钮和组的样式"""
+        # 更新Profile下拉框
+        self.profile_combo.setStyleSheet(ui.styles.button_style)
+        
+        # 更新所有按钮组的样式
+        for group in self.button_groups:
+            if isinstance(group, CollapsibleButtonGroup):
+                group.update_styles()
+        
+        # 更新自定义命令区域的按钮样式
+        if hasattr(self, 'execute_button'):
+            self.execute_button.setStyleSheet(ui.styles.button_style)
+        
+        # 更新导出区域的自定义导出按钮
+        if hasattr(self, 'custom_export_input') and hasattr(self, 'export_group'):
+            for widget in self.export_group.buttons:
+                if isinstance(widget, QWidget):
+                    for child in widget.findChildren(QPushButton):
+                        if isinstance(child, Vol2Button):
+                            child.update_style()
+                        else:
+                            child.setStyleSheet(ui.styles.button_style)
+            
+        self.update()  # 强制更新界面
 
     # 在 create_function_groups 方法之前添加自定义命令区域
     def create_custom_command_area(self, layout):
@@ -331,13 +448,13 @@ class Vol2Area(QWidget):
         self.custom_command_input.setPlaceholderText("输入Vol2命令 (例如: pslist)")
         
         # 创建执行按钮
-        execute_button = QPushButton("执行")
-        #execute_button.setStyleSheet(button_style)
-        execute_button.clicked.connect(self.execute_custom_command)
+        self.execute_button = QPushButton("执行")
+        self.execute_button.setStyleSheet(ui.styles.button_style)
+        self.execute_button.clicked.connect(self.execute_custom_command)
         
         # 添加到布局
         custom_command_layout.addWidget(self.custom_command_input)
-        custom_command_layout.addWidget(execute_button)
+        custom_command_layout.addWidget(self.execute_button)
         
         layout.addWidget(custom_command_group)
 
