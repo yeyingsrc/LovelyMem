@@ -15,6 +15,7 @@ from requests.exceptions import RequestException
 from ui.memprocfs_area import MemProcFSArea
 from ui.vol2_area import Vol2Area
 from ui.vol3_area import Vol3Area
+from ui.vol2linux_area import Vol2LinuxArea  # 添加Vol2Linux区域的导入
 from ui.quick_check_area import QuickCheckArea
 from ui.preset_manager import PresetManager
 from ui.file_menu_area import FileMenuArea  # 新增导入
@@ -22,6 +23,7 @@ from ui.main_window_rightpanel import RightPanel
 from core.loadmem import MemImageLoader
 from plugin.vol2 import Vol2Plugin  # 添加这个导入
 from plugin.vol3 import Vol3Plugin  # 添加这个导入
+from plugin.vol2linux import Vol2LinuxPlugin  # 添加Vol2Linux插件的导入
 from plugin.NewtableWidget import NewtableWidget
 
 
@@ -87,7 +89,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.92.3")
+        title_label = QLabel("Lovelymem Ver 0.92.4")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -152,12 +154,14 @@ class MainWindow(QMainWindow):
         self.memprocfs_area = MemProcFSArea(self, self)
         self.vol2_area = Vol2Area(self, self)  # 传入 self 作为 main_window 参数
         self.vol3_area = Vol3Area(self, self)
+        self.vol2linux_area = Vol2LinuxArea(self, self)  # 创建Vol2Linux区域
         self.quick_check_area = QuickCheckArea(self, self)
 
         # 将功能区域添加到标签页中，并设置图标
         self.tab_widget.addTab(self.memprocfs_area, "MemProcFS")
-        self.tab_widget.addTab(self.vol2_area, "Volatility 2")
-        self.tab_widget.addTab(self.vol3_area, "Volatility 3")
+        self.tab_widget.addTab(self.vol2_area, "Vol 2")
+        self.tab_widget.addTab(self.vol3_area, "Vol 3")
+        self.tab_widget.addTab(self.vol2linux_area, "Vol 2 Linux")  # 添加Vol2Linux选项卡
         self.tab_widget.addTab(self.quick_check_area, "高级功能")
 
         upper_layout.addWidget(left_group, 4)  # 左侧占比1
@@ -233,7 +237,11 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(main_window_style)
         self.memprocfs_area.setStyleSheet(memprocfs_style)
         self.vol2_area.setStyleSheet(vol2_style)
+        self.vol2_area.update_styles()  # 添加这行，确保Vol2区域的按钮样式也被更新
         self.vol3_area.setStyleSheet(vol3_style)
+        self.vol3_area.update_styles()
+        self.vol2linux_area.setStyleSheet(vol2_style)  # 使用与Vol2相同的样式
+        self.vol2linux_area.update_styles()  # 更新Vol2Linux区域的按钮样式
         self.quick_check_area.setStyleSheet(quick_check_style)
         self.right_panel.setStyleSheet(right_panel_style)
 
@@ -269,7 +277,7 @@ class MainWindow(QMainWindow):
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.92.3 - {image_path}")
+                title_label.setText(f"Lovelymem Ver 0.92.4 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -320,7 +328,7 @@ class MainWindow(QMainWindow):
         os.system("taskkill /F /IM python27.exe")
         print("[+] 卸载镜像成功")
         # 标题修改
-        self.setWindowTitle("Lovelymem Ver 0.92.3")
+        self.setWindowTitle("Lovelymem Ver 0.92.4")
 
     def refresh_file_list(self):
         current_files = self.file_manager.get_file_list()
@@ -563,9 +571,12 @@ class MainWindow(QMainWindow):
             
             # 更新各个区域的样式
             self.memprocfs_area.setStyleSheet(ui.styles.memprocfs_style)
-            self.vol2_area.setStyleSheet(ui.styles.memprocfs_style)
+            self.vol2_area.setStyleSheet(ui.styles.vol2_style)
             self.vol2_area.update_styles()  # 添加这行，确保Vol2区域的按钮样式也被更新
+            self.vol3_area.setStyleSheet(ui.styles.vol3_style)
             self.vol3_area.update_styles()
+            self.vol2linux_area.setStyleSheet(ui.styles.vol2_style)  # 使用与Vol2相同的样式
+            self.vol2linux_area.update_styles()  # 更新Vol2Linux区域的按钮样式
             self.quick_check_area.setStyleSheet(ui.styles.quick_check_style)
             self.right_panel.setStyleSheet(ui.styles.right_panel_style)
             #print("各个区域样式已更新")

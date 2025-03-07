@@ -1,78 +1,248 @@
-from typing import Optional, List
+from plugin.config import config
+import subprocess
+import os, yaml
+import pandas as pd
+import json
+import traceback
+from PySide6.QtCore import QThread, Signal, QObject
 
-class Vol2LinuxPlugin:
-    def __init__(self, profile_path: str = ''):
-        self.profile_path = profile_path
-        self.commands = {
-            "进程信息": [
-                ("linux_pslist", "显示进程列表"),
-                ("linux_pstree", "显示进程树"),
-                ("linux_psxview", "查找隐藏进程"),
-                ("linux_psscan", "扫描物理内存寻找进程"),
-                ("linux_psaux", "显示进程完整命令行"),
-                ("linux_threads", "显示进程线程信息"),
-                ("linux_ldrmodules", "比较进程映射与库列表"),
-            ],
-            "内存分析": [
-                ("linux_malfind", "查找可疑进程映射"),
-                ("linux_proc_maps", "获取进程内存映射"),
-                ("linux_dump_map", "导出内存映射到磁盘"),
-                ("linux_memmap", "导出Linux任务内存映射"),
-                ("linux_procdump", "导出进程可执行文件"),
-            ],
-            "系统信息": [
-                ("linux_cpuinfo", "显示CPU信息"),
-                ("linux_banner", "显示Linux banner信息"),
-                ("linux_dmesg", "获取dmesg缓冲区"),
-                ("linux_mount", "显示已挂载文件系统/设备"),
-                ("linux_mount_cache", "从kmem_cache获取挂载信息"),
-                ("linux_iomem", "显示类似/proc/iomem的输出"),
-            ],
-            "网络信息": [
-                ("linux_netstat", "列出开放的套接字"),
-                ("linux_netscan", "扫描网络连接结构"),
-                ("linux_arp", "显示ARP表"),
-                ("linux_ifconfig", "显示活动接口"),
-                ("linux_list_raw", "列出具有混杂模式套接字的应用"),
-            ],
-            "文件系统": [
-                ("linux_find_file", "列出并恢复内存中的文件"),
-                ("linux_enumerate_files", "列出文件系统缓存引用的文件"),
-                ("linux_recover_filesystem", "从内存恢复整个缓存文件系统"),
-                ("linux_tmpfs", "从内存恢复tmpfs文件系统"),
-                ("linux_dentry_cache", "从dentry缓存获取文件"),
-            ],
-            "内核和模块": [
-                ("linux_check_modules", "比较模块列表与sysfs信息"),
-                ("linux_hidden_modules", "查找隐藏的内核模块"),
-                ("linux_lsmod", "获取已加载的内核模块"),
-                ("linux_moddump", "提取已加载的内核模块"),
-            ],
-            "系统检查": [
-                ("linux_check_syscall", "检查系统调用表是否被修改"),
-                ("linux_check_fop", "检查文件操作结构是否被rootkit修改"),
-                ("linux_check_inline_kernel", "检查内联内核钩子"),
-                ("linux_check_tty", "检查tty设备是否被钩子"),
-                ("linux_check_creds", "检查是否有进程共享凭证结构"),
-            ],
-            "其他功能": [
-                ("linux_bash", "从bash进程内存恢复bash历史"),
-                ("linux_bash_env", "恢复进程的动态环境变量"),
-                ("linux_elfs", "在进程映射中查找ELF二进制文件"),
-                ("linux_library_list", "列出加载到进程中的库"),
-                ("linux_strings", "匹配物理偏移到虚拟地址"),
-            ]
-        }
+from plugin.NewtableWidget import NewtableWidget
+from plugin.QuicklyView import QuicklyView
+from lovelyform import show_csv_viewer
 
-    def set_profile(self, profile_path: str) -> None:
-        """设置新的profile路径"""
-        self.profile_path = profile_path
+class WorkerThread(QThread):
+    task_completed = Signal(bool, str)
 
-    def get_command_groups(self) -> dict:
-        """获取所有命令组"""
-        return self.commands
+    def __init__(self, cmd):
+        super().__init__()
+        self.cmd = cmd
 
-    def execute_command(self, command: str, params: Optional[str] = None) -> None:
-        """执行指定的命令"""
-        # 这里将来实现具体的命令执行逻辑
-        pass
+    def run(self):
+        try:
+            process = subprocess.Popen(
+                self.cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                encoding='utf-8', 
+                shell=False
+            )
+            stdout, stderr = process.communicate()
+
+            if process.returncode == 0:
+                print(stdout)
+                self.task_completed.emit(True, "任务成功完成")
+            else:
+                error_msg = (
+                    f"命令执行失败，返回代码 {process.returncode}。\n输出: {stdout}\n错误: {stderr}"
+                )
+                print(error_msg)
+                self.task_completed.emit(False, error_msg)
+        except Exception as e:
+            error_msg = f"发生错误: {str(e)}\n{traceback.format_exc()}"
+            print(error_msg)
+            self.task_completed.emit(False, error_msg)
+
+
+class Vol2Linux:
+    def __init__(self, mem_path, profile):
+        self.mem_path = mem_path
+        self.profile = profile
+        
+    def readconfig(self):
+        with open('config/base_config.yaml', 'r', encoding='utf-8') as file:
+            config = yaml.safe_load(file)
+        python27 = config['base_tools']['python27']['path']
+        python27 = os.path.abspath(python27)
+        volatility2 = config['tools']['volatility2_python']['path']
+        volatility2_plugin = config['tools']['volatility2_plugin']['path']
+        volatility2 = os.path.abspath(volatility2)
+        volatility2_plugin = os.path.abspath(volatility2_plugin)
+        return python27, volatility2, volatility2_plugin
+
+    def construct_command(self, plugin, output_type='json'):
+        self.python27, self.volatility2, self.volatility2_plugin = self.readconfig()
+        output_file = f'output/output_vol2linux_{plugin}.{output_type}'
+        cmd = [
+            self.python27,
+            self.volatility2,
+            f'--plugin={self.volatility2_plugin}',
+            '-f',
+            self.mem_path,
+            plugin,
+            f'--output={output_type}',
+            f'--output-file={output_file}'
+        ]
+        return cmd, output_file
+    
+    def construct_command_with_args(self, plugin, output_type='json', **kwargs):
+        cmd, output_file = self.construct_command(plugin, output_type)
+        for key, value in kwargs.items():
+            cmd.append(f'-{key}')
+        return cmd, output_file
+
+    def json_to_csv(self, json_file):
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+            if 'rows' in data and 'columns' in data:
+                df = pd.DataFrame(data['rows'], columns=data['columns'])
+                csv_file = json_file.replace('.json', '.csv')
+                df.to_csv(csv_file, index=False)
+                print(f"[+] 成功将 {json_file} 转换为 {csv_file}")
+                # 删除json文件
+                os.remove(json_file)
+            else:
+                print(f"[!] {json_file} 不包含预期的数据，跳过转换")
+        except Exception as e:
+            print(f"[!] 转换 {json_file} 时出错: {str(e)}")
+
+
+class Vol2LinuxPlugin(QObject):
+    def __init__(self, mem_path):
+        super().__init__()
+        self.mem_path = mem_path
+        self.profile = None
+        self.workers = []
+        self.open_windows = []
+        self.python27, self.volatility2, self.volatility2_plugin = self.readconfig()
+        self.default_profile = "LinuxUbuntu1604x64"  # 默认Linux profile
+
+    def readconfig(self):
+        with open('config/base_config.yaml', 'r', encoding='utf-8') as file:
+            config = yaml.safe_load(file)
+        python27 = config['base_tools']['python27']['path']
+        python27 = os.path.abspath(python27)
+        volatility2 = config['tools']['volatility2_python']['path']
+        volatility2_plugin = config['tools']['volatility2_plugin']['path']
+        volatility2 = os.path.abspath(volatility2)
+        volatility2_plugin = os.path.abspath(volatility2_plugin)
+        return python27, volatility2, volatility2_plugin
+
+    def get_linux_profiles(self):
+        """获取所有可用的Linux profiles"""
+        try:
+            cmd = [self.python27, self.volatility2, '--info']
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            stdout, stderr = process.communicate()
+            
+            if process.returncode == 0:
+                profiles = []
+                lines = stdout.split("\n")
+                for line in lines:
+                    if 'Linux' in line and 'Profile' in line:
+                        # 提取profile名称
+                        profile_name = line.strip().split()[0]
+                        profiles.append(profile_name)
+                return profiles
+            else:
+                print(f"[-] 获取Linux profiles时出错: {stderr}")
+                return [self.default_profile]
+        except Exception as e:
+            print(f"[-] 获取Linux profiles时出错: {str(e)}")
+            return [self.default_profile]
+
+    def set_profile(self, profile):
+        self.profile = profile
+        print(f"[+] 已设置Linux Profile: {profile}")
+
+    def run_plugin(self, plugin_name, display_name, output_type='json', show_result=True):
+        if not self.profile:
+            print("[-] 请先设置Linux Profile")
+            return
+            
+        vol2linux = Vol2Linux(self.mem_path, self.profile)
+        cmd, output_file = vol2linux.construct_command(plugin_name, output_type)
+        output_exists = os.path.exists(output_file)
+
+        if output_exists:
+            self.display_output(display_name, output_file)
+        else:
+            worker = WorkerThread(cmd)
+            worker.task_completed.connect(
+                lambda success, message: self.on_task_completed(
+                    success, message, display_name, output_file, output_type, show_result
+                )
+            )
+            worker.finished.connect(worker.deleteLater)
+            worker.start()
+            self.workers.append(worker)
+            print(f"[*] 正在执行：{' '.join(cmd)}")
+
+    def run_plugin_with_params(self, plugin_name, display_name, params, output_type='json', show_result=True):
+        if not self.profile:
+            print("[-] 请先设置Linux Profile")
+            return
+            
+        vol2linux = Vol2Linux(self.mem_path, self.profile)
+        cmd, output_file = vol2linux.construct_command(plugin_name, output_type)
+        
+        # 在命令中添加参数
+        if params:
+            params_list = params.split()
+            cmd.extend(params_list)
+            
+        output_exists = os.path.exists(output_file)
+
+        if output_exists:
+            self.display_output(display_name, output_file)
+        else:
+            worker = WorkerThread(cmd)
+            worker.task_completed.connect(
+                lambda success, message: self.on_task_completed(
+                    success, message, display_name, output_file, output_type, show_result
+                )
+            )
+            worker.finished.connect(worker.deleteLater)
+            worker.start()
+            self.workers.append(worker)
+            print(f"[*] 正在执行：{' '.join(cmd)}")
+
+    def on_task_completed(self, success, message, display_name, output_file, output_type, show_result):
+        if success:
+            print(f"[+] {display_name} 执行完成")
+            if output_type == 'json':
+                Vol2Linux(self.mem_path, self.profile).json_to_csv(output_file)
+                output_file = output_file.replace('.json', '.csv')
+            if show_result and os.path.exists(output_file):
+                self.display_output(display_name, output_file)
+            else:
+                print(f"[!] 输出文件 {output_file} 不存在")
+        else:
+            print(f"[-] {display_name} 执行失败: {message}")
+        self.workers = [w for w in self.workers if w.isRunning()]
+
+    def display_output(self, title, file_path):
+        if file_path.endswith('.text') or file_path.endswith('.txt'):
+            self.show_text_result(title, file_path)
+        elif file_path.endswith('.csv'):
+            self.show_result(title, file_path)
+        else:
+            print(f"[!] 未知的文件类型: {file_path}")
+
+    def show_result(self, title, csv_path):
+        try:
+            if os.path.exists(csv_path):
+                window = NewtableWidget(title, csv_path)
+                window.show()
+                self.open_windows.append(window)
+            else:
+                print(f"[!] 文件不存在: {csv_path}")
+        except Exception as e:
+            print(f"[!] 显示结果时出错: {str(e)}")
+
+    def show_text_result(self, title, text_path):
+        try:
+            if os.path.exists(text_path):
+                with open(text_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                window = QuicklyView(title, content)
+                window.show()
+                self.open_windows.append(window)
+            else:
+                print(f"[!] 文件不存在: {text_path}")
+        except Exception as e:
+            print(f"[!] 显示文本结果时出错: {str(e)}")
+
+# 添加这行来保持向后兼容性
+vol2LinuxPlugin = Vol2LinuxPlugin
