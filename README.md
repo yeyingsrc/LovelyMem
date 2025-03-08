@@ -10,29 +10,37 @@
 <!-- markdownlint-disable-next-line MD036 -->
 _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 <!-- prettier-ignore-end -->
+
 <a href="https://qm.qq.com/q/aLg8kuKWOI"><img src="https://img.shields.io/badge/QQ%E7%BE%A4-856729462-orange?style=flat-square" alt="QQGroup"></a>
-  <a href="http://ctf.dog"><img src="https://img.shields.io/badge/CTF%E5%AF%BC%E8%88%AA%E7%AB%99-ctf.dog-5492ff?style=flat-square" alt="ctfnav"></a>
-  <a href=".."><img src="https://img.shields.io/badge/Python%20-%203.10.11-def1f2?style=flat-square" alt="python"></a>
+<a href="http://ctf.dog"><img src="https://img.shields.io/badge/CTF%E5%AF%BC%E8%88%AA%E7%AB%99-ctf.dog-5492ff?style=flat-square" alt="ctfnav"></a>
+<a href=".."><img src="https://img.shields.io/badge/Python%20-%203.10.11-def1f2?style=flat-square" alt="python"></a>
+
 </div>
 
+---
 
 ### 这是什么
-一款基于memprocfs、Volatility2、Volatility3的快捷内存取证工具
 
-区别于VolatilityPro：https://github.com/Tokeii0/VolatilityPro
+一款基于 `MemProcFS`、`Volatility2`、`Volatility3` 的快捷内存取证工具。
 
-有着更快的取证速度以及更便捷的功能
+区别于 [VolatilityPro](https://github.com/Tokeii0/VolatilityPro)，LovelyMem 提供了更快的取证速度和更便捷的功能。
 
-视频展示：https://www.bilibili.com/video/BV1z912YpECB
+**视频展示**：https://www.bilibili.com/video/BV1z912YpECB
+
+---
 
 ### 界面展示
+
 ![image](https://github.com/user-attachments/assets/22f8c9e5-f85e-4f29-baa0-914bda63c09b)
 ![image](https://github.com/user-attachments/assets/3e9c0905-bb41-4053-aec2-26fa3a499ccb)
 
-### 具体准备
-根据config文件夹下面的base_config.yaml自助配置以下内容，或者直接在软件中通过"高级功能"下的"设置"按钮进行图形化配置。
+---
 
-```
+### 具体准备
+
+根据 `config` 文件夹下的 `base_config.yaml` 自助配置以下内容，或者直接在软件中通过 "高级功能" 下的 "设置" 按钮进行图形化配置。
+
+```yaml
 tools:
   memprocfs:
     path: "../Tools/MemProcFS/MemProcFS.exe"
@@ -64,23 +72,34 @@ other_tools:
     path: "../Tools/EvtxECmd/EvtxECmd.exe"
 ```
 
+---
+
 ### 功能特点
 
-- **工具集成**：集成了MemProcFS、Volatility2、Volatility3等多种内存取证工具
-- **快速检查**：提供常用取证功能的快速访问
-- **任务编排**：可以创建和执行自定义的取证任务流程
-- **报告编辑器**：方便生成和编辑取证报告
-- **AI助手**：提供AI辅助分析功能
-- **配置设置**：通过图形界面轻松配置工具路径、LLM设置和代理设置
+- **工具集成**：集成了 `MemProcFS`、`Volatility2`、`Volatility3` 等多种内存取证工具。
+- **快速检查**：提供常用取证功能的快速访问。
+- **任务编排**：可以创建和执行自定义的取证任务流程。
+- **报告编辑器**：方便生成和编辑取证报告。
+- **AI助手**：提供AI辅助分析功能。
+- **配置设置**：通过图形界面轻松配置工具路径、LLM设置和代理设置。
+
+---
 
 ### 运行
-上面相关内容配置好之后
 
-`python main.py`
+配置好相关内容后，运行：
+
+```bash
+python main.py
+```
+
+---
 
 ### 插件开发
-下面这是一个解压文件的插件例子，其他插件例子可以参考`extensions`文件夹下面内容
-```
+
+下面是一个解压文件的插件示例，其他插件示例可参考 `extensions` 文件夹。
+
+```python
 import zipfile
 import os
 
@@ -150,36 +169,43 @@ def extract_zip(file_path):
 
 # 注意: 如果需要支持其他类型的压缩文件(如RAR),
 # 可以添加相应的解压函数并在run()中调用
-
 ```
 
+---
+
 ### 适合什么题
-  - 没有套娃的取证题目
-  - *Windows*内存取证
-  
+
+- 没有套娃的取证题目
+- *Windows* 内存取证
+
+---
+
 ### 几个问题
 
-Q: 为什么一开始收费，现在突然开源了？
+**Q: 为什么一开始收费，现在突然开源了？**
 
 A: 这个项目一开始收费时，我就给自己立了个flag：要么GitHub星标破1000，要么被人破解。结果显而易见，哈哈。我也不怪那位破解的大佬，毕竟技术无罪，大家一起努力嘛，共同进步！进一步开源的原因：与其等着破解满天飞不如直接开源~
 
-Q: 开源之后还会继续更新吗？
+**Q: 开源之后还会继续更新吗？**
 
 A: 当然会更！这可是我第一个星标这么高的项目，只要我有时间，就会一直维护下去。也欢迎各位大佬多多参与，一起把项目做得更好～
 
-
+---
 
 ### 其他
 
-远离内卷，还CTF圈一个朗朗乾坤
+远离内卷，还CTF圈一个朗朗乾坤。
 
-愿望是取证像喝水一样简单
+愿望是取证像喝水一样简单。
 
+---
 
-### 开发不易请我喝杯咖啡吧
+### 开发不易，请我喝杯咖啡吧
 
 ![image](https://github.com/user-attachments/assets/d2f81d8a-a445-44ad-9069-664e053340d7)
 
+---
+
 ### Star History Chart
- 
+
 [![Star History Chart](https://api.star-history.com/svg?repos=Tokeii0/LovelyMem&type=Date)](https://star-history.com/#Tokeii0/LovelyMem&Date)
