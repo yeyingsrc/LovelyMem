@@ -4,9 +4,8 @@ import os, yaml
 import pandas as pd
 import json
 import traceback
+import shutil
 from PySide6.QtCore import QThread, Signal, QObject
-
-from plugin.NewtableWidget import NewtableWidget
 from plugin.QuicklyView import QuicklyView
 from lovelyform import show_csv_viewer
 
@@ -44,9 +43,74 @@ class WorkerThread(QThread):
             self.task_completed.emit(False, error_msg)
 
 
+class ImportProfileThread(QThread):
+    """用于在后台线程中导入Linux profile的工作线程"""
+    import_completed = Signal(bool, str, str)  # 成功标志, 消息, 新profile名称
+
+    def __init__(self, zip_file_path, volatility2, python27):
+        super().__init__()
+        self.zip_file_path = zip_file_path
+        self.volatility2 = volatility2
+        self.python27 = python27
+        print(f"[*] 创建导入线程: {id(self)}")
+
+    def run(self):
+        try:
+            print(f"[*] 开始执行导入线程: {id(self)}")
+            # 获取overlays目录路径
+            overlays_dir = os.path.join(os.path.dirname(self.volatility2), 'plugins', 'overlays', 'linux')
+            
+            # 确保目录存在
+            if not os.path.exists(overlays_dir):
+                os.makedirs(overlays_dir)
+                
+            # 复制zip文件到overlays目录
+            dest_file = os.path.join(overlays_dir, os.path.basename(self.zip_file_path))
+            print(f"[*] 复制文件到: {dest_file}")
+            shutil.copy2(self.zip_file_path, dest_file)
+            
+            # 运行vol.py --info以获取新添加的profile
+            cmd = [self.python27, self.volatility2, '--info']
+            print(f"[*] 执行命令: {' '.join(cmd)}")
+            process = subprocess.Popen(
+                cmd, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                universal_newlines=True
+            )
+            stdout, stderr = process.communicate()
+            
+            if process.returncode == 0:
+                # 查找新添加的profile
+                new_profile = None
+                lines = stdout.split("\n")
+                for line in lines:
+                    if 'Linux' in line and 'Profile' in line and os.path.basename(self.zip_file_path).replace('.zip', '') in line:
+                        profile_name = line.strip().split()[0]
+                        new_profile = profile_name
+                        break
+                
+                if new_profile:
+                    print(f"[*] 找到新的profile: {new_profile}")
+                    self.import_completed.emit(True, f"成功导入Linux profile: {new_profile}", new_profile)
+                else:
+                    print(f"[*] 未找到新的profile")
+                    self.import_completed.emit(False, f"导入成功，但无法识别新的profile。请尝试重新启动应用程序。", None)
+            else:
+                print(f"[*] 命令执行失败: {stderr}")
+                self.import_completed.emit(False, f"导入后验证失败: {stderr}", None)
+                
+        except Exception as e:
+            error_msg = f"导入Linux profile时出错: {str(e)}\n{traceback.format_exc()}"
+            print(f"[-] {error_msg}")
+            self.import_completed.emit(False, error_msg, None)
+        
+        #print(f"[*] 导入线程执行完毕: {id(self)}")
+
+
 class Vol2Linux:
     def __init__(self, mem_path, profile):
-        self.mem_path = mem_path
+        self.mem_path = open('output/image_info.txt', 'r',encoding='utf-8').read().split(',')[0]
         self.profile = profile
         
     def readconfig(self):
@@ -69,6 +133,7 @@ class Vol2Linux:
             f'--plugin={self.volatility2_plugin}',
             '-f',
             self.mem_path,
+            f'--profile={self.profile}',  # 添加profile参数
             plugin,
             f'--output={output_type}',
             f'--output-file={output_file}'
@@ -107,6 +172,7 @@ class Vol2LinuxPlugin(QObject):
         self.open_windows = []
         self.python27, self.volatility2, self.volatility2_plugin = self.readconfig()
         self.default_profile = "LinuxUbuntu1604x64"  # 默认Linux profile
+        self.import_threads = []  # 保存导入线程的引用
 
     def readconfig(self):
         with open('config/base_config.yaml', 'r', encoding='utf-8') as file:
@@ -141,6 +207,40 @@ class Vol2LinuxPlugin(QObject):
         except Exception as e:
             print(f"[-] 获取Linux profiles时出错: {str(e)}")
             return [self.default_profile]
+            
+    def import_linux_profile(self, zip_file_path):
+        """导入Linux profile
+        
+        Args:
+            zip_file_path: Linux profile的zip文件路径
+            
+        Returns:
+            ImportProfileThread: 导入profile的工作线程
+        """
+        # 创建工作线程
+        import_thread = ImportProfileThread(zip_file_path, self.volatility2, self.python27)
+        
+        # 保存线程引用，防止被垃圾回收
+        self.import_threads.append(import_thread)
+        
+        # 连接线程完成信号，清理引用
+        import_thread.finished.connect(lambda: self.cleanup_import_thread(import_thread))
+        
+        return import_thread
+        
+    def cleanup_import_thread(self, thread):
+        """清理已完成的导入线程"""
+        if thread in self.import_threads:
+            self.import_threads.remove(thread)
+            print(f"[*] 导入线程已完成并清理: {id(thread)}")
+            
+    def wait_for_import_threads(self):
+        """等待所有导入线程完成"""
+        for thread in self.import_threads[:]:
+            if thread.isRunning():
+                print(f"[*] 等待导入线程完成: {id(thread)}")
+                thread.wait()
+                print(f"[*] 导入线程已完成: {id(thread)}")
 
     def set_profile(self, profile):
         self.profile = profile
@@ -223,9 +323,7 @@ class Vol2LinuxPlugin(QObject):
     def show_result(self, title, csv_path):
         try:
             if os.path.exists(csv_path):
-                window = NewtableWidget(title, csv_path)
-                window.show()
-                self.open_windows.append(window)
+                show_csv_viewer(csv_path)
             else:
                 print(f"[!] 文件不存在: {csv_path}")
         except Exception as e:

@@ -1,8 +1,9 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox, QLabel, QDialog, QDialogButtonBox, QFormLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox, QLabel, QDialog, QDialogButtonBox, QFormLayout, QFileDialog
 from PySide6.QtCore import Qt
 from ui.styles import vol2_style, button_style
 import ui.styles
 from plugin.vol2linux import Vol2LinuxPlugin
+import os
 
 class Vol2LinuxButton(QPushButton):
     """Linux命令按钮"""
@@ -140,6 +141,9 @@ class Vol2LinuxArea(QWidget):
         # 初始化时调用一次样式更新
         self.current_button_style = button_style
         
+        # 保存导入线程的引用，防止被垃圾回收
+        self.import_thread = None
+        
         self.setup_ui()
         self.update_styles()
 
@@ -157,13 +161,16 @@ class Vol2LinuxArea(QWidget):
         self.profile_combo.setStyleSheet(ui.styles.button_style)
         self.profile_combo.setMinimumWidth(200)  # 增加下拉框的最小宽度，使其显示更完整
         
-        # 添加载入Profile按钮
-        self.load_profile_button = Vol2LinuxButton("载入Profile")
-        self.load_profile_button.clicked.connect(self.load_profile)
+        # 添加导入Profile按钮
+        self.import_profile_button = Vol2LinuxButton("导入Profile")
+        self.import_profile_button.clicked.connect(self.import_profile)
+        
+        # 添加profile选择变化事件
+        self.profile_combo.currentIndexChanged.connect(self.on_profile_changed)
         
         profile_row.addWidget(profile_label)
         profile_row.addWidget(self.profile_combo)
-        profile_row.addWidget(self.load_profile_button)
+        profile_row.addWidget(self.import_profile_button)
         profile_row.addStretch()
         
         # 搜索框（水平布局）
@@ -401,12 +408,63 @@ class Vol2LinuxArea(QWidget):
         # 设置profile
         self.vol2linux_plugin.set_profile(selected_profile)
         QMessageBox.information(self, "成功", f"已设置Linux Profile: {selected_profile}")
+        
+    def import_profile(self):
+        """导入Linux Profile"""
+        # 打开文件对话框，选择zip文件
+        file_dialog = QFileDialog(self)
+        file_dialog.setFileMode(QFileDialog.ExistingFile)
+        file_dialog.setNameFilter("ZIP文件 (*.zip)")
+        file_dialog.setWindowTitle("选择Linux Profile ZIP文件")
+        
+        if file_dialog.exec_():
+            selected_files = file_dialog.selectedFiles()
+            if selected_files:
+                zip_file_path = selected_files[0]
+                
+                # 打印开始导入的消息
+                print(f"[*] 开始导入Linux Profile: {os.path.basename(zip_file_path)}")
+                
+                # 创建并启动导入线程
+                self.import_thread = self.vol2linux_plugin.import_linux_profile(zip_file_path)
+                self.import_thread.import_completed.connect(self.on_import_completed)
+                self.import_thread.start()
+                
+                # 禁用导入按钮，防止重复点击
+                self.import_profile_button.setEnabled(False)
+                self.import_profile_button.setText("导入中...")
+    
+    def on_import_completed(self, success, message, new_profile):
+        """导入完成后的回调函数"""
+        # 重新启用导入按钮
+        self.import_profile_button.setEnabled(True)
+        self.import_profile_button.setText("导入Profile")
+        
+        if success:
+            # 重新加载profiles列表
+            self.populate_linux_profiles()
+            
+            # 如果有新的profile，选择它
+            if new_profile:
+                index = self.profile_combo.findText(new_profile)
+                if index >= 0:
+                    self.profile_combo.setCurrentIndex(index)
+                    # 自动加载新导入的profile
+                    self.vol2linux_plugin.set_profile(new_profile)
+            
+            # 使用打印而不是消息框
+            print(f"[+] {message}")
+        else:
+            # 错误信息仍然使用消息框，因为这需要用户注意
+            QMessageBox.warning(self, "错误", message)
+            
+        # 不要在这里删除线程引用，让它自然结束
 
     def update_styles(self):
         """更新所有样式"""
         for group in self.button_groups:
             group.update_styles()
-        self.load_profile_button.update_style()
+        self.import_profile_button.update_style()
         self.custom_button.update_style()
 
     def set_memory_image(self, mem_path):
@@ -426,6 +484,13 @@ class Vol2LinuxArea(QWidget):
         if profiles:
             self.profile_combo.addItems(profiles)
             print(f"[+] 已加载 {len(profiles)} 个Linux profiles")
+            
+            # 自动选择第一个profile
+            if self.profile_combo.count() > 0:
+                selected_profile = self.profile_combo.itemText(0)
+                self.profile_combo.setCurrentIndex(0)
+                self.vol2linux_plugin.set_profile(selected_profile)
+                print(f"[+] 已自动选择Linux Profile: {selected_profile}")
         else:
             print("[-] 未找到Linux profiles")
             
@@ -433,3 +498,19 @@ class Vol2LinuxArea(QWidget):
         """执行带参数的命令"""
         cmd = button.text()
         self.vol2linux_plugin.run_plugin_with_params(cmd, f"{cmd} {params}", params)
+
+    def on_profile_changed(self, index):
+        """处理profile选择变化"""
+        if index >= 0:
+            selected_profile = self.profile_combo.itemText(index)
+            self.vol2linux_plugin.set_profile(selected_profile)
+            print(f"[+] 已选择Linux Profile: {selected_profile}")
+
+    def closeEvent(self, event):
+        """窗口关闭时的处理"""
+        # 等待所有导入线程完成
+        if hasattr(self.vol2linux_plugin, 'wait_for_import_threads'):
+            self.vol2linux_plugin.wait_for_import_threads()
+        
+        # 调用父类的closeEvent
+        super().closeEvent(event)
