@@ -52,6 +52,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        # 启用拖放功能（支持所有文件类型）
+        self.setAcceptDrops(True)
         self.setAttribute(Qt.WA_NativeWindow, True)
         self.setAttribute(Qt.WA_DontCreateNativeAncestors, True)
         self.setWindowFlags(Qt.FramelessWindowHint)  # 移除原生标题栏
@@ -65,7 +67,6 @@ class MainWindow(QMainWindow):
         # 初始化主题相关变量
         self.theme_names = list(color_schemes.keys())
         self.current_theme_index = 0
-
         # 创建中心部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -266,13 +267,32 @@ class MainWindow(QMainWindow):
         self.cmd_output.setTextCursor(cursor)
         self.cmd_output.ensureCursorVisible()
 
-    def load_image(self):
-        # 判断文件槽是否为
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        files = [url.toLocalFile() for url in event.mimeData().urls()]
+        if files:
+            self.handle_dropped_file(files[0])
+        event.acceptProposedAction()
+
+    def handle_dropped_file(self, file_path):
+        """处理拖放的文件"""
         if self.file_tree.topLevelItemCount() > 0:
             QMessageBox.warning(self, "警告", "检测到上次运行的残留取证文件，请先打包或清空文件槽！")
             return
-        file_dialog = QFileDialog(self)
-        image_path, _ = file_dialog.getOpenFileName(self, "选择内存镜像文件", "", "所有文件 (*.*)")
+        self.load_image(file_path)
+
+    def load_image(self, image_path=None):
+        """加载文件，支持拖放和手动选择两种方式"""
+        if not image_path:
+            file_dialog = QFileDialog(self)
+            image_path, _ = file_dialog.getOpenFileName(self, "选择文件", "", "所有文件 (*.*)")
+            if not image_path:
+                return
         if image_path:
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
