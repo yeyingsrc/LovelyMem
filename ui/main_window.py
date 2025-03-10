@@ -52,6 +52,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        # 启用拖放功能（支持所有文件类型）
+        self.setAcceptDrops(True)
         self.setAttribute(Qt.WA_NativeWindow, True)
         self.setAttribute(Qt.WA_DontCreateNativeAncestors, True)
         self.setWindowFlags(Qt.FramelessWindowHint)  # 移除原生标题栏
@@ -65,7 +67,6 @@ class MainWindow(QMainWindow):
         # 初始化主题相关变量
         self.theme_names = list(color_schemes.keys())
         self.current_theme_index = 0
-
         # 创建中心部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -266,22 +267,41 @@ class MainWindow(QMainWindow):
         self.cmd_output.setTextCursor(cursor)
         self.cmd_output.ensureCursorVisible()
 
-    def load_image(self):
-        # 判断文件槽是否为
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        files = [url.toLocalFile() for url in event.mimeData().urls()]
+        if files:
+            self.handle_dropped_file(files[0])
+        event.acceptProposedAction()
+
+    def handle_dropped_file(self, file_path):
+        """处理拖放的文件"""
         if self.file_tree.topLevelItemCount() > 0:
             QMessageBox.warning(self, "警告", "检测到上次运行的残留取证文件，请先打包或清空文件槽！")
             return
-        file_dialog = QFileDialog(self)
-        image_path, _ = file_dialog.getOpenFileName(self, "选择内存镜像文件", "", "所有文件 (*.*)")
+        self.load_image(file_path)
+
+    def load_image(self, image_path=None):
+        """加载文件，支持拖放和手动选择两种方式"""
+        if not image_path:
+            file_dialog = QFileDialog(self)
+            image_path, _ = file_dialog.getOpenFileName(self, "选择文件", "", "所有文件 (*.*)")
+            if not image_path:
+                return
         if image_path:
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
                 title_label.setText(f"Lovelymem Ver 0.92.4 - {image_path}")
-            self.current_mem_path = image_path  # 更新当前内存镜像路径
+            self.current_mem_path = image_path  # 更新当前文件路径
             self.mem_image_loader.load_mem_image(image_path)
-            self.cmd_output.append("正在加载内存镜像，请稍候...")
-            # 保存mem_path到output/image_info.txt 格式"mem_path, "
+            self.cmd_output.append("正在加载文件，请稍候...")
+            # 保存文件路径到output/image_info.txt
             with open('output/image_info.txt', 'w', encoding='utf-8') as f:
                 f.write(image_path + ", ")
             # 创建 Vol2Plugin 实例并开始获取 profile
