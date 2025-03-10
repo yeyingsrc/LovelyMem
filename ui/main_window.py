@@ -298,10 +298,10 @@ class MainWindow(QMainWindow):
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
                 title_label.setText(f"Lovelymem Ver 0.92.4 - {image_path}")
-            self.current_mem_path = image_path  # 更新当前文件路径
+            self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
-            self.cmd_output.append("正在加载文件，请稍候...")
-            # 保存文件路径到output/image_info.txt
+            self.cmd_output.append("正在加载内存镜像，请稍候...")
+            # 保存mem_path到output/image_info.txt 格式"mem_path, "
             with open('output/image_info.txt', 'w', encoding='utf-8') as f:
                 f.write(image_path + ", ")
             # 创建 Vol2Plugin 实例并开始获取 profile
