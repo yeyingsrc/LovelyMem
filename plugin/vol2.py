@@ -87,7 +87,7 @@ class Vol2:
 
     def json_to_csv(self, json_file):
         try:
-            with open(json_file, 'r') as f:
+            with open(json_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             if 'rows' in data and 'columns' in data:
                 df = pd.DataFrame(data['rows'], columns=data['columns'])
