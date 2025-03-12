@@ -1,34 +1,33 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                               QGroupBox, QLineEdit, QTextEdit, QLabel, QListWidget, QPushButton,
-                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton,QListView)  # 添加 QToolButton
-from PySide6.QtGui import QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QCloseEvent,QPalette, QGuiApplication, QFont
+                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton, QListView)
+from PySide6.QtGui import (QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QCloseEvent,
+                          QPalette, QGuiApplication, QFont)
 from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize
-from PySide6.QtWidgets import QApplication
 import logging
 import os
-from core.file_manager import FileManager  # 新增导入
+from core.file_manager import FileManager  
 import zipfile
 from datetime import datetime
 import sqlite3
 import requests
 from requests.exceptions import RequestException
 from ui.memprocfs_area import MemProcFSArea
-from ui.vol2_area import Vol2Area
-from ui.vol3_area import Vol3Area
-from ui.vol2linux_area import Vol2LinuxArea  # 添加Vol2Linux区域的导入
+from ui.vol2_area import Vol2Area, CollapsibleButtonGroup
+from ui.vol3_area import Vol3Area, CollapsibleButtonGroup as Vol3CollapsibleButtonGroup
+from ui.vol2linux_area import Vol2LinuxArea  
 from ui.quick_check_area import QuickCheckArea
 from ui.preset_manager import PresetManager
-from ui.file_menu_area import FileMenuArea  # 新增导入
+from ui.file_menu_area import FileMenuArea  
 from ui.main_window_rightpanel import RightPanel
 from core.loadmem import MemImageLoader
-from plugin.vol2 import Vol2Plugin  # 添加这个导入
-from plugin.vol3 import Vol3Plugin  # 添加这个导入
-from plugin.vol2linux import Vol2LinuxPlugin  # 添加Vol2Linux插件的导入
+from plugin.vol2 import Vol2Plugin  
+from plugin.vol3 import Vol3Plugin  
+from plugin.vol2linux import Vol2LinuxPlugin  
 from plugin.NewtableWidget import NewtableWidget
-
-
-from ui.vol2_area import CollapsibleButtonGroup
-from ui.vol3_area import CollapsibleButtonGroup as Vol3CollapsibleButtonGroup
+from core.config_manager import save_theme, get_saved_theme
+from ui.theme_selector import ThemeSelectorDialog
+# 已经从vol2_area和vol3_area导入了CollapsibleButtonGroup，这里不需要重复导入
 
 import sys,time
 
@@ -41,11 +40,70 @@ from ui.styles import (main_window_style, candy_background, common_font_style,
 
 logger = logging.getLogger(__name__)
 
-
-
-from ui.theme_selector import ThemeSelectorDialog
-from core.config_manager import save_theme, get_saved_theme
-
+# 添加毛玻璃效果覆盖层类
+class GlassOverlay(QWidget):
+    """实现毛玻璃效果的覆盖层，在拖放文件时显示"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # 设置无边框透明背景
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        
+        # 隐藏覆盖层（初始状态）
+        self.hide()
+        
+        # 创建提示标签
+        self.hint_label = QLabel("释放鼠标加载内存镜像", self)
+        self.hint_label.setAlignment(Qt.AlignCenter)
+        self.hint_label.setStyleSheet("""
+            color: #2980b9;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.85);
+            border: 5px dashed #808080;
+            border-radius: 10px;
+            padding: 15px 30px;
+        """)
+        
+        # 设置布局
+        layout = QVBoxLayout(self)
+        layout.addStretch(1)
+        layout.addWidget(self.hint_label, 0, Qt.AlignCenter)
+        layout.addStretch(1)
+    
+    def showEvent(self, event):
+        """显示时调整大小并居中显示提示标签"""
+        super().showEvent(event)
+        # 调整覆盖层大小为父窗口大小
+        if self.parent():
+            self.setGeometry(0, 0, self.parent().width(), self.parent().height())
+    
+    def paintEvent(self, event):
+        """绘制毛玻璃效果背景"""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # 创建半透明背景
+        painter.fillRect(self.rect(), QColor(255, 255, 255, 150))
+        
+        # 添加模糊效果（这里使用半透明渐变来模拟）
+        gradient = QColor(41, 128, 185, 40)
+        painter.fillRect(self.rect(), gradient)
+        
+        # 添加微妙的网格图案，增强毛玻璃效果
+        pen = painter.pen()
+        pen.setWidth(1)
+        pen.setColor(QColor(255, 255, 255, 20))
+        painter.setPen(pen)
+        
+        # 绘制水平和垂直线条，形成网格
+        step = 20
+        for i in range(0, self.width(), step):
+            painter.drawLine(i, 0, i, self.height())
+        for i in range(0, self.height(), step):
+            painter.drawLine(0, i, self.width(), i)
 
 class MainWindow(QMainWindow):
     style_updated_signal = Signal()
@@ -233,7 +291,9 @@ class MainWindow(QMainWindow):
         # 初始化 Vol3Plugin 为 None
         self.vol3_plugin = None
 
-
+        # 添加GlassOverlay实例
+        self.glass_overlay = GlassOverlay(self)
+        self.glass_overlay.hide()
 
         self.setStyleSheet(main_window_style)
         self.memprocfs_area.setStyleSheet(memprocfs_style)
@@ -269,11 +329,23 @@ class MainWindow(QMainWindow):
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
+            # 显示GlassOverlay
+            self.glass_overlay.show()
+            
+            # 接受拖放动作
             event.acceptProposedAction()
         else:
             event.ignore()
 
+    def dragLeaveEvent(self, event):
+        # 当文件拖出窗口时，恢复原来的样式
+        self.glass_overlay.hide()
+        event.accept()
+
     def dropEvent(self, event):
+        # 恢复原来的样式
+        self.glass_overlay.hide()
+        
         files = [url.toLocalFile() for url in event.mimeData().urls()]
         if files:
             self.handle_dropped_file(files[0])
@@ -537,12 +609,6 @@ class MainWindow(QMainWindow):
         button = QPushButton()
         button.setFixedSize(14, 14)
         return button
-
-    def closeEvent(self, event: QCloseEvent):
-        # 执行卸载镜像操作
-        self.unload_image()
-        # 调用父类的 closeEvent 方法
-        super().closeEvent(event)
 
     def update_file_list(self, file_list):
         self.file_tree.clear()
