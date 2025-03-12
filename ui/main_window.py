@@ -54,24 +54,48 @@ class GlassOverlay(QWidget):
         # 隐藏覆盖层（初始状态）
         self.hide()
         
-        # 创建提示标签
-        self.hint_label = QLabel("释放鼠标加载内存镜像", self)
-        self.hint_label.setAlignment(Qt.AlignCenter)
-        self.hint_label.setStyleSheet("""
-            color: #2980b9;
-            font-size: 18px;
-            font-weight: bold;
-            background-color: rgba(255, 255, 255, 0.85);
-            border: 5px dashed #808080;
-            border-radius: 10px;
-            padding: 15px 30px;
+        # 创建主布局
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # 创建内容容器
+        self.content_container = QWidget(self)
+        self.content_container.setObjectName("dropContainer")
+        self.content_container.setStyleSheet("""
+            #dropContainer {
+                background-color: rgba(255, 255, 255, 0.85);
+                border: 5px dashed #808080;
+                border-radius: 10px;
+            }
         """)
         
-        # 设置布局
-        layout = QVBoxLayout(self)
-        layout.addStretch(1)
-        layout.addWidget(self.hint_label, 0, Qt.AlignCenter)
-        layout.addStretch(1)
+        # 创建内容布局
+        content_layout = QVBoxLayout(self.content_container)
+        content_layout.setContentsMargins(40, 30, 40, 30)
+        
+        # 创建提示标签
+        self.hint_label = QLabel("释放鼠标加载内存镜像", self.content_container)
+        self.hint_label.setAlignment(Qt.AlignCenter)
+        self.hint_label.setStyleSheet("""
+            color: #3498db;
+            font-size: 18px;
+            font-weight: bold;
+        """)
+        
+        # 添加内存图标
+        self.mem_icon = QLabel(self.content_container)
+        self.mem_icon.setPixmap(QIcon('res/mem.svg').pixmap(64, 64))
+        self.mem_icon.setAlignment(Qt.AlignCenter)
+        
+        # 将控件添加到内容布局
+        content_layout.addWidget(self.hint_label)
+        content_layout.addSpacing(15)
+        content_layout.addWidget(self.mem_icon)
+        
+        # 将内容容器添加到主布局
+        self.main_layout.addStretch(1)
+        self.main_layout.addWidget(self.content_container, 0, Qt.AlignCenter)
+        self.main_layout.addStretch(1)
     
     def showEvent(self, event):
         """显示时调整大小并居中显示提示标签"""
@@ -148,7 +172,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.92.4")
+        title_label = QLabel("Lovelymem Ver 0.92.6")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -369,7 +393,7 @@ class MainWindow(QMainWindow):
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.92.4 - {image_path}")
+                title_label.setText(f"Lovelymem Ver 0.92.6 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -420,7 +444,7 @@ class MainWindow(QMainWindow):
         os.system("taskkill /F /IM python27.exe")
         print("[+] 卸载镜像成功")
         # 标题修改
-        self.setWindowTitle("Lovelymem Ver 0.92.4")
+        self.setWindowTitle("Lovelymem Ver 0.92.6")
 
     def refresh_file_list(self):
         current_files = self.file_manager.get_file_list()
