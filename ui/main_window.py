@@ -76,7 +76,8 @@ class GlassOverlay(QWidget):
         # 创建提示标签
         self.hint_label = QLabel("释放鼠标加载内存镜像", self.content_container)
         self.hint_label.setAlignment(Qt.AlignCenter)
-        self.hint_label.setStyleSheet("""
+        self.hint_label.setFont(QFont(common_font_style, 18, QFont.Bold))
+        self.hint_label.setStyleSheet(f"""
             color: #3498db;
             font-size: 18px;
             font-weight: bold;
