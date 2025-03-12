@@ -274,9 +274,14 @@ class Vol3Area(QWidget):
             for group in self.button_groups:
                 group.setVisible(True)
                 group.content_widget.setVisible(group.is_expanded)
+            # 恢复所有按钮的可见性和样式
+            for button, _, _ in self.all_buttons:
+                button.setVisible(True)
+                button.setStyleSheet(ui.styles.button_style)
             return
             
         search_text = search_text.lower()
+        search_terms = [term.strip() for term in search_text.split() if term.strip()]
         
         # 隐藏所有按钮组
         for group in self.button_groups:
@@ -284,16 +289,20 @@ class Vol3Area(QWidget):
             
         # 显示包含匹配按钮的组，并展开这些组
         for button, group, button_text in self.all_buttons:
-            if search_text in button_text.lower():
+            # 检查按钮文本是否匹配所有搜索词（AND逻辑）
+            button_text_lower = button_text.lower()
+            is_match = all(term in button_text_lower for term in search_terms)
+            
+            if is_match:
+                # 显示匹配的按钮和它所在的组
                 group.setVisible(True)
                 group.content_widget.setVisible(True)  # 展开包含匹配按钮的组
+                button.setVisible(True)
                 # 高亮匹配的按钮
-                if search_text in button.text().lower():
-                    # 设置匹配按钮的样式为高亮
-                    button.setStyleSheet(ui.styles.button_style + "background-color: rgba(0, 150, 255, 0.3);")
-                else:
-                    button.setStyleSheet(ui.styles.button_style)
+                button.setStyleSheet(ui.styles.button_style + "background-color: rgba(0, 150, 255, 0.3);")
             else:
+                # 隐藏不匹配的按钮
+                button.setVisible(False)
                 # 恢复未匹配按钮的样式
                 button.setStyleSheet(ui.styles.button_style)
 

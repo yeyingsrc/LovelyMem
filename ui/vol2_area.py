@@ -211,8 +211,17 @@ class Vol2Area(QWidget):
             is_match = all(term in button_text_lower for term in search_terms)
             
             if is_match:
+                # 显示匹配的按钮和它所在的组
                 group.setVisible(True)
                 group.content_widget.setVisible(True)  # 展开包含匹配按钮的组
+                button.setVisible(True)
+                # 高亮匹配的按钮
+                button.setStyleSheet(ui.styles.button_style + "background-color: rgba(0, 150, 255, 0.3);")
+            else:
+                # 隐藏不匹配的按钮
+                button.setVisible(False)
+                # 恢复未匹配按钮的样式
+                button.setStyleSheet(ui.styles.button_style)
         
         # 对所有可见组应用当前主题样式
         self.update_button_styles()
