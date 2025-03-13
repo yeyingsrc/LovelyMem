@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                               QGroupBox, QLineEdit, QTextEdit, QLabel, QListWidget, QPushButton,
-                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton, QListView)
+                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton, QListView, QTabBar)
 from PySide6.QtGui import (QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QCloseEvent,
-                          QPalette, QGuiApplication, QFont)
+                          QPalette, QGuiApplication, QFont, QTransform)
 from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize
 import logging
 import os
@@ -231,7 +231,19 @@ class MainWindow(QMainWindow):
 
         # 创建标签页控件并应用样式
         self.tab_widget = QTabWidget()
+        self.tab_widget.setTabPosition(QTabWidget.West)  # 将标签页设置为左侧
+        self.tab_widget.setIconSize(QSize(24, 24))  # 设置图标大小为24*24
         self.tab_widget.setStyleSheet(tab_style)
+        
+        # 设置标签页的固定宽度，使图标居中
+        tab_bar = self.tab_widget.tabBar()
+        tab_bar.setFixedWidth(40)  # 设置标签栏的固定宽度
+        
+        # 调整标签页的大小，使每个标签高度一致且合适
+        for i in range(5):  # 预计有5个标签
+            tab_bar.setTabButton(i, QTabBar.RightSide, None)  # 移除右侧按钮
+            tab_bar.setTabButton(i, QTabBar.LeftSide, None)   # 移除左侧按钮
+        
         left_layout.addWidget(self.tab_widget)
 
         # 创建各个功能区域
@@ -241,12 +253,24 @@ class MainWindow(QMainWindow):
         self.vol2linux_area = Vol2LinuxArea(self, self)  # 创建Vol2Linux区域
         self.quick_check_area = QuickCheckArea(self, self)
 
-        # 将功能区域添加到标签页中，并设置图标
-        self.tab_widget.addTab(self.memprocfs_area, "MemProcFS")
-        self.tab_widget.addTab(self.vol2_area, "Vol 2")
-        self.tab_widget.addTab(self.vol3_area, "Vol 3")
-        self.tab_widget.addTab(self.vol2linux_area, "Vol 2 Linux")  # 添加Vol2Linux选项卡
-        self.tab_widget.addTab(self.quick_check_area, "高级功能")
+        # 创建旋转后的图标
+        def rotate_icon(icon_path):
+            pixmap = QIcon(icon_path).pixmap(24, 24)
+            transform = QTransform().rotate(90)  # 顺时针旋转90度
+            rotated_pixmap = pixmap.transformed(transform)
+            return QIcon(rotated_pixmap)
+
+        # 将功能区域添加到标签页中，并设置旋转后的图标
+        self.tab_widget.addTab(self.memprocfs_area, rotate_icon('res/memprocfs.png'), "")
+        self.tab_widget.setTabToolTip(0, "MemProcFS功能区")
+        self.tab_widget.addTab(self.vol2_area, rotate_icon('res/vol2.png'), "")
+        self.tab_widget.setTabToolTip(1, "Volatility2功能区")
+        self.tab_widget.addTab(self.vol3_area, rotate_icon('res/vol3.png'), "")
+        self.tab_widget.setTabToolTip(2, "Volatility3功能区")
+        self.tab_widget.addTab(self.vol2linux_area, rotate_icon('res/vol2linux.png'), "")  # 使用Vol2的图标
+        self.tab_widget.setTabToolTip(3, "Volatility2 Linux功能区")
+        self.tab_widget.addTab(self.quick_check_area, rotate_icon('res/quick.png'), "")  # 使用logo图标
+        self.tab_widget.setTabToolTip(4, "高级功能区")
 
         upper_layout.addWidget(left_group, 4)  # 左侧占比1
                 # 创建文件管理器

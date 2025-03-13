@@ -171,27 +171,34 @@ def update_styles():
             border-radius: 5px;
         }}
         QTabWidget::tab-bar {{
-            left: 5px;
+            alignment: left;
         }}
         QTabBar::tab {{
             background: {button_bg_color};
             border: 1px solid {border_color};
-            border-bottom-color: {border_color};
+            border-right-color: {border_color};
             border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
-            padding: 5px;
-            margin-right: 2px;
+            border-bottom-left-radius: 4px;
+            padding: 5px 0px;
+            margin-bottom: 1px;
+            min-height: 22px;
+            max-height: 22px;
+            min-width: 40px;
+            max-width: 40px;
             {common_font_style}
+            text-align: center;
+            
+            alignment: center;
         }}
         QTabBar::tab:selected, QTabBar::tab:hover {{
             background: {button_hover_color};
         }}
         QTabBar::tab:selected {{
             border-color: {border_color};
-            border-bottom-color: {background_color};
+            border-right-color: {background_color};
         }}
         QTabBar::tab:!selected {{
-            margin-top: 2px;
+            margin-left: 2px;
         }}
     """
 
