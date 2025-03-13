@@ -627,13 +627,13 @@ class MainWindow(QMainWindow):
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:
-            if self.title_bar.geometry().contains(event.pos()):
+            if self.title_bar.geometry().contains(event.position().toPoint()):
                 # 获取点击位置的子部件
-                child_widget = self.childAt(event.pos())
+                child_widget = self.childAt(event.position().toPoint())
                 # 如果点击的不是标题栏
                 if child_widget == self.title_bar or child_widget is None:
                     self.dragging = True
-                    self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
+                    self.drag_position = event.position().toPoint() + self.mapToGlobal(QPoint(0, 0)) - self.frameGeometry().topLeft()
                     event.accept()
                 else:
                     # 如果点击的是子部件（如按钮），则不处理，让事件传递给子部件
@@ -645,7 +645,7 @@ class MainWindow(QMainWindow):
 
     def mouseMoveEvent(self, event: QMouseEvent):
         if self.dragging:
-            self.move(event.globalPos() - self.drag_position)
+            self.move(event.position().toPoint() + self.mapToGlobal(QPoint(0, 0)) - self.drag_position)
             event.accept()
         else:
             super().mouseMoveEvent(event)
