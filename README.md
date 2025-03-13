@@ -31,8 +31,9 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 
 ### 界面展示
 
-![image](https://github.com/user-attachments/assets/22f8c9e5-f85e-4f29-baa0-914bda63c09b)
-![image](https://github.com/user-attachments/assets/3e9c0905-bb41-4053-aec2-26fa3a499ccb)
+![image](https://github.com/user-attachments/assets/6c5e5807-1a1a-4285-b189-c36a3269b3c1)
+
+![image](https://github.com/user-attachments/assets/2e1c6084-88a9-4535-bba6-c5c917b37b06)
 
 ---
 
