@@ -223,8 +223,8 @@ class CSVViewer(QMainWindow, UIComponentMixin, TableOperationsMixin,
     def mousePressEvent(self, event):
         """处理鼠标按下事件，用于窗口拖动"""
         if event.button() == Qt.LeftButton:
-            if self.title_bar.geometry().contains(event.pos()):
-                self._drag_pos = event.pos()
+            if self.title_bar.geometry().contains(event.position().toPoint()):
+                self._drag_pos = event.position().toPoint()
 
     def mouseMoveEvent(self, event):
         """处理鼠标移动事件，用于窗口拖动"""

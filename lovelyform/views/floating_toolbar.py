@@ -108,7 +108,7 @@ class FloatingToolBar(QWidget):
         """鼠标按下事件"""
         if event.button() == Qt.LeftButton:
             self.dragging = True
-            self.offset = event.pos()
+            self.offset = event.position().toPoint()
             
     def mouseMoveEvent(self, event):
         """鼠标移动事件"""
