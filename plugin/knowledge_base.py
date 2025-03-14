@@ -24,6 +24,8 @@ class KnowledgeBaseDialog(QDialog):
         
         layout.addLayout(button_layout)
 
+        self.tab_widget.setStyleSheet("QTabBar::tab {min-width: 100px;}")
+
     def create_tabs(self):
         self.add_tab("基本功能", self.load_basic_knowledge())
         self.add_tab("高级功能", self.load_advanced_knowledge())

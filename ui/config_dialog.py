@@ -66,6 +66,7 @@ class ConfigDialog(QDialog):
         
         # 创建选项卡
         tab_widget = QTabWidget()
+        tab_widget.setStyleSheet("QTabBar::tab {min-width: 100px;}")
         
         # 工具路径设置选项卡
         tools_tab = QWidget()
