@@ -213,7 +213,7 @@ class FlowNode(QGraphicsObject):
         else:
             pos = event.globalPos()
             
-        action = menu.exec_(pos)
+        action = menu.exec(pos)
         
         # 处理用户选择
         if action == delete_action:

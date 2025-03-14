@@ -208,6 +208,6 @@ class QuicklyView(QDialog):  # 改为继承 QDialog
         try:
             self.show()
             QApplication.instance().processEvents()
-            return self.exec_()
+            return self.exec()
         except Exception as e:
             self.show_error_message(f"显示 QuicklyView 窗口时发生错误：{str(e)}")

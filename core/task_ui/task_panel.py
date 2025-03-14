@@ -214,4 +214,4 @@ class TaskPanel(QWidget):
         drag.setHotSpot(QPoint(pixmap.width() // 2, pixmap.height() // 2))
         
         # 执行拖拽
-        result = drag.exec_(Qt.CopyAction | Qt.MoveAction)
+        result = drag.exec(Qt.CopyAction | Qt.MoveAction)

@@ -159,7 +159,7 @@ class FlowScene(QGraphicsScene):
                 # 如果是QGraphicsSceneContextMenuEvent
                 pos = event.screenPos()
                 
-            action = menu.exec_(pos)
+            action = menu.exec(pos)
             
             # 处理用户选择
             if action == delete_action:
@@ -196,7 +196,7 @@ class FlowScene(QGraphicsScene):
                 # 如果是QGraphicsSceneContextMenuEvent
                 pos = event.screenPos()
                 
-            action = menu.exec_(pos)
+            action = menu.exec(pos)
             
             # 处理用户选择
             if action == create_node_action:

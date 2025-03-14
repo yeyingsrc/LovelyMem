@@ -256,7 +256,7 @@ class RegexSlot(QGroupBox):
             dialog.file_combo.setCurrentText(current_file)
             dialog.db_choice.setCurrentText("用户数据库" if current_db_type == "用户" else "默认数据库")
             
-            if dialog.exec_():
+            if dialog.exec():
                 new_name = dialog.get_group_name()
                 new_file = dialog.get_selected_file()
                 new_db_type = dialog.get_selected_db()
@@ -291,7 +291,7 @@ class RegexSlot(QGroupBox):
 
     def add_new_regex_group(self):
         dialog = NewRegexGroupDialog(self.file_tree)
-        if dialog.exec_():
+        if dialog.exec():
             group_name = dialog.get_group_name()
             selected_file = dialog.get_selected_file()
             selected_db = dialog.get_selected_db()
@@ -326,7 +326,7 @@ class RegexSlot(QGroupBox):
         dialog.layout().insertWidget(dialog.layout().count() - 1, QLabel("选择数据库:"))
         dialog.layout().insertWidget(dialog.layout().count() - 1, dialog.db_choice)
         
-        if dialog.exec_():
+        if dialog.exec():
             selected_groups = dialog.get_selected_groups()
             selected_db = "user" if dialog.db_choice.currentText() == "用户数据库" else "default"
             for group in selected_groups:
@@ -360,7 +360,7 @@ class RegexSlot(QGroupBox):
             return
 
         dialog = NewRegexDialog(self.file_tree)  # 传入 file_tree 而不是 file_list
-        if dialog.exec_():
+        if dialog.exec():
             regex = dialog.get_regex()
             reason = dialog.get_reason()
             selected_files = dialog.get_selected_files()
@@ -498,7 +498,7 @@ class RegexSlot(QGroupBox):
         delete_action = context_menu.addAction("删除")
         edit_action = context_menu.addAction("编辑")
         
-        action = context_menu.exec_(self.regex_list.mapToGlobal(position))
+        action = context_menu.exec(self.regex_list.mapToGlobal(position))
         
         if action == delete_action:
             self.delete_regex()
@@ -523,7 +523,7 @@ class RegexSlot(QGroupBox):
                 if dialog.file_list.item(i).text() in files:
                     dialog.file_list.item(i).setSelected(True)
             
-            if dialog.exec_():
+            if dialog.exec():
                 new_regex = dialog.get_regex()
                 new_files = dialog.get_selected_files()
                 new_reason = dialog.get_reason()

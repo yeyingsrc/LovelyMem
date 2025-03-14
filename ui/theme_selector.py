@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFrame, QScrollArea, QWidget, QFontComboBox
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QPoint
 from PySide6.QtGui import QColor, QFont
 import math
 import json
@@ -172,10 +172,10 @@ class ThemeSelectorDialog(QDialog):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
+            self.drag_position = event.position().toPoint() + self.mapToGlobal(QPoint(0, 0)) - self.frameGeometry().topLeft()
             event.accept()
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton and self.drag_position is not None:
-            self.move(event.globalPos() - self.drag_position)
+            self.move(event.position().toPoint() + self.mapToGlobal(QPoint(0, 0)) - self.drag_position)
             event.accept()

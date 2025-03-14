@@ -48,7 +48,7 @@ class CollapsibleButtonGroup(QWidget):
     def show_context_menu(self, pos, button):
         if hasattr(self.main_window, 'preset_manager'):
             context_menu = self.main_window.preset_manager.create_context_menu(button, source_area="MemProcFS")
-            context_menu.exec_(button.mapToGlobal(pos))
+            context_menu.exec(button.mapToGlobal(pos))
 
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded

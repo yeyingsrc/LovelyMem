@@ -363,7 +363,7 @@ class TableOperationsMixin:
             action.setEnabled(False)
             menu.addAction(action)
             
-        menu.exec_(self.table_view.viewport().mapToGlobal(pos))
+        menu.exec(self.table_view.viewport().mapToGlobal(pos))
 
     def handle_cell_plugin(self, plugin):
         """处理单元格插件"""
@@ -447,7 +447,7 @@ class TableOperationsMixin:
         clear_filter_action.triggered.connect(lambda: self.clear_filter(column))
         menu.addAction(clear_filter_action)
         
-        menu.exec_(header.viewport().mapToGlobal(pos))
+        menu.exec(header.viewport().mapToGlobal(pos))
 
     def show_filter_dialog(self, column):
         """显示筛选对话框"""
@@ -476,7 +476,7 @@ class TableOperationsMixin:
         layout.addLayout(buttons_layout)
         
         dialog.setLayout(layout)
-        dialog.exec_()
+        dialog.exec()
         
     def apply_filter(self, column, filter_text, dialog):
         """应用筛选"""
@@ -566,7 +566,7 @@ class TableOperationsMixin:
         
         # 创建并显示对话框
         dialog = ColumnVisibilityDialog(columns, visible_columns, self)
-        if dialog.exec_():
+        if dialog.exec():
             # 获取用户选择的可见列
             visible_columns = dialog.get_visible_columns()
             

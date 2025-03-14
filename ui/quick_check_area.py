@@ -52,7 +52,7 @@ class CollapsibleButtonGroup(QWidget):
     def show_context_menu(self, pos, button):
         if hasattr(self.main_window, 'preset_manager'):
             context_menu = self.main_window.preset_manager.create_context_menu(button, source_area="QuickCheck")
-            context_menu.exec_(button.mapToGlobal(pos))
+            context_menu.exec(button.mapToGlobal(pos))
 
     def toggle_expand(self):
         self.is_expanded = not self.is_expanded
@@ -111,7 +111,7 @@ class QuickCheckArea(QWidget):
     # 添加这个新方法
     def show_knowledge_base(self):
         dialog = KnowledgeBaseDialog(self)
-        dialog.exec_()
+        dialog.exec()
 
     def show_task_scheduler(self):
         dialog = TaskSchedulerDialog(self)
@@ -170,4 +170,4 @@ class QuickCheckArea(QWidget):
     def show_config_dialog(self):
         """显示配置对话框"""
         dialog = ConfigDialog(self)
-        dialog.exec_()
+        dialog.exec()

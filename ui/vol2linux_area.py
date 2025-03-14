@@ -73,7 +73,7 @@ class CollapsibleButtonGroup(QWidget):
         param_action = context_menu.addAction("参数执行")
         param_action.triggered.connect(lambda: self.execute_with_params(button))
         
-        context_menu.exec_(button.mapToGlobal(pos))
+        context_menu.exec(button.mapToGlobal(pos))
 
     def execute_with_params(self, button):
         # 获取按钮对应的功能名称
@@ -98,7 +98,7 @@ class CollapsibleButtonGroup(QWidget):
         layout.addWidget(button_box)
         
         # 显示对话框并获取结果
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             params = param_input.text().strip()
             if params:
                 # 查找Vol2LinuxArea实例
@@ -417,7 +417,7 @@ class Vol2LinuxArea(QWidget):
         file_dialog.setNameFilter("ZIP文件 (*.zip)")
         file_dialog.setWindowTitle("选择Linux Profile ZIP文件")
         
-        if file_dialog.exec_():
+        if file_dialog.exec():
             selected_files = file_dialog.selectedFiles()
             if selected_files:
                 zip_file_path = selected_files[0]

@@ -149,7 +149,7 @@ class NewtableWidget(QWidget):
         if self.menu_rule:
             context_menu = self.menu_rule(self)
             if context_menu:  # 添加这个检查
-                context_menu.exec(self.mapToGlobal(pos))  # 注意：在 PySide6 中是 exec，不是 exec_
+                context_menu.exec(self.mapToGlobal(pos))  # 注意：在 PySide6 中是 exec，不是 exec
             else:
                 print("警告：菜单规则没有返回有效的上下文菜单")
         else:

@@ -121,7 +121,7 @@ class FileMenuArea(QWidget):
             return
 
         dialog = RegexInputDialog(self)
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             regex = dialog.get_regex()
             thread_count = dialog.get_thread_count()
             use_mmap = dialog.get_use_mmap()

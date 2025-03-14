@@ -304,13 +304,13 @@ class CSVViewer(QMainWindow, UIComponentMixin, TableOperationsMixin,
     def show_command_config(self):
         """显示命令配置对话框"""
         dialog = CommandConfigDialog(self, variables=self.variables)
-        dialog.exec_()
+        dialog.exec()
 
         
     def show_command_config(self):
         """显示命令配置对话框"""
         dialog = CommandConfigDialog(self, variables=self.variables)
-        dialog.exec_()
+        dialog.exec()
 
     def set_variables(self, variables: dict):
         """设置变量字典

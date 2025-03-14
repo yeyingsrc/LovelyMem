@@ -25,7 +25,7 @@ class CustomTreeWidget(QTreeWidget):
         self.last_clicked_item = None
 
     def mouseReleaseEvent(self, event):
-        item = self.itemAt(event.pos())
+        item = self.itemAt(event.position().toPoint())
         if item:
             if self.last_clicked_item and self.last_clicked_item == item:
                 # 如果是同一个项目被点击两次，切换展开状
@@ -283,7 +283,7 @@ class RightPanel(QWidget):
             delete_action = menu.addAction("删除")
             reload_plugins_action.triggered.connect(self.reload_plugins)
             
-            action = menu.exec_(self.file_tree.mapToGlobal(position))
+            action = menu.exec(self.file_tree.mapToGlobal(position))
             
             if action == open_action:
                 self.quick_open_file(file_path)
@@ -415,7 +415,7 @@ class RightPanel(QWidget):
             edit_action = context_menu.addAction("编辑")
             delete_action = context_menu.addAction("删除")
             
-            action = context_menu.exec_(self.preset_list.mapToGlobal(position))
+            action = context_menu.exec(self.preset_list.mapToGlobal(position))
             
             if action == edit_action:
                 self.edit_preset_item(item)
@@ -475,7 +475,7 @@ class RightPanel(QWidget):
             return
 
         dialog = DeletePresetDialog(presets)
-        if dialog.exec_():
+        if dialog.exec():
             selected_presets = dialog.get_selected_presets()
             for preset in selected_presets:
                 self.delete_preset(preset)
@@ -706,16 +706,16 @@ class RightPanel(QWidget):
         menu.addAction("按名称排序", lambda: self.file_tree.sortItems(0, Qt.AscendingOrder))
         menu.addAction("按大小排序", lambda: self.file_tree.sortItems(1, Qt.AscendingOrder))
         menu.addAction("按修改日期排序", lambda: self.file_tree.sortItems(2, Qt.AscendingOrder))
-        menu.exec_(QCursor.pos())
+        menu.exec(QCursor.position().toPoint())
 
     def fileslot_mouse_press_event(self, event):
         if event.button() == Qt.LeftButton:
-            self.drag_start_position = event.pos()
+            self.drag_start_position = event.position().toPoint()
 
     def fileslot_mouse_move_event(self, event):
         if not (event.buttons() & Qt.LeftButton):
             return
-        if (event.pos() - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
+        if (event.position().toPoint() - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
             return
 
         drag = QDrag(self)
@@ -723,7 +723,7 @@ class RightPanel(QWidget):
         mimedata.setText("file_slot")
         drag.setMimeData(mimedata)
 
-        if drag.exec_(Qt.MoveAction) == Qt.MoveAction:
+        if drag.exec(Qt.MoveAction) == Qt.MoveAction:
             self.create_file_slot_window()
 
     def create_file_slot_window(self):

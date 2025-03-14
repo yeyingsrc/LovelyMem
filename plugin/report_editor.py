@@ -109,7 +109,7 @@ class RuleEditDialog(QDialog):
             QUrl.fromLocalFile("config")
         ])
         
-        if file_dialog.exec_():
+        if file_dialog.exec():
             selected_files = file_dialog.selectedFiles()
             if selected_files:
                 # 获取相对路径
@@ -409,7 +409,7 @@ class ReportEditor(QWidget):
 
     def add_rule(self):
         dialog = RuleEditDialog(self)
-        if dialog.exec_():
+        if dialog.exec():
             rule = dialog.get_rule()
             self.rules.append(rule)
             self.update_rule_list()
@@ -422,7 +422,7 @@ class ReportEditor(QWidget):
         
         rule_index = self.rule_combo.currentIndex()
         dialog = RuleEditDialog(self, self.rules[rule_index])
-        if dialog.exec_():
+        if dialog.exec():
             self.rules[rule_index] = dialog.get_rule()
             self.update_rule_list()
             self.save_rules()

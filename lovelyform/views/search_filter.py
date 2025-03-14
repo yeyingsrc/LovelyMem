@@ -68,7 +68,7 @@ class SearchFilterMixin:
         
         dialog.setLayout(layout)
         
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             filter_text = filter_input.text().strip()
             if filter_text:
                 self.apply_filter(column, filter_text)
@@ -119,4 +119,4 @@ class SearchFilterMixin:
         clear_action.triggered.connect(lambda: self.clear_filter(column))
         menu.addAction(clear_action)
         
-        menu.exec_(header.mapToGlobal(pos))
+        menu.exec(header.mapToGlobal(pos))
