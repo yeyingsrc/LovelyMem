@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QHeaderView, QAbstractItemView, QMessageBox, QMenu, QFileDialog, QToolBar,
                              QCheckBox, QInputDialog, QDialog, QGroupBox, QFrame,
                              QProgressBar, QSplitter, QApplication)
-from PySide6.QtCore import Qt, QSortFilterProxyModel
+from PySide6.QtCore import Qt, QSortFilterProxyModel, QPoint
 from PySide6.QtGui import QAction, QIcon, QGuiApplication
 
 import os
@@ -230,7 +230,7 @@ class CSVViewer(QMainWindow, UIComponentMixin, TableOperationsMixin,
         """处理鼠标移动事件，用于窗口拖动"""
         if hasattr(self, '_drag_pos'):
             if event.buttons() == Qt.LeftButton:
-                self.move(self.pos() + event.pos() - self._drag_pos)
+                self.move(self.mapToGlobal(QPoint(0, 0)) + event.position().toPoint() - self._drag_pos)
 
     def mouseReleaseEvent(self, event):
         """处理鼠标释放事件"""
