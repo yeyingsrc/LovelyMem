@@ -258,32 +258,38 @@ class RightPanel(QWidget):
 
     def on_regex_slot_double_click(self, event):
         """处理正则槽的双击事件"""
-        print("正则槽双击事件触发")
+        #print("正则槽双击事件触发")
         # 如果已经有正则槽窗口，则不创建新窗口
         if hasattr(self, 'regex_slot_window') and self.regex_slot_window is not None:
             self.regex_slot_window.activateWindow()  # 激活已有窗口
-            print("激活已有正则槽窗口")
+            #print("激活已有正则槽窗口")
             return
             
+        # 隐藏主界面的正则槽区域
+        #print("隐藏主界面正则槽")
+        self.hide_regex_slot()
+        
         # 创建独立的正则槽窗口
-        print(f"创建新正则槽窗口，原始正则槽ID: {id(self.regex_slot)}")
+        #print(f"创建新正则槽窗口，原始正则槽ID: {id(self.regex_slot)}")
         from ui.regex_slot_window import RegexSlotWindow
         self.regex_slot_window = RegexSlotWindow(self.regex_slot)
         # 连接关闭信号
         self.regex_slot_window.closed.connect(self.on_regex_window_closed)
         
-        # 隐藏主界面的正则槽区域
-        print("隐藏主界面正则槽")
-        self.hide_regex_slot()
-        
         # 调整布局
         QTimer.singleShot(100, self.adjust_layout_visibility)
-        
+
     def on_regex_window_closed(self, regex_slot):
         """处理正则槽窗口关闭事件"""
-        print(f"正则槽窗口关闭事件触发，接收到的正则槽ID: {id(regex_slot)}")
+        #print(f"正则槽窗口关闭事件触发，接收到的正则槽ID: {id(regex_slot)}")
+        # 重置正则槽窗口引用
+        self.regex_slot_window = None
+        
         # 将右键菜单传递给主窗口处理
         self.window().on_regex_slot_window_closed(regex_slot)
+        
+        # 显示正则槽
+        self.show_regex_slot()
 
     def hide_regex_slot(self):
         """隐藏正则槽"""
@@ -301,43 +307,36 @@ class RightPanel(QWidget):
             
     def add_regex_slot_back(self, regex_slot):
         """将正则槽控件重新添加到主窗口"""
-        print(f"开始添加正则槽回主窗口，ID: {id(regex_slot)}")
-        
         # 确保正则槽没有父控件
         if regex_slot.parent():
-            print(f"正则槽有父控件: {regex_slot.parent()}")
             regex_slot.setParent(None)
-        else:
-            print("正则槽已经没有父控件")
             
         # 更新正则槽引用
         self.regex_slot = regex_slot
-        print(f"更新正则槽引用完成，当前self.regex_slot ID: {id(self.regex_slot)}")
+        
+        # 确保正则槽可见
+        self.regex_slot.setVisible(True)
         
         # 重新设置底部分割器
         bottom_splitter = self.setup_bottom_splitter()
-        print(f"重新设置底部分割器完成: {bottom_splitter}")
             
-        # 显示正则槽区域
-        self.regex_slot.setVisible(True)
-        print("设置正则槽可见")
-        
         # 重新连接信号
         try:
             self.regex_slot.regex_check_signal.disconnect()  # 先断开可能的旧连接
         except:
             pass
         self.regex_slot.regex_check_signal.connect(self.handle_regex_check_results)
-        print("重新连接信号完成")
         
         # 重新设置双击事件
         self.regex_slot.mouseDoubleClickEvent = lambda event: self.on_regex_slot_double_click(event)
-        print("重新设置双击事件完成")
         
         # 调整布局
         QTimer.singleShot(100, self.adjust_layout_visibility)
-        print("调整布局完成")
         
+        # 确保正则槽显示内容
+        if hasattr(self.regex_slot, 'load_regex_groups'):
+            self.regex_slot.load_regex_groups()
+
     def setup_bottom_splitter(self):
         """设置底部分割器"""
         # 移除旧的底部分割器（如果存在）
@@ -349,7 +348,6 @@ class RightPanel(QWidget):
                 break
                 
         if main_splitter is None:
-            print("错误：未找到主分割器")
             return None
             
         # 移除旧的底部分割器
@@ -363,7 +361,6 @@ class RightPanel(QWidget):
         
         # 创建正则槽（如果尚未创建）
         if not hasattr(self, 'regex_slot') or self.regex_slot is None:
-            print("创建新的正则槽")
             self.regex_slot = RegexSlot(self.file_slot.file_tree)
             self.regex_slot.regex_check_signal.connect(self.handle_regex_check_results)
             # 为正则槽添加双击事件
@@ -371,7 +368,6 @@ class RightPanel(QWidget):
             
         # 创建预设组（如果尚未创建）
         if not hasattr(self, 'preset_group') or self.preset_group is None:
-            print("创建新的预设组")
             self.setup_preset_group()
             
         # 添加正则槽到分割器
@@ -391,7 +387,6 @@ class RightPanel(QWidget):
         main_splitter.setStretchFactor(0, 2)  # 文件槽
         main_splitter.setStretchFactor(1, 1)  # 底部分割器
         
-        print(f"底部分割器设置完成: {bottom_splitter}")
         return bottom_splitter
         
     def setup_preset_group(self):
@@ -721,83 +716,26 @@ class RightPanel(QWidget):
 
     def hide_file_slot(self):
         """隐藏文件槽"""
-        if hasattr(self, 'file_slot'):
-            self.file_slot.setVisible(False)
+        if hasattr(self, 'file_slot_container'):
+            self.file_slot_container.setVisible(False)
             # 使用定时器延迟调整布局，确保UI状态已完全更新
             QTimer.singleShot(100, self.adjust_layout_visibility)
     
     def show_file_slot(self):
         """显示文件槽"""
-        if hasattr(self, 'file_slot'):
-            self.file_slot.setVisible(True)
+        if hasattr(self, 'file_slot_container'):
+            self.file_slot_container.setVisible(True)
             # 使用定时器延迟调整布局，确保UI状态已完全更新
             QTimer.singleShot(100, self.adjust_layout_visibility)
-    
-    def adjust_layout_visibility(self):
-        """根据当前可见组件调整布局空间"""
-        print("调整布局可见性")
-        
-        # 获取主分割器
-        main_splitter = None
-        for i in range(self.layout().count()):
-            item = self.layout().itemAt(i)
-            if item.widget() and isinstance(item.widget(), QSplitter) and item.widget().orientation() == Qt.Vertical:
-                main_splitter = item.widget()
-                break
-                
-        if not main_splitter:
-            print("找不到主分割器，无法调整布局")
-            return
             
-        # 检查文件槽可见性
-        file_slot_visible = hasattr(self, 'file_slot') and self.file_slot.isVisible()
-        
-        # 检查底部分割器中组件的可见性
-        bottom_visible = False
-        if main_splitter.count() > 1:
-            bottom_splitter = main_splitter.widget(1)
-            if isinstance(bottom_splitter, QSplitter):
-                # 检查底部分割器中是否有可见组件
-                for i in range(bottom_splitter.count()):
-                    if bottom_splitter.widget(i) and bottom_splitter.widget(i).isVisible():
-                        bottom_visible = True
-                        break
-        
-        # 设置分割器比例
-        if file_slot_visible and bottom_visible:
-            # 文件槽和底部组件都可见 - 使用默认比例
-            main_splitter.setStretchFactor(0, 2)  # 文件槽
-            main_splitter.setStretchFactor(1, 1)  # 底部分割器
-            print("文件槽和底部组件都可见，使用默认比例 2:1")
-        elif file_slot_visible and not bottom_visible:
-            # 只有文件槽可见 - 文件槽占用全部空间
-            main_splitter.setStretchFactor(0, 1)  # 文件槽
-            main_splitter.setStretchFactor(1, 0)  # 底部分割器
-            print("只有文件槽可见，文件槽占用全部空间")
-        elif not file_slot_visible and bottom_visible:
-            # 只有底部组件可见 - 底部组件占用全部空间
-            main_splitter.setStretchFactor(0, 0)  # 文件槽
-            main_splitter.setStretchFactor(1, 1)  # 底部分割器
-            print("只有底部组件可见，底部组件占用全部空间")
-        else:
-            # 两者都不可见 - 默认比例
-            main_splitter.setStretchFactor(0, 1)
-            main_splitter.setStretchFactor(1, 1)
-            print("两者都不可见，使用默认比例 1:1")
-        
-        # 刷新UI
-        QApplication.processEvents()
-
     def add_file_slot_back(self, file_slot):
         """将文件槽控件重新添加到主窗口"""
-        print(f"开始添加文件槽回主窗口")
+        #print(f"开始添加文件槽回主窗口，ID: {id(file_slot)}")
         
         # 确保文件槽没有父控件
         if file_slot.parent():
-            print(f"文件槽有父控件: {file_slot.parent()}")
+            #print(f"文件槽有父控件: {file_slot.parent()}")
             file_slot.setParent(None)
-        else:
-            print("文件槽已经没有父控件")
             
         # 更新文件槽引用
         self.file_slot = file_slot
@@ -828,6 +766,54 @@ class RightPanel(QWidget):
             QTimer.singleShot(100, self.adjust_layout_visibility)
         else:
             print("错误：找不到文件槽容器")
+
+    def adjust_layout_visibility(self):
+        """根据当前可见组件调整布局空间"""
+        # 获取主分割器
+        main_splitter = None
+        for i in range(self.layout().count()):
+            item = self.layout().itemAt(i)
+            if item.widget() and isinstance(item.widget(), QSplitter) and item.widget().orientation() == Qt.Vertical:
+                main_splitter = item.widget()
+                break
+                
+        if not main_splitter:
+            return
+            
+        # 检查文件槽可见性
+        file_slot_visible = hasattr(self, 'file_slot_container') and self.file_slot_container.isVisible()
+        
+        # 检查底部分割器中组件的可见性
+        bottom_visible = False
+        if main_splitter.count() > 1:
+            bottom_splitter = main_splitter.widget(1)
+            if isinstance(bottom_splitter, QSplitter):
+                # 检查底部分割器中是否有可见组件
+                for i in range(bottom_splitter.count()):
+                    if bottom_splitter.widget(i) and bottom_splitter.widget(i).isVisible():
+                        bottom_visible = True
+                        break
+        
+        # 设置分割器比例
+        if file_slot_visible and bottom_visible:
+            # 文件槽和底部组件都可见 - 使用默认比例
+            main_splitter.setStretchFactor(0, 2)  # 文件槽
+            main_splitter.setStretchFactor(1, 1)  # 底部分割器
+        elif file_slot_visible and not bottom_visible:
+            # 只有文件槽可见 - 文件槽占用全部空间
+            main_splitter.setStretchFactor(0, 1)  # 文件槽
+            main_splitter.setStretchFactor(1, 0)  # 底部分割器
+        elif not file_slot_visible and bottom_visible:
+            # 只有底部组件可见 - 底部组件占用全部空间
+            main_splitter.setStretchFactor(0, 0)  # 文件槽
+            main_splitter.setStretchFactor(1, 1)  # 底部分割器
+        else:
+            # 两者都不可见 - 默认比例
+            main_splitter.setStretchFactor(0, 1)
+            main_splitter.setStretchFactor(1, 1)
+        
+        # 刷新UI
+        QApplication.processEvents()
 
     def closeEvent(self, event):
         for viewer in self.viewers:

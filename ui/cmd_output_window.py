@@ -24,7 +24,9 @@ class CmdOutputWindow(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)  # 启用窗口背景透明
         self.resize(600, 400)  # 设置合适的默认大小
         
+        # 保存原始命令输出控件的引用
         self.cmd_output = cmd_output
+        self.original_parent = cmd_output.parent()
         
         # 先设置父控件，确保控件可见
         self.cmd_output.setParent(self)
@@ -256,8 +258,15 @@ class CmdOutputWindow(QWidget):
     
     def closeEvent(self, event):
         """窗口关闭时发出信号"""
+        # 确保命令输出控件没有父控件
+        if self.cmd_output.parent():
+            self.cmd_output.setParent(None)
+            
+        # 发送关闭信号，将命令输出控件传回主窗口
         self.closed.emit(self.cmd_output)
-        super().closeEvent(event)
+        
+        # 接受关闭事件
+        event.accept()
     
     def on_theme_changed(self):
         """主题变化时更新样式"""

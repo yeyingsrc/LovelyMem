@@ -8,13 +8,13 @@ from PySide6.QtGui import QFont, QIcon, QPixmap
 
 from ui.styles import (
     background_color, text_color, button_bg_color, button_text_color, 
-    button_hover_color, border_color, group_title_bg_color,
-    current_font_family, minimize_button_color, close_button_color
+    button_hover_color, border_color, group_title_bg_color, cmd_output_bg_color,
+    cmd_output_text_color, current_font_family, minimize_button_color, close_button_color
 )
 
 class RegexSlotWindow(QWidget):
     """正则槽独立窗口"""
-    # 定义关闭信号，用于在窗口关闭时通知主窗口
+    # 定义关闭信号，用于在窗口关闭时通知主窗口，并传递正则槽引用
     closed = Signal(object)
     
     def __init__(self, regex_slot):
@@ -22,21 +22,20 @@ class RegexSlotWindow(QWidget):
         self.setWindowTitle("正则槽")
         self.setWindowFlags(Qt.FramelessWindowHint)  # 移除原生标题栏
         self.setAttribute(Qt.WA_TranslucentBackground)  # 启用窗口背景透明
-        self.resize(400, 400)  # 设置合适的默认大小
+        self.resize(500, 500)  # 设置合适的默认大小
         
-        # 保存原始的正则槽
-        self.original_regex_slot = regex_slot
-        print(f"原始正则槽ID: {id(self.original_regex_slot)}")
+        # 保存原始正则槽的引用
+        self.regex_slot = regex_slot
         
-        # 创建一个新的正则槽，复制原来的属性
-        from ui.regex_slot import RegexSlot
-        self.new_regex_slot = RegexSlot(self.original_regex_slot.file_tree)
-        print(f"新创建的正则槽ID: {id(self.new_regex_slot)}")
+        # 先设置父控件为None，确保控件可见
+        if self.regex_slot.parent():
+            self.regex_slot.setParent(None)
         
-        # 复制原始正则槽的数据
-        self.copy_regex_slot_data()
-        
+        # 设置UI
         self.setup_ui()
+        
+        # 确保正则槽可见并刷新内容
+        self.refresh_regex_slot()
         
         # 用于移动窗口的变量
         self.dragging = False
@@ -76,8 +75,8 @@ class RegexSlotWindow(QWidget):
         # 从ui.styles重新导入最新的颜色变量，确保获取到最新的主题颜色
         from ui.styles import (
             background_color, text_color, button_bg_color, button_text_color, 
-            button_hover_color, border_color, group_title_bg_color,
-            minimize_button_color, close_button_color
+            button_hover_color, border_color, group_title_bg_color, cmd_output_bg_color,
+            cmd_output_text_color, minimize_button_color, close_button_color
         )
         
         self.setStyleSheet(f"""
@@ -102,7 +101,14 @@ class RegexSlotWindow(QWidget):
                 color: {text_color};
             }}
             
-            QPushButton {{
+            QListWidget, QComboBox {{
+                background-color: {cmd_output_bg_color};
+                color: {text_color};
+                border: 1px solid {border_color};
+                border-radius: 3px;
+            }}
+            
+            QPushButton, QToolButton {{
                 background-color: {button_bg_color};
                 color: {button_text_color};
                 border: none;
@@ -110,7 +116,7 @@ class RegexSlotWindow(QWidget):
                 padding: 5px;
             }}
             
-            QPushButton:hover {{
+            QPushButton:hover, QToolButton:hover {{
                 background-color: {button_hover_color};
             }}
             
@@ -157,6 +163,7 @@ class RegexSlotWindow(QWidget):
             widget.setFont(font)
     
     def setup_ui(self):
+        """设置UI布局"""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)  # 设置边距，为圆角留出空间
         main_layout.setSpacing(0)
@@ -202,18 +209,14 @@ class RegexSlotWindow(QWidget):
         container_layout.addWidget(self.title_bar)
         
         # 创建内容区域
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(5, 5, 5, 5)
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setContentsMargins(5, 5, 5, 5)
         
         # 添加正则槽到内容区域
-        content_layout.addWidget(self.new_regex_slot)
+        self.content_layout.addWidget(self.regex_slot)
         
-        # 确保正则槽可见并设置其父控件
-        self.new_regex_slot.setParent(content_widget)
-        self.new_regex_slot.setVisible(True)
-        
-        container_layout.addWidget(content_widget)
+        container_layout.addWidget(self.content_widget)
         
         # 添加大小调整手柄
         size_grip = QSizeGrip(self.content_container)
@@ -229,6 +232,34 @@ class RegexSlotWindow(QWidget):
         
         # 添加内容容器到主布局
         main_layout.addWidget(self.content_container)
+    
+    def refresh_regex_slot(self):
+        """强制刷新正则槽的内容"""
+        # 确保正则槽可见
+        self.regex_slot.setVisible(True)
+        
+        # 确保正则组和正则表达式列表被正确加载
+        if hasattr(self.regex_slot, 'load_regex_groups'):
+            self.regex_slot.load_regex_groups()
+        
+        # 确保UI组件可见
+        if hasattr(self.regex_slot, 'regex_group_combo'):
+            self.regex_slot.regex_group_combo.setVisible(True)
+        
+        if hasattr(self.regex_slot, 'regex_list'):
+            self.regex_slot.regex_list.setVisible(True)
+            
+        if hasattr(self.regex_slot, 'add_button'):
+            self.regex_slot.add_button.setVisible(True)
+            
+        if hasattr(self.regex_slot, 'check_button'):
+            self.regex_slot.check_button.setVisible(True)
+            
+        if hasattr(self.regex_slot, 'group_action_button'):
+            self.regex_slot.group_action_button.setVisible(True)
+        
+        # 处理待处理的事件，确保UI更新
+        QApplication.processEvents()
     
     def mousePressEvent(self, event):
         """处理鼠标按下事件，用于移动窗口"""
@@ -257,16 +288,17 @@ class RegexSlotWindow(QWidget):
     
     def closeEvent(self, event):
         """窗口关闭时发出信号"""
-        print("正则槽窗口关闭")
+        print(f"正则槽窗口关闭事件，正则槽ID: {id(self.regex_slot)}")
         # 确保正则槽没有父控件
-        if self.new_regex_slot.parent():
-            self.new_regex_slot.setParent(None)
-            print("正则槽设置为无父控件")
-            
+        if self.regex_slot.parent():
+            self.regex_slot.setParent(None)
+        
+        # 从内容布局中移除正则槽
+        self.content_layout.removeWidget(self.regex_slot)
+        
         # 发送关闭信号
-        print(f"发送关闭信号，正则槽ID: {id(self.new_regex_slot)}")
-        self.closed.emit(self.new_regex_slot)
-        super().closeEvent(event)
+        self.closed.emit(self.regex_slot)
+        event.accept()
     
     def on_theme_changed(self):
         """主题变化时更新样式"""
@@ -298,27 +330,6 @@ class RegexSlotWindow(QWidget):
         # 应用整体样式
         self.apply_style()
         self.apply_font()
-    
-    def copy_regex_slot_data(self):
-        """复制原始正则槽的数据到新的正则槽"""
-        # 复制当前选中的组和文件
-        if hasattr(self.original_regex_slot, 'group_combo') and hasattr(self.new_regex_slot, 'group_combo'):
-            current_group = self.original_regex_slot.group_combo.currentText()
-            for i in range(self.new_regex_slot.group_combo.count()):
-                if self.new_regex_slot.group_combo.itemText(i) == current_group:
-                    self.new_regex_slot.group_combo.setCurrentIndex(i)
-                    break
         
-        # 复制正则表达式列表
-        if hasattr(self.original_regex_slot, 'regex_list') and hasattr(self.new_regex_slot, 'regex_list'):
-            self.new_regex_slot.regex_list.clear()
-            for i in range(self.original_regex_slot.regex_list.count()):
-                item_text = self.original_regex_slot.regex_list.item(i).text()
-                self.new_regex_slot.regex_list.addItem(item_text)
-        
-        # 确保加载正则组和正则表达式
-        if hasattr(self.new_regex_slot, 'load_regex_groups'):
-            self.new_regex_slot.load_regex_groups()
-        
-        if hasattr(self.new_regex_slot, 'load_regex_from_db'):
-            self.new_regex_slot.load_regex_from_db()
+        # 刷新正则槽内容
+        self.refresh_regex_slot()

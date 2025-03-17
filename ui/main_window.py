@@ -805,8 +805,28 @@ class MainWindow(QMainWindow):
         if cmd_output_group:
             cmd_output_group.setVisible(False)
         
-        # 调整窗口大小
-        self.adjust_window_size()
+        # 不调整窗口大小，保持主界面宽度不变
+        # self.adjust_window_size()
+
+    def on_cmd_output_window_closed(self, cmd_output):
+        """处理命令输出窗口关闭事件"""
+        # 将命令输出控件重新添加到主窗口
+        cmd_output_group = self.findChild(QGroupBox, "cmd_output_group")
+        if cmd_output_group:
+            cmd_output_layout = cmd_output_group.layout()
+            # 清除现有的控件
+            while cmd_output_layout.count():
+                item = cmd_output_layout.takeAt(0)
+                if item.widget():
+                    item.widget().setParent(None)
+            # 添加回命令输出控件
+            cmd_output_layout.addWidget(cmd_output)
+            self.cmd_output = cmd_output
+            # 显示命令输出区域
+            cmd_output_group.setVisible(True)
+            
+            # 不调整窗口大小，保持主界面宽度不变
+            # self.adjust_window_size()
 
     def on_file_slot_double_click(self, event):
         """处理文件槽双击事件，创建独立窗口"""
@@ -861,7 +881,6 @@ class MainWindow(QMainWindow):
 
     def on_regex_slot_window_closed(self, regex_slot):
         """当正则槽窗口关闭时重新添加回正则槽"""
-        print(f"正则槽窗口关闭事件处理函数开始，ID: {id(regex_slot)}")
         # 将regex_slot添加回右面板
         self.right_panel.add_regex_slot_back(regex_slot)
         
@@ -907,7 +926,9 @@ class MainWindow(QMainWindow):
         file_slot_visible = hasattr(self.right_panel, 'file_slot_container') and self.right_panel.file_slot_container.isVisible()
         regex_slot_visible = hasattr(self.right_panel, 'regex_group') and self.right_panel.regex_group.isVisible()
         preset_slot_visible = hasattr(self.right_panel, 'preset_group') and self.right_panel.preset_group.isVisible()
-        cmd_output_visible = self.findChild(QGroupBox, "cmd_output_group").isVisible()
+        
+        # 注意：不再考虑命令输出区域的可见性
+        # cmd_output_visible = self.findChild(QGroupBox, "cmd_output_group").isVisible()
         
         # 如果所有槽都已独立出去，则缩小窗口宽度
         if not file_slot_visible and not regex_slot_visible and not preset_slot_visible:
@@ -945,8 +966,6 @@ class MainWindow(QMainWindow):
         file_slot_separated = hasattr(self, 'file_slot_window') and self.file_slot_window is not None
         regex_slot_separated = hasattr(self, 'regex_slot_window') and self.regex_slot_window is not None
         
-        print(f"调整布局: 文件槽分离={file_slot_separated}, 正则槽分离={regex_slot_separated}")
-        
         # 如果任一槽被分离，隐藏右侧面板
         if file_slot_separated or regex_slot_separated:
             # 将右侧面板隐藏或最小化
@@ -955,7 +974,6 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'upper_layout'):
                 self.upper_layout.setStretchFactor(self.tab_widget, 1)
                 self.upper_layout.setStretchFactor(self.right_panel, 0)
-                print("至少一个槽被分离：隐藏右侧面板")
                 # 调整窗口宽度为540
                 self.resize(540, self.height())
             else:
@@ -967,7 +985,6 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'upper_layout'):
                 self.upper_layout.setStretchFactor(self.tab_widget, 4)
                 self.upper_layout.setStretchFactor(self.right_panel, 5)
-                print("两者都回归：恢复正常布局")
                 self.adjust_window_size()
             else:
                 print("错误：无法找到upper_layout")
