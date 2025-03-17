@@ -10,6 +10,7 @@ from plugin.NewtableWidget import NewtableWidget
 from plugin.QuicklyView import QuicklyView
 import sqlite3
 from ui.regex_slot import RegexSlot
+from ui.file_slot import FileSlot
 import ui.styles
 import importlib.util
 import importlib
@@ -28,7 +29,7 @@ class CustomTreeWidget(QTreeWidget):
         item = self.itemAt(event.position().toPoint())
         if item:
             if self.last_clicked_item and self.last_clicked_item == item:
-                # 如果是同一个项目被点击两次，切换展开状
+                # 如果是同一个项目被点击两次，切换展开状态
                 item.setExpanded(not item.isExpanded())
             else:
                 # 如果是新的项目被点击，只选中它，不展开
@@ -41,21 +42,6 @@ class CustomTreeWidget(QTreeWidget):
     def clear(self):
         self.last_clicked_item = None
         super().clear()
-
-class FileSlotWindow(QWidget):
-    closed = Signal(QTreeWidget)
-
-    def __init__(self, file_tree):
-        super().__init__()
-        self.setWindowTitle("文件槽")
-        self.setWindowFlags(Qt.Window)
-        layout = QVBoxLayout(self)
-        layout.addWidget(file_tree)
-        self.file_tree = file_tree
-
-    def closeEvent(self, event):
-        self.closed.emit(self.file_tree)
-        super().closeEvent(event)
 
 class RightPanel(QWidget):
     pack_files_signal = Signal()
@@ -71,7 +57,6 @@ class RightPanel(QWidget):
         self.load_preset_names()
         self.setStyleSheet(ui.styles.right_panel_style)  # 应用整体样式
         self.plugins = self.load_plugins()  # 加载插件
-        self.file_slot_window = None
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -81,45 +66,16 @@ class RightPanel(QWidget):
         main_splitter = QSplitter(Qt.Vertical)
         #main_splitter.setStyleSheet(ui.styles.splitter_style)
 
-        # 文件
-        self.file_group = QGroupBox("文件槽")
-        file_layout = QVBoxLayout(self.file_group)
-        file_layout.setContentsMargins(5, 5, 5, 5)
-        self.file_tree = CustomTreeWidget()
-        self.file_tree.setHeaderLabels(["文件名", "大小", "修改日期"])
-        self.file_tree.header().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.file_tree.setSortingEnabled(True)
-        file_layout.addWidget(self.file_tree)
-
-        # 设置文件槽可拖动
-        self.file_group.setMouseTracking(True)
-        self.file_group.mousePressEvent = self.fileslot_mouse_press_event
-        self.file_group.mouseMoveEvent = self.fileslot_mouse_move_event
-
-        # 添加打包、清空和排序按钮
-        button_layout = QHBoxLayout()
-        self.pack_button = QPushButton("打包")
-        self.clear_button = QPushButton("清空")
-        #sort_button = QPushButton("排序")
-        button_layout.addWidget(self.pack_button)
-        button_layout.addWidget(self.clear_button)
-        #button_layout.addWidget(sort_button)
-        file_layout.addLayout(button_layout)
-
-        # 连接按钮信号
-        self.pack_button.clicked.connect(self.pack_files_signal.emit)
-        self.clear_button.clicked.connect(self.clear_files_signal.emit)
-        #sort_button.clicked.connect(self.show_sort_menu)
-
-        # 为文件列表添加右键菜
-        self.file_tree.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.file_tree.customContextMenuRequested.connect(self.show_file_context_menu)
+        # 文件槽
+        self.file_slot = FileSlot(self.file_manager)
+        self.file_slot.pack_files_signal.connect(self.pack_files)
+        self.file_slot.clear_files_signal.connect(self.clear_files)
 
         # 创建一个水平分割器用于正则槽和预设
         bottom_splitter = QSplitter(Qt.Horizontal)
 
-        # 正槽
-        self.regex_slot = RegexSlot(self.file_tree)
+        # 正则槽
+        self.regex_slot = RegexSlot(self.file_slot.file_tree)
         self.regex_slot.regex_check_signal.connect(self.handle_regex_check_results)
         bottom_splitter.addWidget(self.regex_slot)
 
@@ -128,7 +84,7 @@ class RightPanel(QWidget):
         preset_layout = QVBoxLayout(preset_group)
         preset_layout.setContentsMargins(5, 5, 5, 5)
 
-        # 预设组下拉框和操作按钮的水平
+        # 预设组下拉框和操作按钮的水平布局
         preset_group_layout = QHBoxLayout()
         self.preset_combo = QComboBox()
         self.preset_combo.addItem("选择预设")
@@ -157,53 +113,37 @@ class RightPanel(QWidget):
         bottom_splitter.addWidget(preset_group)
 
         # 设置预设槽和正则槽的比例:1
-        bottom_splitter.setStretchFactor(0, 3)  # 正则
-        bottom_splitter.setStretchFactor(1, 1)  # 
+        bottom_splitter.setStretchFactor(0, 3)  # 正则槽
+        bottom_splitter.setStretchFactor(1, 1)  # 预设槽
 
-        # 将文件槽和底部分割器添加到主分割
-        main_splitter.addWidget(self.file_group)
+        # 将文件槽和底部分割器添加到主分割器
+        main_splitter.addWidget(self.file_slot)
         main_splitter.addWidget(bottom_splitter)
 
-        # 设置主分割器的初始大小比
-        main_splitter.setStretchFactor(0, 2)  # 文件
-        main_splitter.setStretchFactor(1, 1)  # 底部分割
+        # 设置主分割器的初始大小比例
+        main_splitter.setStretchFactor(0, 2)  # 文件槽
+        main_splitter.setStretchFactor(1, 1)  # 底部分割器
 
         layout.addWidget(main_splitter)
 
         # 修改下拉框的连接
         self.preset_combo.currentIndexChanged.connect(self.on_preset_changed)
 
-    def add_file(self, file_path, file_size, mod_time):
-        if not file_path.lower().endswith('.json'):
-            parts = file_path.split(os.sep)
-            current_item = self.file_tree.invisibleRootItem()
-            for i, part in enumerate(parts):
-                found = False
-                for j in range(current_item.childCount()):
-                    if current_item.child(j).text(0) == part:
-                        current_item = current_item.child(j)
-                        found = True
-                        break
-                if not found:
-                    new_item = QTreeWidgetItem(current_item)
-                    new_item.setText(0, part)
-                    if i == len(parts) - 1:  # 如果是最后一部分，即文件
-                        new_item.setText(1, self.format_size(file_size))
-                        new_item.setText(2, mod_time.strftime("%Y-%m-%d %H:%M:%S"))
-                    else:
-                        # 如果不是最后一部分，说明是文件夹，设置展开指示
-                        new_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-                    current_item = new_item
-                
-                # 不自动展开项目
-                if i < len(parts) - 1:
-                    current_item.setExpanded(False)
+    def pack_files(self):
+        # 转发信号
+        self.pack_files_signal.emit()
 
-    def format_size(self, size):
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-            if size < 1024.0:
-                return f"{size:.2f} {unit}"
-            size /= 1024.0
+    def clear_files(self):
+        # 转发信号
+        self.clear_files_signal.emit()
+
+    def update_file_list(self):
+        # 调用文件槽的更新方法
+        self.file_slot.update_file_list()
+
+    def add_file(self, file_path, file_size, mod_time):
+        # 直接调用文件槽的方法
+        self.file_slot.add_file(file_path, file_size, mod_time)
 
     def add_regex(self):
         regex = self.regex_input.text()
@@ -244,7 +184,7 @@ class RightPanel(QWidget):
             conn = sqlite3.connect('db/presets.db')
             c = conn.cursor()
             
-            # 首先确保表存
+            # 首先确保表存在
             c.execute('''CREATE TABLE IF NOT EXISTS presets
                          (name TEXT, button_text TEXT)''')
             
@@ -263,150 +203,7 @@ class RightPanel(QWidget):
         self.preset_list.addItem(button_text)
 
     def show_file_context_menu(self, position):
-        item = self.file_tree.itemAt(position)
-        if item and item.childCount() == 0:  # 确保选中的是文件而不是文件夹
-            file_path = self.get_full_path(item)
-
-            menu = QMenu()
-            open_action = menu.addAction("快速打开")
-            open_file_dir_action = menu.addAction("打开文件目录")
-            
-            # 添加扩展菜单
-            reload_plugins_action = menu.addAction("重新加载插件")
-            extensions_menu = menu.addMenu("扩展")
-            for category, category_plugins in self.plugins.items():
-                category_menu = extensions_menu.addMenu(category)
-                for plugin_title, plugin_data in category_plugins.items():
-                    plugin_action = category_menu.addAction(plugin_title)
-                    plugin_action.triggered.connect(lambda checked, fp=file_path, pd=plugin_data: self.execute_plugin(fp, pd))
-            
-            delete_action = menu.addAction("删除")
-            reload_plugins_action.triggered.connect(self.reload_plugins)
-            
-            action = menu.exec(self.file_tree.mapToGlobal(position))
-            
-            if action == open_action:
-                self.quick_open_file(file_path)
-            elif action == delete_action:
-                self.delete_selected_file(file_path)
-                self.update_file_list()  # 在删除文件后更新文件列表
-            elif action == open_file_dir_action:
-                self.open_file_dir(file_path)
-
-    def quick_open_file(self, file_path):
-        print(f"尝试打开文件: {file_path}")
-
-        if not os.path.exists(file_path):
-            QMessageBox.warning(self, "文件不存在", f"文件 {os.path.basename(file_path)} 不存在")
-            return
-
-        try:
-            if file_path.lower().endswith('.csv'):
-                print(f"正在打开CSV文件: {file_path}")
-                self.open_csv_file(file_path)
-            elif file_path.lower().endswith(('.txt', '.text', '.log','.dat')):
-                print(f"正在打开文本文件: {file_path}")
-                self.open_text_file(file_path)
-            elif file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.ico')):
-                print(f"正在打开图片文件: {file_path}")
-                self.open_image_file(file_path)
-            else:
-                print(f"不支持的文件类型: {file_path}")
-                self.open_other_file(file_path)
-        except Exception as e:
-            print(f"打开文件时发生错误{str(e)}")
-            QMessageBox.critical(self, "错误", f"打开文件时发生错误 {str(e)}")
-
-    def open_csv_file(self, file_path):
-        try:
-            from lovelyform import show_csv_viewer
-            show_csv_viewer(file_path)
-            
-            # csv_viewer = NewtableWidget(file_path, f"CSV 查看器 - {os.path.basename(file_path)}")
-            # csv_viewer.show()
-            # self.viewers.append(csv_viewer)
-        except Exception as e:
-            print(f"打开 CSV 文件时发生错误{str(e)}")
-            QMessageBox.critical(self, "错误", f"打开 CSV 文件时发生错误 {str(e)}")
-    def open_file_dir(self, file_path):
-        if not file_path:
-            QMessageBox.warning(self, "错误", "无法获取文件路径")
-            return
-
-        # 移除所有开头的 'output/'
-        while file_path.startswith('output/'):
-            file_path = file_path[7:]
-
-        # 获取当前工作目录
-        current_dir = os.getcwd()
-        
-        # 构建完整路径
-        full_path = os.path.normpath(os.path.join(current_dir, 'output', file_path))
-        
-        print(f"尝试打开目录: {full_path}")
-        if os.path.exists(full_path):
-            # 在Windows上使用explorer选中文件
-            subprocess.run(['explorer', '/select,', full_path])
-        else:
-            QMessageBox.warning(self, "文件不存在", f"文件 {file_path} 不存在")
-    def open_text_file(self, file_path):
-        text_viewer = QuicklyView(f"快速文本查看器 - {os.path.basename(file_path)}")
-        text_viewer.load_file_content(file_path)
-        text_viewer.show()
-        self.viewers.append(text_viewer)
-    def open_image_file(self, file_path):
-        # 用PIL show
-        from PIL import Image
-        image = Image.open(file_path)
-        image.show()
-    def open_other_file(self, file_path):
-        QMessageBox.information(self, "不支持的文件类型", f"暂不支持打开 {os.path.basename(file_path)} 格式的文件")
-
-    def delete_selected_file(self, file_path):
-        try:
-            if self.file_manager.delete_file(file_path):
-                print(f"已删除文件：{file_path}")
-                self.update_file_list()
-                QMessageBox.information(self, "删除成功", f"文件 {os.path.basename(file_path)} 已成功删除")
-            else:
-                QMessageBox.warning(self, "删除失败", f"无法删除文件 {os.path.basename(file_path)}")
-        except Exception as e:
-            print(f"删除文件时发生错误{str(e)}")
-            QMessageBox.critical(self, "错误", f"删除文件时发生错误 {str(e)}")
-
-    def closeEvent(self, event):
-        for viewer in self.viewers:
-            viewer.close()
-        self.viewers.clear()
-        super().closeEvent(event)
-
-    def open_other_file(self, file_path):
-        # 对于其他格式文件，可以使用系统默认程序打开
-        # 或者显示一个消息说明暂不支持该格式
-        print(f"暂不支持打开 {os.path.basename(file_path)} 格式的文")
-        QMessageBox.information(self, "不支持的文件类型", f"暂不支持打开 {os.path.basename(file_path)} 格式的文")
-
-    def load_preset_names(self):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        
-        # 确保表存
-        c.execute('''CREATE TABLE IF NOT EXISTS presets
-                     (name TEXT, button_text TEXT)''')
-        
-        c.execute("SELECT DISTINCT name FROM presets")
-        preset_names = c.fetchall()
-        conn.close()
-
-        self.preset_combo.clear()
-        self.preset_combo.addItem("选择预设")
-        for name in preset_names:
-            self.preset_combo.addItem(name[0])
-        
-        # 如果有预设，默认选择第一
-        if preset_names:
-            self.preset_combo.setCurrentIndex(1)  # 对应第一个预
-            self.load_preset()  # 加载选中预设的内
+        self.file_slot.show_file_context_menu(position)
 
     def show_preset_item_context_menu(self, position):
         item = self.preset_list.itemAt(position)
@@ -563,47 +360,8 @@ class RightPanel(QWidget):
             'application/x-bzip2': '.bz2',
             'application/x-xz': '.xz',
         }
-        # 如果找不到对应的扩展不修
+        # 如果找不到对应的扩展名不返回
         return mime_to_ext.get(mime_type, '')
-
-    def update_file_list(self):
-        # 记录展开状
-        expanded_items = self.get_expanded_items(self.file_tree.invisibleRootItem())
-
-        self.file_tree.clear()
-        file_list = self.file_manager.get_file_list()
-        for rel_path, file_size, mod_time in file_list:
-            self.add_file(rel_path, file_size, mod_time)
-        
-        # 恢复展开状
-        self.restore_expanded_items(self.file_tree.invisibleRootItem(), expanded_items)
-
-    def get_expanded_items(self, item, path=""):
-        expanded_items = {}
-        for i in range(item.childCount()):
-            child = item.child(i)
-            child_path = os.path.join(path, child.text(0))
-            if child.isExpanded():
-                expanded_items[child_path] = True
-            if child.childCount() > 0:
-                expanded_items.update(self.get_expanded_items(child, child_path))
-        return expanded_items
-
-    def restore_expanded_items(self, item, expanded_items, path=""):
-        for i in range(item.childCount()):
-            child = item.child(i)
-            child_path = os.path.join(path, child.text(0))
-            if expanded_items.get(child_path, False):
-                child.setExpanded(True)
-            if child.childCount() > 0:
-                self.restore_expanded_items(child, expanded_items, child_path)
-
-    def collapse_all_items(self, item):
-        for i in range(item.childCount()):
-            child = item.child(i)
-            child.setExpanded(False)
-            if child.childCount() > 0:
-                self.collapse_all_items(child)
 
     def load_plugins(self):
         plugins = {}
@@ -680,64 +438,71 @@ class RightPanel(QWidget):
             QMessageBox.warning(self, "插件执行失败", error_msg)
 
     def get_full_path(self, item):
-        path = []
-        while item is not None:
-            path.insert(0, item.text(0))
-            item = item.parent()
-        
-        # 移除路径开头的 'output' 前缀（如果存在）
-        if path and path[0] == 'output':
-            path.pop(0)
-        
-        # 构建相对'output' 目录的路
-        relative_path = os.path.join(*path)
-        
-        # 获取当前工作目录
-        current_dir = os.getcwd()
-        
-        # 构建完整路径
-        full_path = os.path.normpath(os.path.join(current_dir, 'output', relative_path))
-        
-        #print(f"构建的完整路 {full_path}")  # 调试信息
-        return full_path
+        # 直接调用文件槽的方法
+        return self.file_slot.get_full_path(item)
+
+    def quick_open_file(self, file_path):
+        # 直接调用文件槽的方法
+        self.file_slot.quick_open_file(file_path)
+
+    def open_csv_file(self, file_path):
+        # 直接调用文件槽的方法
+        self.file_slot.open_csv_file(file_path)
+
+    def open_file_dir(self, file_path):
+        # 直接调用文件槽的方法
+        self.file_slot.open_file_dir(file_path)
+
+    def open_text_file(self, file_path):
+        # 直接调用文件槽的方法
+        self.file_slot.open_text_file(file_path)
+
+    def open_image_file(self, file_path):
+        # 直接调用文件槽的方法
+        self.file_slot.open_image_file(file_path)
+
+    def open_other_file(self, file_path):
+        # 直接调用文件槽的方法
+        self.file_slot.open_other_file(file_path)
+
+    def delete_selected_file(self, file_path):
+        # 直接调用文件槽的方法
+        self.file_slot.delete_selected_file(file_path)
 
     def show_sort_menu(self):
         menu = QMenu(self)
-        menu.addAction("按名称排序", lambda: self.file_tree.sortItems(0, Qt.AscendingOrder))
-        menu.addAction("按大小排序", lambda: self.file_tree.sortItems(1, Qt.AscendingOrder))
-        menu.addAction("按修改日期排序", lambda: self.file_tree.sortItems(2, Qt.AscendingOrder))
+        menu.addAction("按名称排序", lambda: self.file_slot.file_tree.sortItems(0, Qt.AscendingOrder))
+        menu.addAction("按大小排序", lambda: self.file_slot.file_tree.sortItems(1, Qt.AscendingOrder))
+        menu.addAction("按修改日期排序", lambda: self.file_slot.file_tree.sortItems(2, Qt.AscendingOrder))
         menu.exec(QCursor.position().toPoint())
 
-    def fileslot_mouse_press_event(self, event):
-        if event.button() == Qt.LeftButton:
-            self.drag_start_position = event.position().toPoint()
+    def closeEvent(self, event):
+        for viewer in self.viewers:
+            viewer.close()
+        self.viewers.clear()
+        super().closeEvent(event)
 
-    def fileslot_mouse_move_event(self, event):
-        if not (event.buttons() & Qt.LeftButton):
-            return
-        if (event.position().toPoint() - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
-            return
+    def load_preset_names(self):
+        conn = sqlite3.connect('db/presets.db')
+        c = conn.cursor()
+        
+        # 确保表存在
+        c.execute('''CREATE TABLE IF NOT EXISTS presets
+                     (name TEXT, button_text TEXT)''')
+        
+        c.execute("SELECT DISTINCT name FROM presets")
+        preset_names = c.fetchall()
+        conn.close()
 
-        drag = QDrag(self)
-        mimedata = QMimeData()
-        mimedata.setText("file_slot")
-        drag.setMimeData(mimedata)
-
-        if drag.exec(Qt.MoveAction) == Qt.MoveAction:
-            self.create_file_slot_window()
-
-    def create_file_slot_window(self):
-        if self.file_slot_window is None:
-            self.file_slot_window = FileSlotWindow(self.file_tree)
-            self.file_slot_window.closed.connect(self.restore_file_slot)
-            self.file_slot_window.show()
-            self.file_group.layout().removeWidget(self.file_tree)
-            self.file_tree.setParent(None)
-
-    def restore_file_slot(self, file_tree):
-        self.file_tree = file_tree
-        self.file_group.layout().addWidget(self.file_tree)
-        self.file_slot_window = None
+        self.preset_combo.clear()
+        self.preset_combo.addItem("选择预设")
+        for name in preset_names:
+            self.preset_combo.addItem(name[0])
+        
+        # 如果有预设，默认选择第一个
+        if preset_names:
+            self.preset_combo.setCurrentIndex(1)  # 对应第一个预设
+            self.load_preset()  # 加载选中预设的内容
 
 class DeletePresetDialog(QDialog):
     def __init__(self, presets):

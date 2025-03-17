@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.93")
+        title_label = QLabel("Lovelymem Ver 0.93.1")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -293,7 +293,7 @@ class MainWindow(QMainWindow):
         self.right_panel.execute_preset_signal.connect(self.execute_preset)
 
         # 设置文件树
-        self.file_tree = self.right_panel.file_tree
+        self.file_tree = self.right_panel.file_slot.file_tree
         self.file_tree.setContextMenuPolicy(Qt.CustomContextMenu)
         #self.file_tree.customContextMenuRequested.connect(self.right_panel.show_file_context_menu)
 
@@ -418,7 +418,7 @@ class MainWindow(QMainWindow):
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.93 - {image_path}")
+                title_label.setText(f"Lovelymem Ver 0.93.1 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -469,24 +469,26 @@ class MainWindow(QMainWindow):
         os.system("taskkill /F /IM python27.exe")
         print("[+] 卸载镜像成功")
         # 标题修改
-        self.setWindowTitle("Lovelymem Ver 0.93")
+        self.setWindowTitle("Lovelymem Ver 0.93.1")
 
     def refresh_file_list(self):
-        current_files = self.file_manager.get_file_list()
-        
-        # 获取当前展开的项目
-        expanded_items = self.right_panel.get_expanded_items(self.right_panel.file_tree.invisibleRootItem())
-        
-        # 清空现有的树
-        self.right_panel.file_tree.clear()
-        
-        # 添加新的文件到树中
-        for file_info in current_files:
-            file_path, file_size, mod_time = file_info
-            self.right_panel.add_file(file_path, file_size, mod_time)
-        
-        # 恢复展开状态
-        self.right_panel.restore_expanded_items(self.right_panel.file_tree.invisibleRootItem(), expanded_items)
+        try:
+            # 获取当前展开的项目
+            expanded_items = self.right_panel.file_slot.get_expanded_items(self.right_panel.file_slot.file_tree.invisibleRootItem())
+            
+            # 清空文件树
+            self.right_panel.file_slot.file_tree.clear()
+            
+            # 获取文件列表
+            file_list = self.file_manager.get_file_list()
+            
+            # 更新文件列表
+            self.update_file_list(file_list)
+            
+            # 恢复展开的项目
+            self.right_panel.file_slot.restore_expanded_items(self.right_panel.file_slot.file_tree.invisibleRootItem(), expanded_items)
+        except Exception as e:
+            print(f"刷新文件列表时发生错误: {str(e)}")
 
     def pack_files(self):
         files = self.file_manager.get_file_list()
@@ -660,7 +662,7 @@ class MainWindow(QMainWindow):
         return button
 
     def update_file_list(self, file_list):
-        self.file_tree.clear()
+        self.right_panel.file_slot.file_tree.clear()
         for file_info in file_list:
             file_path, file_size, mod_time = file_info
             self.right_panel.add_file(file_path, file_size, mod_time)
