@@ -2,15 +2,12 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
                                QListWidget, QPushButton, QSplitter, QMenu, QMessageBox, 
                                QComboBox, QInputDialog, QDialog, QCheckBox, QDialogButtonBox, 
                                QToolButton, QTreeWidget, QTreeWidgetItem, QHeaderView,QApplication)
-from PySide6.QtCore import Qt, Signal, QDir,QFileInfo, QMimeData, QPoint
+from PySide6.QtCore import Qt, Signal, QDir,QFileInfo, QMimeData, QPoint, QTimer
 from PySide6.QtGui import QCursor, QIcon, QAction, QDrag
 import os, subprocess
 import shutil
 from plugin.NewtableWidget import NewtableWidget
 from plugin.QuicklyView import QuicklyView
-import sqlite3
-from ui.regex_slot import RegexSlot
-from ui.file_slot import FileSlot
 import ui.styles
 import importlib.util
 import importlib
@@ -18,6 +15,9 @@ import sys
 import traceback
 import logging
 from datetime import datetime
+import sqlite3
+from ui.regex_slot import RegexSlot
+from ui.file_slot import FileSlot
 
 class CustomTreeWidget(QTreeWidget):
     def __init__(self, parent=None):
@@ -70,60 +70,47 @@ class RightPanel(QWidget):
         self.file_slot = FileSlot(self.file_manager)
         self.file_slot.pack_files_signal.connect(self.pack_files)
         self.file_slot.clear_files_signal.connect(self.clear_files)
+        
+        # 为文件槽添加双击事件
+        self.file_slot.mouseDoubleClickEvent = lambda event: self.window().on_file_slot_double_click(event)
+        
+        # 创建文件槽容器
+        self.file_slot_container = QWidget()
+        file_slot_layout = QVBoxLayout(self.file_slot_container)
+        file_slot_layout.setContentsMargins(0, 0, 0, 0)
+        file_slot_layout.addWidget(self.file_slot)
+        
+        # 将文件槽容器添加到主分割器
+        main_splitter.addWidget(self.file_slot_container)
+        
+        # 创建正则槽
+        self.regex_slot = RegexSlot(self.file_slot.file_tree)
+        self.regex_slot.regex_check_signal.connect(self.handle_regex_check_results)
+        # 为正则槽添加双击事件
+        self.regex_slot.mouseDoubleClickEvent = lambda event: self.on_regex_slot_double_click(event)
+        
+        # 创建预设组
+        self.setup_preset_group()
 
         # 创建一个水平分割器用于正则槽和预设
         bottom_splitter = QSplitter(Qt.Horizontal)
-
-        # 正则槽
-        self.regex_slot = RegexSlot(self.file_slot.file_tree)
-        self.regex_slot.regex_check_signal.connect(self.handle_regex_check_results)
+        
+        # 添加正则槽和预设组到底部分割器
         bottom_splitter.addWidget(self.regex_slot)
-
-        # 预设
-        preset_group = QGroupBox("预设")
-        preset_layout = QVBoxLayout(preset_group)
-        preset_layout.setContentsMargins(5, 5, 5, 5)
-
-        # 预设组下拉框和操作按钮的水平布局
-        preset_group_layout = QHBoxLayout()
-        self.preset_combo = QComboBox()
-        self.preset_combo.addItem("选择预设")
-        preset_group_layout.addWidget(self.preset_combo, 1)  # 设置拉伸因子
-
-        # 操作按钮
-        self.preset_action_button = QToolButton()
-        self.preset_action_button.setText("操作")
-        self.preset_action_button.setPopupMode(QToolButton.InstantPopup)
-        self.setup_preset_action_menu()
-        preset_group_layout.addWidget(self.preset_action_button)
-
-        preset_layout.addLayout(preset_group_layout)
-
-        self.preset_list = QListWidget()
-        self.preset_list.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.preset_list.customContextMenuRequested.connect(self.show_preset_item_context_menu)
-        preset_layout.addWidget(self.preset_list)
-
-        button_layout = QHBoxLayout()
-        self.execute_preset_button = QPushButton("执行预设")
-        self.execute_preset_button.clicked.connect(self.execute_preset)
-        button_layout.addWidget(self.execute_preset_button)
-        preset_layout.addLayout(button_layout)
-
-        bottom_splitter.addWidget(preset_group)
-
-        # 设置预设槽和正则槽的比例:1
+        bottom_splitter.addWidget(self.preset_group)
+        
+        # 设置预设槽和正则槽的比例
         bottom_splitter.setStretchFactor(0, 3)  # 正则槽
         bottom_splitter.setStretchFactor(1, 1)  # 预设槽
 
-        # 将文件槽和底部分割器添加到主分割器
-        main_splitter.addWidget(self.file_slot)
+        # 将底部分割器添加到主分割器
         main_splitter.addWidget(bottom_splitter)
-
+        
         # 设置主分割器的初始大小比例
         main_splitter.setStretchFactor(0, 2)  # 文件槽
         main_splitter.setStretchFactor(1, 1)  # 底部分割器
 
+        # 将主分割器添加到主布局
         layout.addWidget(main_splitter)
 
         # 修改下拉框的连接
@@ -260,10 +247,266 @@ class RightPanel(QWidget):
             QMessageBox.warning(self, "警告", "请先选择一个预设")
 
     def handle_regex_check_results(self, results):
+        """处理正则检查结果"""
+        # 创建CSV文件并保存结果
+        self.regex_slot.save_results_to_csv(results)
+        
         # 这里可以添加代码来显示结果或进行其他操作
         print(f"找到 {len(results)} 个配配项")
         # 例如，可以打开生成CSV 文件
         self.open_csv_file("output/regex_check_results.csv")
+
+    def on_regex_slot_double_click(self, event):
+        """处理正则槽的双击事件"""
+        print("正则槽双击事件触发")
+        # 如果已经有正则槽窗口，则不创建新窗口
+        if hasattr(self, 'regex_slot_window') and self.regex_slot_window is not None:
+            self.regex_slot_window.activateWindow()  # 激活已有窗口
+            print("激活已有正则槽窗口")
+            return
+            
+        # 创建独立的正则槽窗口
+        print(f"创建新正则槽窗口，原始正则槽ID: {id(self.regex_slot)}")
+        from ui.regex_slot_window import RegexSlotWindow
+        self.regex_slot_window = RegexSlotWindow(self.regex_slot)
+        # 连接关闭信号
+        self.regex_slot_window.closed.connect(self.on_regex_window_closed)
+        
+        # 隐藏主界面的正则槽区域
+        print("隐藏主界面正则槽")
+        self.hide_regex_slot()
+        
+        # 调整布局
+        QTimer.singleShot(100, self.adjust_layout_visibility)
+        
+    def on_regex_window_closed(self, regex_slot):
+        """处理正则槽窗口关闭事件"""
+        print(f"正则槽窗口关闭事件触发，接收到的正则槽ID: {id(regex_slot)}")
+        # 将右键菜单传递给主窗口处理
+        self.window().on_regex_slot_window_closed(regex_slot)
+
+    def hide_regex_slot(self):
+        """隐藏正则槽"""
+        if hasattr(self, 'regex_slot'):
+            self.regex_slot.setVisible(False)
+            # 使用定时器延迟调整布局，确保UI状态已完全更新
+            QTimer.singleShot(100, self.adjust_layout_visibility)
+    
+    def show_regex_slot(self):
+        """显示正则槽"""
+        if hasattr(self, 'regex_slot'):
+            self.regex_slot.setVisible(True)
+            # 使用定时器延迟调整布局，确保UI状态已完全更新
+            QTimer.singleShot(100, self.adjust_layout_visibility)
+            
+    def add_regex_slot_back(self, regex_slot):
+        """将正则槽控件重新添加到主窗口"""
+        print(f"开始添加正则槽回主窗口，ID: {id(regex_slot)}")
+        
+        # 确保正则槽没有父控件
+        if regex_slot.parent():
+            print(f"正则槽有父控件: {regex_slot.parent()}")
+            regex_slot.setParent(None)
+        else:
+            print("正则槽已经没有父控件")
+            
+        # 更新正则槽引用
+        self.regex_slot = regex_slot
+        print(f"更新正则槽引用完成，当前self.regex_slot ID: {id(self.regex_slot)}")
+        
+        # 重新设置底部分割器
+        bottom_splitter = self.setup_bottom_splitter()
+        print(f"重新设置底部分割器完成: {bottom_splitter}")
+            
+        # 显示正则槽区域
+        self.regex_slot.setVisible(True)
+        print("设置正则槽可见")
+        
+        # 重新连接信号
+        try:
+            self.regex_slot.regex_check_signal.disconnect()  # 先断开可能的旧连接
+        except:
+            pass
+        self.regex_slot.regex_check_signal.connect(self.handle_regex_check_results)
+        print("重新连接信号完成")
+        
+        # 重新设置双击事件
+        self.regex_slot.mouseDoubleClickEvent = lambda event: self.on_regex_slot_double_click(event)
+        print("重新设置双击事件完成")
+        
+        # 调整布局
+        QTimer.singleShot(100, self.adjust_layout_visibility)
+        print("调整布局完成")
+        
+    def setup_bottom_splitter(self):
+        """设置底部分割器"""
+        # 移除旧的底部分割器（如果存在）
+        main_splitter = None
+        for i in range(self.layout().count()):
+            item = self.layout().itemAt(i)
+            if item.widget() and isinstance(item.widget(), QSplitter) and item.widget().orientation() == Qt.Vertical:
+                main_splitter = item.widget()
+                break
+                
+        if main_splitter is None:
+            print("错误：未找到主分割器")
+            return None
+            
+        # 移除旧的底部分割器
+        if main_splitter.count() > 1:
+            old_widget = main_splitter.widget(1)
+            if old_widget:
+                old_widget.setParent(None)
+                
+        # 创建新的底部分割器
+        bottom_splitter = QSplitter(Qt.Horizontal)
+        
+        # 创建正则槽（如果尚未创建）
+        if not hasattr(self, 'regex_slot') or self.regex_slot is None:
+            print("创建新的正则槽")
+            self.regex_slot = RegexSlot(self.file_slot.file_tree)
+            self.regex_slot.regex_check_signal.connect(self.handle_regex_check_results)
+            # 为正则槽添加双击事件
+            self.regex_slot.mouseDoubleClickEvent = lambda event: self.on_regex_slot_double_click(event)
+            
+        # 创建预设组（如果尚未创建）
+        if not hasattr(self, 'preset_group') or self.preset_group is None:
+            print("创建新的预设组")
+            self.setup_preset_group()
+            
+        # 添加正则槽到分割器
+        bottom_splitter.addWidget(self.regex_slot)
+            
+        # 添加预设组到分割器
+        bottom_splitter.addWidget(self.preset_group)
+        
+        # 设置预设槽和正则槽的比例
+        bottom_splitter.setStretchFactor(0, 3)  # 正则槽
+        bottom_splitter.setStretchFactor(1, 1)  # 预设槽
+        
+        # 将底部分割器添加到主分割器
+        main_splitter.addWidget(bottom_splitter)
+        
+        # 设置主分割器的初始大小比例
+        main_splitter.setStretchFactor(0, 2)  # 文件槽
+        main_splitter.setStretchFactor(1, 1)  # 底部分割器
+        
+        print(f"底部分割器设置完成: {bottom_splitter}")
+        return bottom_splitter
+        
+    def setup_preset_group(self):
+        """设置预设组"""
+        self.preset_group = QGroupBox("预设")
+        preset_layout = QVBoxLayout(self.preset_group)
+        preset_layout.setContentsMargins(5, 5, 5, 5)
+
+        # 预设组下拉框和操作按钮的水平布局
+        preset_group_layout = QHBoxLayout()
+        self.preset_combo = QComboBox()
+        self.preset_combo.addItem("选择预设")
+        preset_group_layout.addWidget(self.preset_combo, 1)  # 设置拉伸因子
+
+        # 操作按钮
+        self.preset_action_button = QToolButton()
+        self.preset_action_button.setText("操作")
+        self.preset_action_button.setPopupMode(QToolButton.InstantPopup)
+        self.setup_preset_action_menu()
+        preset_group_layout.addWidget(self.preset_action_button)
+
+        preset_layout.addLayout(preset_group_layout)
+
+        self.preset_list = QListWidget()
+        self.preset_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.preset_list.customContextMenuRequested.connect(self.show_preset_item_context_menu)
+        preset_layout.addWidget(self.preset_list)
+
+        button_layout = QHBoxLayout()
+        self.execute_preset_button = QPushButton("执行预设")
+        self.execute_preset_button.clicked.connect(self.execute_preset)
+        button_layout.addWidget(self.execute_preset_button)
+        preset_layout.addLayout(button_layout)
+        
+        # 为预设槽添加双击事件处理
+        self.preset_group.mouseDoubleClickEvent = lambda event: self.on_preset_slot_double_click(event)
+
+    def on_preset_slot_double_click(self, event):
+        """处理预设槽的双击事件"""
+        # 创建独立的预设槽窗口
+        from ui.preset_slot_window import PresetSlotWindow
+        
+        # 获取预设组合框和列表
+        preset_combo = self.preset_combo
+        preset_list = self.preset_list
+        preset_action_button = self.preset_action_button
+        execute_preset_button = self.execute_preset_button
+        
+        # 创建一个临时的预设槽控件
+        preset_widget = QWidget()
+        preset_layout = QVBoxLayout(preset_widget)
+        preset_layout.setContentsMargins(5, 5, 5, 5)
+        
+        # 将控件添加到临时控件中
+        group_layout = QHBoxLayout()
+        group_layout.addWidget(preset_combo, 1)
+        group_layout.addWidget(preset_action_button)
+        preset_layout.addLayout(group_layout)
+        preset_layout.addWidget(preset_list)
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(execute_preset_button)
+        preset_layout.addLayout(button_layout)
+        
+        # 创建独立窗口
+        self.preset_window = PresetSlotWindow(preset_widget)
+        # 连接关闭信号
+        self.preset_window.closed.connect(self.on_preset_window_closed)
+        
+        # 隐藏主界面的预设槽区域
+        self.preset_group.setVisible(False)
+        # 调整主窗口大小
+        self.window().adjust_window_size()
+
+    def on_preset_window_closed(self, preset_widget):
+        """处理预设槽窗口关闭事件"""
+        # 将预设槽控件重新添加到主窗口
+        if hasattr(self, 'preset_group'):
+            # 获取临时控件中的组件
+            temp_layout = preset_widget.layout()
+            
+            # 获取预设组合框和列表
+            group_layout = temp_layout.itemAt(0).layout()
+            preset_combo = group_layout.itemAt(0).widget()
+            preset_action_button = group_layout.itemAt(1).widget()
+            preset_list = temp_layout.itemAt(1).widget()
+            button_layout = temp_layout.itemAt(2).layout()
+            execute_preset_button = button_layout.itemAt(0).widget()
+            
+            # 更新主窗口中的引用
+            self.preset_combo = preset_combo
+            self.preset_action_button = preset_action_button
+            self.preset_list = preset_list
+            self.execute_preset_button = execute_preset_button
+            
+            # 清除现有的控件
+            preset_layout = self.preset_group.layout()
+            while preset_layout.count():
+                item = preset_layout.takeAt(0)
+                if item.widget():
+                    item.widget().setParent(None)
+            
+            # 重新添加控件
+            new_group_layout = QHBoxLayout()
+            new_group_layout.addWidget(preset_combo, 1)
+            new_group_layout.addWidget(preset_action_button)
+            preset_layout.addLayout(new_group_layout)
+            preset_layout.addWidget(preset_list)
+            new_button_layout = QHBoxLayout()
+            new_button_layout.addWidget(execute_preset_button)
+            preset_layout.addLayout(new_button_layout)
+            
+            # 显示预设槽区域
+            self.preset_group.setVisible(True)
+            # 调整主窗口大小
+            self.window().adjust_window_size()
 
     def show_delete_preset_dialog(self):
         presets = self.get_preset_names_from_db()
@@ -475,6 +718,116 @@ class RightPanel(QWidget):
         menu.addAction("按大小排序", lambda: self.file_slot.file_tree.sortItems(1, Qt.AscendingOrder))
         menu.addAction("按修改日期排序", lambda: self.file_slot.file_tree.sortItems(2, Qt.AscendingOrder))
         menu.exec(QCursor.position().toPoint())
+
+    def hide_file_slot(self):
+        """隐藏文件槽"""
+        if hasattr(self, 'file_slot'):
+            self.file_slot.setVisible(False)
+            # 使用定时器延迟调整布局，确保UI状态已完全更新
+            QTimer.singleShot(100, self.adjust_layout_visibility)
+    
+    def show_file_slot(self):
+        """显示文件槽"""
+        if hasattr(self, 'file_slot'):
+            self.file_slot.setVisible(True)
+            # 使用定时器延迟调整布局，确保UI状态已完全更新
+            QTimer.singleShot(100, self.adjust_layout_visibility)
+    
+    def adjust_layout_visibility(self):
+        """根据当前可见组件调整布局空间"""
+        print("调整布局可见性")
+        
+        # 获取主分割器
+        main_splitter = None
+        for i in range(self.layout().count()):
+            item = self.layout().itemAt(i)
+            if item.widget() and isinstance(item.widget(), QSplitter) and item.widget().orientation() == Qt.Vertical:
+                main_splitter = item.widget()
+                break
+                
+        if not main_splitter:
+            print("找不到主分割器，无法调整布局")
+            return
+            
+        # 检查文件槽可见性
+        file_slot_visible = hasattr(self, 'file_slot') and self.file_slot.isVisible()
+        
+        # 检查底部分割器中组件的可见性
+        bottom_visible = False
+        if main_splitter.count() > 1:
+            bottom_splitter = main_splitter.widget(1)
+            if isinstance(bottom_splitter, QSplitter):
+                # 检查底部分割器中是否有可见组件
+                for i in range(bottom_splitter.count()):
+                    if bottom_splitter.widget(i) and bottom_splitter.widget(i).isVisible():
+                        bottom_visible = True
+                        break
+        
+        # 设置分割器比例
+        if file_slot_visible and bottom_visible:
+            # 文件槽和底部组件都可见 - 使用默认比例
+            main_splitter.setStretchFactor(0, 2)  # 文件槽
+            main_splitter.setStretchFactor(1, 1)  # 底部分割器
+            print("文件槽和底部组件都可见，使用默认比例 2:1")
+        elif file_slot_visible and not bottom_visible:
+            # 只有文件槽可见 - 文件槽占用全部空间
+            main_splitter.setStretchFactor(0, 1)  # 文件槽
+            main_splitter.setStretchFactor(1, 0)  # 底部分割器
+            print("只有文件槽可见，文件槽占用全部空间")
+        elif not file_slot_visible and bottom_visible:
+            # 只有底部组件可见 - 底部组件占用全部空间
+            main_splitter.setStretchFactor(0, 0)  # 文件槽
+            main_splitter.setStretchFactor(1, 1)  # 底部分割器
+            print("只有底部组件可见，底部组件占用全部空间")
+        else:
+            # 两者都不可见 - 默认比例
+            main_splitter.setStretchFactor(0, 1)
+            main_splitter.setStretchFactor(1, 1)
+            print("两者都不可见，使用默认比例 1:1")
+        
+        # 刷新UI
+        QApplication.processEvents()
+
+    def add_file_slot_back(self, file_slot):
+        """将文件槽控件重新添加到主窗口"""
+        print(f"开始添加文件槽回主窗口")
+        
+        # 确保文件槽没有父控件
+        if file_slot.parent():
+            print(f"文件槽有父控件: {file_slot.parent()}")
+            file_slot.setParent(None)
+        else:
+            print("文件槽已经没有父控件")
+            
+        # 更新文件槽引用
+        self.file_slot = file_slot
+        
+        # 找到文件槽容器
+        if hasattr(self, 'file_slot_container'):
+            # 清除现有的控件
+            file_slot_layout = self.file_slot_container.layout()
+            while file_slot_layout.count():
+                item = file_slot_layout.takeAt(0)
+                if item.widget():
+                    item.widget().setParent(None)
+            
+            # 添加回文件槽控件
+            file_slot_layout.addWidget(file_slot)
+            
+            # 重新连接信号
+            self.file_slot.pack_files_signal.connect(self.pack_files)
+            self.file_slot.clear_files_signal.connect(self.clear_files)
+            
+            # 为文件槽添加双击事件
+            self.file_slot.mouseDoubleClickEvent = lambda event: self.window().on_file_slot_double_click(event)
+            
+            # 显示文件槽容器
+            self.file_slot_container.setVisible(True)
+            
+            # 调整布局
+            QTimer.singleShot(100, self.adjust_layout_visibility)
+        else:
+            print("错误：找不到文件槽容器")
 
     def closeEvent(self, event):
         for viewer in self.viewers:

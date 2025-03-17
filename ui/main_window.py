@@ -28,6 +28,8 @@ from plugin.NewtableWidget import NewtableWidget
 from core.config_manager import save_theme, get_saved_theme
 from ui.theme_selector import ThemeSelectorDialog
 from ui.cmd_output_window import CmdOutputWindow
+from ui.regex_slot_window import RegexSlotWindow
+from ui.preset_slot_window import PresetSlotWindow
 from ui.styles import (main_window_style, candy_background, common_font_style, 
                        splitter_style, tab_style, left_group_style,  
                        right_panel_style, memprocfs_style, vol2_style, vol3_style, 
@@ -142,7 +144,7 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WA_DontCreateNativeAncestors, True)
         self.setWindowFlags(Qt.FramelessWindowHint)  # 移除原生标题栏
         self.setAttribute(Qt.WA_TranslucentBackground, False)  # 启用窗口背景透明
-        self.setMinimumSize(900, 600)  # 设置最小窗口大小
+        self.setMinimumSize(540, 600)  # 设置最小窗口大小
         self.setMaximumSize(1600, 1200)  # 设置最大窗口大小
         self.resize(1000, 700)  # 设置初始窗口大小
         # 连接样式更新信号
@@ -213,8 +215,8 @@ class MainWindow(QMainWindow):
 
         # 创建上半部分布局
         upper_widget = QWidget()
-        upper_layout = QHBoxLayout(upper_widget)
-        upper_layout.setContentsMargins(0, 0, 0, 0)
+        self.upper_layout = QHBoxLayout(upper_widget)
+        self.upper_layout.setContentsMargins(0, 0, 0, 0)
 
         # 左侧区域
         left_group = QGroupBox("功能区")
@@ -273,14 +275,14 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.quick_check_area, rotate_icon('res/quick.png'), "")  # 使用logo图标
         self.tab_widget.setTabToolTip(4, "高级功能区")
 
-        upper_layout.addWidget(left_group, 4)  # 左侧占比1
+        self.upper_layout.addWidget(left_group, 4)  # 左侧占比1
                 # 创建文件管理器
         self.file_manager = FileManager("output")  # 确保指定了正确的输出目录
 
         # 添加右侧面板
         self.right_panel = RightPanel(self.file_manager)
         self.right_panel.setStyleSheet(splitter_style)  # 应用新的样式到右侧面板
-        upper_layout.addWidget(self.right_panel, 5)  # 右侧占比1
+        self.upper_layout.addWidget(self.right_panel, 5)  # 右侧占比1
 
         # 设置预设管理器的right_panel
         self.preset_manager.right_panel = self.right_panel
@@ -802,7 +804,85 @@ class MainWindow(QMainWindow):
         cmd_output_group = self.findChild(QGroupBox, "cmd_output_group")
         if cmd_output_group:
             cmd_output_group.setVisible(False)
-    
+        
+        # 调整窗口大小
+        self.adjust_window_size()
+
+    def on_file_slot_double_click(self, event):
+        """处理文件槽双击事件，创建独立窗口"""
+        # 如果已经有文件槽窗口，则不创建新窗口
+        if hasattr(self, 'file_slot_window') and self.file_slot_window is not None:
+            self.file_slot_window.activateWindow()  # 激活已有窗口
+            return
+            
+        # 创建独立的文件槽窗口
+        from ui.file_slot_window import FileSlotWindow
+        self.file_slot_window = FileSlotWindow(self.right_panel.file_slot)
+        # 连接关闭信号
+        self.file_slot_window.closed.connect(self.on_file_slot_window_closed)
+        
+        # 隐藏主界面的文件槽
+        self.right_panel.hide_file_slot()
+        
+        # 检查是否需要调整布局
+        self.check_and_adjust_main_layout()
+        
+    def on_regex_slot_double_click(self, event):
+        """当正则槽被双击时创建独立窗口"""
+        # 如果已经有正则槽窗口，则不创建新窗口
+        if hasattr(self, 'regex_slot_window') and self.regex_slot_window is not None:
+            self.regex_slot_window.activateWindow()  # 激活已有窗口
+            return
+            
+        # 创建独立的正则槽窗口
+        from ui.regex_slot_window import RegexSlotWindow
+        self.regex_slot_window = RegexSlotWindow(self.right_panel.regex_slot)
+        # 连接关闭信号
+        self.regex_slot_window.closed.connect(self.on_regex_slot_window_closed)
+        
+        # 隐藏主界面的正则槽
+        self.right_panel.hide_regex_slot()
+        
+        # 检查是否需要调整布局
+        self.check_and_adjust_main_layout()
+        
+    def on_regex_slot_clicked(self):
+        """当正则槽被点击时的处理"""
+        if hasattr(self, 'right_panel') and hasattr(self.right_panel, 'regex_slot'):
+            # 如果已经分离为独立窗口，则激活窗口
+            if hasattr(self, 'regex_slot_window') and self.regex_slot_window is not None:
+                self.regex_slot_window.activateWindow()
+                return
+                
+            # 否则创建新的独立窗口
+            event = QMouseEvent(QEvent.MouseButtonDblClick, QPoint(0, 0), 
+                               Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+            self.on_regex_slot_double_click(event)
+
+    def on_regex_slot_window_closed(self, regex_slot):
+        """当正则槽窗口关闭时重新添加回正则槽"""
+        print(f"正则槽窗口关闭事件处理函数开始，ID: {id(regex_slot)}")
+        # 将regex_slot添加回右面板
+        self.right_panel.add_regex_slot_back(regex_slot)
+        
+        # 重置引用
+        self.regex_slot_window = None
+        
+        # 检查是否需要调整布局
+        self.check_and_adjust_main_layout()
+        
+    def on_file_slot_window_closed(self, file_slot):
+        """处理文件槽窗口关闭事件"""
+        # 将文件槽控件重新添加到主窗口
+        self.right_panel.add_file_slot_back(file_slot)
+        
+        # 重置文件槽窗口引用
+        self.file_slot_window = None
+        
+        # 显示主界面的文件槽
+        self.right_panel.show_file_slot()
+        self.check_and_adjust_main_layout()  # 添加这行
+        
     def on_cmd_output_window_closed(self, cmd_output):
         """处理命令输出窗口关闭事件"""
         # 将命令输出控件重新添加到主窗口
@@ -819,8 +899,26 @@ class MainWindow(QMainWindow):
             self.cmd_output = cmd_output
             # 显示命令输出区域
             cmd_output_group.setVisible(True)
+            self.adjust_window_size()
 
-   #关闭程序时 提示卸载镜像，清空文件槽
+    def adjust_window_size(self):
+        """根据独立窗口状态调整主窗口大小"""
+        # 检查各个槽是否都已独立出去
+        file_slot_visible = hasattr(self.right_panel, 'file_slot_container') and self.right_panel.file_slot_container.isVisible()
+        regex_slot_visible = hasattr(self.right_panel, 'regex_group') and self.right_panel.regex_group.isVisible()
+        preset_slot_visible = hasattr(self.right_panel, 'preset_group') and self.right_panel.preset_group.isVisible()
+        cmd_output_visible = self.findChild(QGroupBox, "cmd_output_group").isVisible()
+        
+        # 如果所有槽都已独立出去，则缩小窗口宽度
+        if not file_slot_visible and not regex_slot_visible and not preset_slot_visible:
+            # 获取当前窗口大小
+            current_size = self.size()
+            # 缩小宽度，保持高度不变
+            self.resize(800, current_size.height())
+        else:
+            # 恢复原来的窗口大小
+            self.resize(1200, self.height())
+
     def closeEvent(self, event: QCloseEvent):
         reply = QMessageBox.question(self, '确认退出', 
                                      "是否确定要退出程序？\n退出前将卸载镜像并清空文件槽。",
@@ -841,7 +939,35 @@ class MainWindow(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
 
-    def open_config_dialog(self):
-        from ui.config_dialog import ConfigDialog
-        config_dialog = ConfigDialog(self)
-        config_dialog.exec()
+    def check_and_adjust_main_layout(self):
+        """检查是否需要调整主窗口布局"""
+        # 检查文件槽和正则槽是否任一被分离出去
+        file_slot_separated = hasattr(self, 'file_slot_window') and self.file_slot_window is not None
+        regex_slot_separated = hasattr(self, 'regex_slot_window') and self.regex_slot_window is not None
+        
+        print(f"调整布局: 文件槽分离={file_slot_separated}, 正则槽分离={regex_slot_separated}")
+        
+        # 如果任一槽被分离，隐藏右侧面板
+        if file_slot_separated or regex_slot_separated:
+            # 将右侧面板隐藏或最小化
+            self.right_panel.setMaximumWidth(0)
+            # 调整左右比例
+            if hasattr(self, 'upper_layout'):
+                self.upper_layout.setStretchFactor(self.tab_widget, 1)
+                self.upper_layout.setStretchFactor(self.right_panel, 0)
+                print("至少一个槽被分离：隐藏右侧面板")
+                # 调整窗口宽度为540
+                self.resize(540, self.height())
+            else:
+                print("错误：无法找到upper_layout")
+        else:
+            # 如果两者都回到主窗口，恢复正常布局
+            self.right_panel.setMaximumWidth(16777215)  # 最大值
+            # 恢复原比例
+            if hasattr(self, 'upper_layout'):
+                self.upper_layout.setStretchFactor(self.tab_widget, 4)
+                self.upper_layout.setStretchFactor(self.right_panel, 5)
+                print("两者都回归：恢复正常布局")
+                self.adjust_window_size()
+            else:
+                print("错误：无法找到upper_layout")

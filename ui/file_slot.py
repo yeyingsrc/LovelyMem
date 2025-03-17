@@ -412,17 +412,6 @@ class FileSlot(QGroupBox):
         self.original_double_click_event = self.mouseDoubleClickEvent  # 保存原始方法
         self.mouseDoubleClickEvent = self.on_group_box_double_click
         
-        # 创建占位符组件（初始不可见）
-        self.placeholder_widget = QWidget()
-        placeholder_layout = QVBoxLayout(self.placeholder_widget)
-        self.restore_button = QPushButton("恢复文件槽")
-        self.restore_button.clicked.connect(self.restore_from_window)
-        placeholder_layout.addWidget(QLabel("文件槽已在独立窗口中打开"))
-        placeholder_layout.addWidget(self.restore_button)
-        placeholder_layout.setAlignment(Qt.AlignCenter)
-        self.placeholder_widget.setVisible(False)
-        self.layout().addWidget(self.placeholder_widget)
-    
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
@@ -447,17 +436,24 @@ class FileSlot(QGroupBox):
     
     def on_group_box_double_click(self, event):
         """处理GroupBox的双击事件"""
-        #print("双击GroupBox")  # 调试信息
-        if not self.file_slot_window:
-            try:
-                self.create_file_slot_window()
-            except Exception as e:
-                print(f"创建文件槽窗口时出错: {e}")  # 调试信息
-        # 调用原始的双击事件处理
-        if hasattr(self, 'original_double_click_event'):
-            self.original_double_click_event(event)
+        # 检查点击位置是否在标题栏区域
+        if event.position().y() <= 20:  # 标题栏高度约为20像素
+            # 通知主窗口创建独立窗口
+            parent = self.window()
+            if hasattr(parent, 'on_file_slot_double_click'):
+                parent.on_file_slot_double_click(event)
+            else:
+                # 如果主窗口没有处理方法，则调用原始的双击事件
+                if hasattr(self, 'original_double_click_event') and self.original_double_click_event:
+                    self.original_double_click_event(event)
+                else:
+                    super().mouseDoubleClickEvent(event)
         else:
-            super().mouseDoubleClickEvent(event)
+            # 如果不是在标题栏区域，则调用原始的双击事件
+            if hasattr(self, 'original_double_click_event') and self.original_double_click_event:
+                self.original_double_click_event(event)
+            else:
+                super().mouseDoubleClickEvent(event)
     
     def on_tree_double_click(self):
         """处理文件树的双击事件"""
@@ -521,8 +517,8 @@ class FileSlot(QGroupBox):
                 # 连接关闭信号
                 self.file_slot_window.closed.connect(self.restore_file_slot)
                 
-                # 显示占位符
-                self.placeholder_widget.setVisible(True)
+                # 将自身隐藏，不显示占位符
+                self.setVisible(False)
                 
                 print("文件槽窗口创建完成")  # 调试信息
             except Exception as e:
@@ -536,9 +532,6 @@ class FileSlot(QGroupBox):
         self.pack_button = pack_button
         self.clear_button = clear_button
         
-        # 隐藏占位符
-        self.placeholder_widget.setVisible(False)
-        
         # 重新添加到布局
         self.layout().addWidget(self.file_tree)
         button_layout = QHBoxLayout()
@@ -548,11 +541,9 @@ class FileSlot(QGroupBox):
         
         # 重置窗口引用
         self.file_slot_window = None
-    
-    def restore_from_window(self):
-        """从按钮点击恢复文件槽"""
-        if self.file_slot_window:
-            self.file_slot_window.close()  # 关闭窗口会触发restore_file_slot
+        
+        # 显示自身
+        self.setVisible(True)
 
     def add_file(self, file_path, file_size, mod_time):
         """添加文件到文件树"""
@@ -889,7 +880,7 @@ class FileSlot(QGroupBox):
 
     def show_sort_menu(self):
         """显示排序菜单"""
-        menu = QMenu(self)
+        menu = QMenu()
         menu.addAction("按名称排序", lambda: self.file_tree.sortItems(0, Qt.AscendingOrder))
         menu.addAction("按大小排序", lambda: self.file_tree.sortItems(1, Qt.AscendingOrder))
         menu.addAction("按修改日期排序", lambda: self.file_tree.sortItems(2, Qt.AscendingOrder))

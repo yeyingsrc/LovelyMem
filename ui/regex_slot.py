@@ -142,6 +142,32 @@ class RegexSlot(QGroupBox):
         self.setup_ui()
         self.load_regex_groups()  # 然后加载正则组
         self.load_regex_from_db()  # 加载当前选中组的正则表达式
+        
+        # 保存原始双击事件
+        self.original_double_click_event = self.mouseDoubleClickEvent
+        # 设置新的双击事件处理
+        self.mouseDoubleClickEvent = self.on_group_box_double_click
+    
+    def on_group_box_double_click(self, event):
+        """处理GroupBox的双击事件"""
+        # 检查点击位置是否在标题栏区域
+        if event.position().y() <= 20:  # 标题栏高度约为20像素
+            # 通知主窗口创建独立窗口
+            parent = self.window()
+            if hasattr(parent, 'right_panel') and hasattr(parent.right_panel, 'on_regex_slot_double_click'):
+                parent.right_panel.on_regex_slot_double_click(event)
+            else:
+                # 如果主窗口没有处理方法，则调用原始的双击事件
+                if hasattr(self, 'original_double_click_event') and self.original_double_click_event:
+                    self.original_double_click_event(event)
+                else:
+                    super().mouseDoubleClickEvent(event)
+        else:
+            # 如果不是在标题栏区域，则调用原始的双击事件
+            if hasattr(self, 'original_double_click_event') and self.original_double_click_event:
+                self.original_double_click_event(event)
+            else:
+                super().mouseDoubleClickEvent(event)
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -441,7 +467,7 @@ class RegexSlot(QGroupBox):
             files_and_reason = files_str.rsplit(") - ", 1)
             files = [f.strip() for f in files_and_reason[0].split(",")]  # 使用逗号分割文件名并去除空格
             reason = files_and_reason[1] if len(files_and_reason) > 1 else ""
-            
+
             print(f"正在使用正则表达式: {pattern}")
             try:
                 compiled_pattern = re.compile(pattern)
