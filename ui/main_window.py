@@ -27,17 +27,18 @@ from plugin.vol2linux import Vol2LinuxPlugin
 from plugin.NewtableWidget import NewtableWidget
 from core.config_manager import save_theme, get_saved_theme
 from ui.theme_selector import ThemeSelectorDialog
-# 已经从vol2_area和vol3_area导入了CollapsibleButtonGroup，这里不需要重复导入
-
-import sys,time
-
+from ui.cmd_output_window import CmdOutputWindow
 from ui.styles import (main_window_style, candy_background, common_font_style, 
                        splitter_style, tab_style, left_group_style,  
                        right_panel_style, memprocfs_style, vol2_style, vol3_style, 
-                       quick_check_style, color_schemes, apply_color_scheme, is_dark_mode, 
-                       cmd_output_text_color, button_bg_color, button_hover_color,
+                       quick_check_style, cmd_output_style, current_font_family,
+                       background_color, text_color, button_bg_color, button_text_color,
+                       button_hover_color, border_color, group_title_bg_color,
+                       color_schemes, apply_color_scheme, is_dark_mode, 
+                       cmd_output_text_color,
                        theme_button_color, minimize_button_color, maximize_button_color, close_button_color)
 
+import sys,time
 logger = logging.getLogger(__name__)
 
 # 添加毛玻璃效果覆盖层类
@@ -304,6 +305,7 @@ class MainWindow(QMainWindow):
 
         # 添加命令输出区域
         cmd_output_group = QGroupBox("命令输出")
+        cmd_output_group.setObjectName("cmd_output_group")
         cmd_output_group.setStyleSheet(right_panel_style)  
         cmd_output_layout = QVBoxLayout(cmd_output_group)
         cmd_output_layout.setContentsMargins(5, 5, 5, 5)
@@ -311,7 +313,10 @@ class MainWindow(QMainWindow):
         self.cmd_output.setReadOnly(True)
         self.cmd_output.setPlaceholderText("命令输出将显示在这里...")
         cmd_output_layout.addWidget(self.cmd_output)
-
+        
+        # 为命令输出区域添加双击事件
+        cmd_output_group.mouseDoubleClickEvent = lambda event: self.on_cmd_output_double_click(event)
+        
         # 设置上下区域的比例
         main_splitter = QSplitter(Qt.Vertical)
         main_splitter.addWidget(upper_widget)
@@ -785,6 +790,35 @@ class MainWindow(QMainWindow):
                 background-color: {button_hover_color};
             }}
         """)
+
+    def on_cmd_output_double_click(self, event):
+        """处理命令输出区域的双击事件"""
+        # 创建独立的命令输出窗口
+        self.cmd_output_window = CmdOutputWindow(self.cmd_output)
+        # 连接关闭信号
+        self.cmd_output_window.closed.connect(self.on_cmd_output_window_closed)
+        
+        # 隐藏主界面的命令输出区域
+        cmd_output_group = self.findChild(QGroupBox, "cmd_output_group")
+        if cmd_output_group:
+            cmd_output_group.setVisible(False)
+    
+    def on_cmd_output_window_closed(self, cmd_output):
+        """处理命令输出窗口关闭事件"""
+        # 将命令输出控件重新添加到主窗口
+        cmd_output_group = self.findChild(QGroupBox, "cmd_output_group")
+        if cmd_output_group:
+            cmd_output_layout = cmd_output_group.layout()
+            # 清除现有的控件
+            while cmd_output_layout.count():
+                item = cmd_output_layout.takeAt(0)
+                if item.widget():
+                    item.widget().setParent(None)
+            # 添加回命令输出控件
+            cmd_output_layout.addWidget(cmd_output)
+            self.cmd_output = cmd_output
+            # 显示命令输出区域
+            cmd_output_group.setVisible(True)
 
    #关闭程序时 提示卸载镜像，清空文件槽
     def closeEvent(self, event: QCloseEvent):
