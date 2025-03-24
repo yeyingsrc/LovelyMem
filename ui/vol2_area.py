@@ -242,6 +242,7 @@ class Vol2Area(QWidget):
             ("编辑框(editbox)", lambda: self.button_clicked(self.vol2_plugin.vol2_editbox)),
             ("命令扫描(cmdscan)", lambda: self.button_clicked(self.vol2_plugin.vol2_cmdscan)),
             ("控制台(consoles)", lambda: self.button_clicked(self.vol2_plugin.vol2_consoles)),
+            ("交互式Shell(volshell)", lambda: self.button_clicked(self.vol2_plugin.vol2_volshell)),
         ]
         basic_buttons = [self.create_button(text, func) for text, func in basic_functions]
         self.basic_group = CollapsibleButtonGroup("基本功能", basic_buttons, self.main_window)

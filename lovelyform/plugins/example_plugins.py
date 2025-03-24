@@ -351,6 +351,7 @@ class Vol3PidDumptoGimpPlugin(CellPlugin):
             thread = Thread(target=process_dump)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
+        return df
 
 # 进程转储后通过GIMP打开 memprocfs
 class MemprocfsPidDumptoGimpPlugin(CellPlugin):
@@ -442,7 +443,7 @@ class Vol2PidDumpPlugin(CellPlugin):
         return df
 
 # 进程转储后通过GIMP打开 vol3
-class Vol3PidDumptoGimpPlugin(CellPlugin):
+class Vol3PidtoDumpPlugin(CellPlugin):
     @property
     def name(self) -> str:
         return "进程转储toDmp(volatility3)"
@@ -485,9 +486,10 @@ class Vol3PidDumptoGimpPlugin(CellPlugin):
             thread = Thread(target=process_dump)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
+        return df
 
 # 进程转储后通过GIMP打开 memprocfs
-class MemprocfsPidDumptoGimpPlugin(CellPlugin):
+class MemprocfsPidtoDumpPlugin(CellPlugin):
     @property
     def name(self) -> str:
         return "进程转储toDmp(memprocfs)"
@@ -528,6 +530,7 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
             thread = Thread(target=process_dump)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
+        return df
 
 
 
@@ -649,6 +652,7 @@ class CopyProcAllPlugin(CellPlugin):
             thread = Thread(target=proc_to_files)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
+        return df
 
 # 句柄信息 memprocfs
 class MemprocfsHandleInfoPlugin(CellPlugin):
@@ -691,6 +695,7 @@ class MemprocfsHandleInfoPlugin(CellPlugin):
             thread = Thread(target=handles_to_files)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
+        return df
 
 # NTFS Use explorer to open the file
 class MemprocfsNTFSExplorerPlugin(CellPlugin):
@@ -731,6 +736,7 @@ class MemprocfsNTFSExplorerPlugin(CellPlugin):
             thread = Thread(target=ntfs_to_files)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
+        return df
 
 # 权限信息
 

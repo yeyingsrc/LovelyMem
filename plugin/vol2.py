@@ -44,8 +44,6 @@ class WorkerThread(QThread):
             self.task_completed.emit(False, error_msg)
 
 
-
-
 class Vol2:
     def __init__(self, mem_path, profile):
         self.mem_path = mem_path
@@ -215,11 +213,16 @@ class Vol2Plugin(QObject):
         self.workers.clear()
 
     def __del__(self):
-        if hasattr(self, 'workers'):
-            self.cleanup_threads()
-        for window in self.open_windows:
-            window.close()
-        self.open_windows.clear()
+        # 安全地关闭所有打开的窗口
+        if hasattr(self, 'open_windows'):
+            windows_to_close = self.open_windows.copy()  # 创建副本避免修改原列表
+            for window in windows_to_close:
+                try:
+                    if window:
+                        window.close()
+                except:
+                    pass  # 忽略任何错误
+            self.open_windows.clear()
 
     # 以下为各插件方法
     def vol2_filescan(self):
@@ -762,8 +765,14 @@ class Vol2Plugin(QObject):
         self.run_plugin_with_custom_command(cmd, 'Yara扫描')
 
     def vol2_volshell(self):
-        # volshell 是交互式的,可能需要特殊处理
-        print("volshell 是交互式插件,不适合在此环境中运行")
+        from ui.volshell_window import VolshellWindow
+        if not self.profile:
+            profile, _ = self.get_profile()
+            self.profile = profile
+        
+        volshell_window = VolshellWindow(self.mem_path, self.profile)
+        volshell_window.show()
+        self.open_windows.append(volshell_window)  # 保持窗口引用，防止被垃圾回收
 
     # 辅助方法
     def run_plugin_with_custom_command(self, cmd, display_name):

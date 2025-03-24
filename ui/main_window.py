@@ -176,7 +176,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.93.1")
+        title_label = QLabel("Lovelymem Ver 0.93.5")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -425,7 +425,7 @@ class MainWindow(QMainWindow):
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.93.1 - {image_path}")
+                title_label.setText(f"Lovelymem Ver 0.93.5 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -476,7 +476,7 @@ class MainWindow(QMainWindow):
         os.system("taskkill /F /IM python27.exe")
         print("[+] 卸载镜像成功")
         # 标题修改
-        self.setWindowTitle("Lovelymem Ver 0.93.1")
+        self.setWindowTitle("Lovelymem Ver 0.93.5")
 
     def refresh_file_list(self):
         try:
