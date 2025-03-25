@@ -195,14 +195,12 @@ class Vol2PidtoProcPlugin(CellPlugin):
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值: {value}")
             
-            def process_procdump():
-                Vol2Plugin(image_path).vol2_procdump(value)
-                print(f"PID {value} 的进程转储已导出到 output/executable.{value}.exe")
-                
-            from threading import Thread
-            thread = Thread(target=process_procdump)
-            thread.daemon = True
-            thread.start()
+            # 使用Vol2Plugin的内置QThread机制而不是Python标准库线程
+            vol2_plugin = Vol2Plugin(image_path)
+            vol2_plugin.vol2_procdump(value)
+            # 保持对vol2_plugin的引用，避免对象被提前销毁
+            self.vol2_plugin_reference = vol2_plugin
+            
         return df
 
 # 进程转储 >exe vol3
@@ -377,7 +375,6 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
 
     def process_cells(self, df: pd.DataFrame, selected_cells: List[tuple]) -> pd.DataFrame:
         # 提取所选单元格内容
-        from plugin.memprocfs import MemprocfsPlugin
         image_path = get_image_info_file()[0]
         gimppath = readconfig()[3]
         for row, col in selected_cells:
@@ -512,9 +509,6 @@ class MemprocfsPidtoDumpPlugin(CellPlugin):
 
     def process_cells(self, df: pd.DataFrame, selected_cells: List[tuple]) -> pd.DataFrame:
         # 提取所选单元格内容
-        from plugin.memprocfs import MemprocfsPlugin
-        image_path = get_image_info_file()[0]
-        gimppath = readconfig()[3]
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值： {value}")
