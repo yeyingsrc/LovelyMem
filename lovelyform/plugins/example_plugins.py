@@ -274,22 +274,35 @@ class Vol2PidDumptoGimpPlugin(CellPlugin):
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值: {value}")
-            # 使用线程执行耗时操作
-            def process_dump():
-                Vol2Plugin(image_path).vol2_memdump(value)
+            # 使用Vol2Plugin的内置QThread机制而不是Python标准库线程
+            vol2_plugin = Vol2Plugin(image_path)
+            vol2_plugin.vol2_memdump(value)
+            # 保持对vol2_plugin的引用，避免对象被提前销毁
+            self.vol2_plugin_reference = vol2_plugin
+            
+            # 在线程完成后处理GIMP相关操作
+            def process_gimp():
                 procdumpfile = rf'output/{value}.dmp'
-                os.makedirs('tmp', exist_ok=True)
-                newpath = rf'tmp/{value}.data'
-                if os.path.exists(newpath):
-                    os.remove(newpath)
-                shutil.copy(procdumpfile, newpath)
-                cmd2 = rf'"{gimppath}" tmp/{value}.data'
-                print('[*] 正在调用gimp执行命令：' + cmd2)
-                subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                print('[+] 执行成功！下面gimp相关报错可无视')
+                # 等待文件生成
+                import time
+                for _ in range(30):  # 最多等待30秒
+                    if os.path.exists(procdumpfile):
+                        break
+                    time.sleep(1)
+                
+                if os.path.exists(procdumpfile):
+                    os.makedirs('tmp', exist_ok=True)
+                    newpath = rf'tmp/{value}.data'
+                    if os.path.exists(newpath):
+                        os.remove(newpath)
+                    shutil.copy(procdumpfile, newpath)
+                    cmd2 = rf'"{gimppath}" tmp/{value}.data'
+                    print('[*] 正在调用gimp执行命令：' + cmd2)
+                    subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                    print('[+] 执行成功！下面gimp相关报错可无视')
 
             from threading import Thread
-            thread = Thread(target=process_dump)
+            thread = Thread(target=process_gimp)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
         return df
@@ -328,21 +341,32 @@ class Vol3PidDumptoGimpPlugin(CellPlugin):
             def process_dump():
                 Vol3Plugin(image_path).vol3memmap(value)
                 
-                while not os.path.exists(f'output/pid.{value}.dmp'):
-                    print(f"PID {value} 的进程转储尚未导出，等待中...")
+                # 修改文件检查逻辑，正确的文件名格式是 memmap_{pid}.dmp
+                expected_file = f'output/memmap_{value}.dmp'
+                max_wait = 60  # 最多等待60秒
+                wait_count = 0
+                
+                while not os.path.exists(expected_file) and wait_count < max_wait:
+                    print(f"PID {value} 的进程转储尚未导出，等待中... ({wait_count}/{max_wait}秒)")
                     import time
                     time.sleep(1)
-                print(f"PID {value} 的进程转储已导出到 output/pid.{value}.dmp")
-                procdumpfile = rf'output/pid.{value}.dmp'
-                os.makedirs('tmp', exist_ok=True)
-                newpath = rf'tmp/{value}.data'
-                if os.path.exists(newpath):
-                    os.remove(newpath)
-                shutil.copy(procdumpfile, newpath)
-                cmd2 = rf'"{gimppath}" tmp/{value}.data'
-                print('[*] 正在调用gimp执行命令：' + cmd2)
-                subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                print('[+] 执行成功！')
+                    wait_count += 1
+                
+                if os.path.exists(expected_file):
+                    print(f"PID {value} 的进程转储已导出到 {expected_file}")
+                    procdumpfile = expected_file
+                    os.makedirs('tmp', exist_ok=True)
+                    newpath = rf'tmp/{value}.data'
+                    if os.path.exists(newpath):
+                        os.remove(newpath)
+                    shutil.copy(procdumpfile, newpath)
+                    cmd2 = rf'"{gimppath}" tmp/{value}.data'
+                    print('[*] 正在调用gimp执行命令：' + cmd2)
+                    subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                    print('[+] 执行成功！')
+                else:
+                    print(f"[!] 等待超时，未找到文件: {expected_file}")
+                    print(f"[!] 请检查 output 目录中是否有其他格式的导出文件")
             
 
             from threading import Thread
@@ -380,19 +404,14 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值： {value}")
-            # 使用线程执行耗时操作
             def process_dump():
-                procmemfile = rf'M:/pid/{value}/minidump/minidump.dmp'
-                os.makedirs('tmp', exist_ok=True)
-                newpath = r'tmp/minidump.data'
-                if os.path.exists(newpath):
-                    os.remove(newpath)
-                shutil.copy(procmemfile, newpath)
-                cmd2 = rf'"{gimppath}" tmp/minidump.data'
-                print('[*] 正在调用gimp执行命令：' + cmd2)
-                subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                print('[+] 执行成功！')
+                    filespath = rf'M:/pid/{value}/files/vads/'
+                    if os.path.exists(filespath):
+                        shutil.copytree(filespath, f'output/files_{value}')
 
+                        print(f'[+] 已把该程序所使用的所有文件复制到output/files_{value}文件夹，请注意不要运行任何文件！！！！！！')
+                    else:
+                        print('[×] 该文件夹不存在！')
             from threading import Thread
             thread = Thread(target=process_dump)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
@@ -429,14 +448,12 @@ class Vol2PidDumpPlugin(CellPlugin):
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值: {value}")
-            # 使用线程执行耗时操作
-            def process_dump():
-                Vol2Plugin(image_path).vol2_memdump(value)
-
-            from threading import Thread
-            thread = Thread(target=process_dump)
-            thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
-            thread.start()
+            # 使用Vol2Plugin的内置QThread机制而不是Python标准库线程
+            vol2_plugin = Vol2Plugin(image_path)
+            vol2_plugin.vol2_memdump(value)
+            # 保持对vol2_plugin的引用，避免对象被提前销毁
+            self.vol2_plugin_reference = vol2_plugin
+            
         return df
 
 # 进程转储后通过GIMP打开 vol3
@@ -518,7 +535,7 @@ class MemprocfsPidtoDumpPlugin(CellPlugin):
                 os.makedirs('tmp', exist_ok=True)
                 newpath = rf'output/minidump_pid_{value}.dmp'
                 shutil.copy(procmemfile, newpath)
-                print(f'[+] 执行成功!已导出进程 {value} 的 minidump.dmp')
+                print(f'[+] 执行成功！已导出进程 {value} 的 minidump.dmp')
 
             from threading import Thread
             thread = Thread(target=process_dump)
@@ -558,13 +575,12 @@ class Vol2DumpFilePlugin(CellPlugin):
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的偏移量： {value}")
-            def process_dump():
-                Vol2Plugin(image_path).vol2_dumpfiles(value)
-                print('[+] 执行成功！')
-            from threading import Thread
-            thread = Thread(target=process_dump)
-            thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
-            thread.start()
+            # 使用Vol2Plugin的内置QThread机制而不是Python标准库线程
+            vol2_plugin = Vol2Plugin(image_path)
+            vol2_plugin.vol2_dumpfiles(value)
+            # 保持对vol2_plugin的引用，避免对象被提前销毁
+            self.vol2_plugin_reference = vol2_plugin
+            print('[+] 文件导出任务已启动')
         return df
 
 # 导出该文件(vol3-dumpfile)

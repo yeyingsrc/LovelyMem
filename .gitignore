@@ -180,3 +180,4 @@ config/user_settings.json
 db/presets.db
 run.bat
 config/user_settings.json
+tmp/*
