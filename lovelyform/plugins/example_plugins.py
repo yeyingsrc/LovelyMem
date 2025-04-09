@@ -490,11 +490,11 @@ class Vol3PidtoDumpPlugin(CellPlugin):
             def process_dump():
                 Vol3Plugin(image_path).vol3memmap(value)
                 
-                while not os.path.exists(f'output/pid.{value}.dmp'):
+                while not os.path.exists(f'output/memmap_{value}.dmp'):
                     print(f"PID {value} 的进程转储尚未导出，等待中...")
                     import time
                     time.sleep(1)
-                print(f"PID {value} 的进程转储已导出到 output/pid.{value}.dmp")
+                print(f"PID {value} 的进程转储已导出到 output/memmap_{value}.dmp")
 
             from threading import Thread
             thread = Thread(target=process_dump)
