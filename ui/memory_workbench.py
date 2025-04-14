@@ -43,7 +43,10 @@ class CustomTreeWidget(QTreeWidget):
         self.last_clicked_item = None
         super().clear()
 
-class RightPanel(QWidget):
+class MemoryWorkbench(QWidget):
+    """
+    内存工作台类，用于显示和管理内存分析工具
+    """
     pack_files_signal = Signal()
     clear_files_signal = Signal()
     execute_preset_signal = Signal(str)  # 新增信号用于执行预设
@@ -842,6 +845,20 @@ class RightPanel(QWidget):
         if preset_names:
             self.preset_combo.setCurrentIndex(1)  # 对应第一个预设
             self.load_preset()  # 加载选中预设的内容
+
+    def set_regex_slot_visibility(self, visible):
+        """设置正则槽的可见性"""
+        if hasattr(self, 'regex_slot'):
+            self.regex_slot.setVisible(visible)
+            # 调整布局
+            QTimer.singleShot(100, self.adjust_layout_visibility)
+    
+    def set_preset_slot_visibility(self, visible):
+        """设置预设的可见性"""
+        if hasattr(self, 'preset_group'):
+            self.preset_group.setVisible(visible)
+            # 调整布局
+            QTimer.singleShot(100, self.adjust_layout_visibility)
 
 class DeletePresetDialog(QDialog):
     def __init__(self, presets):

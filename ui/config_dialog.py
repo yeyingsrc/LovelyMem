@@ -49,7 +49,9 @@ class ConfigDialog(QDialog):
                     "first_run_reminder": True,  
                     "LLM_CONFIG": {},
                     "base_config": {"proxy": {"url": ""}},
-                    "font_settings": {"font_family": ""}
+                    "font_settings": {"font_family": ""},
+                    "show_regex_slot": True,
+                    "show_preset_slot": True
                 }
         except Exception as e:
             logger.error(f"加载用户设置失败: {e}")
@@ -58,7 +60,9 @@ class ConfigDialog(QDialog):
                 "first_run_reminder": True,  
                 "LLM_CONFIG": {},
                 "base_config": {"proxy": {"url": ""}},
-                "font_settings": {"font_family": ""}
+                "font_settings": {"font_family": ""},
+                "show_regex_slot": True,
+                "show_preset_slot": True
             }
     
     def setup_ui(self):
@@ -187,6 +191,36 @@ class ConfigDialog(QDialog):
         # 添加到选项卡
         tab_widget.addTab(first_run_tab, "首次使用提醒")
         
+        # 添加界面设置选项卡
+        ui_tab = QWidget()
+        ui_layout = QVBoxLayout(ui_tab)
+        
+        # 界面组件显示设置
+        ui_group = QGroupBox("界面组件显示设置")
+        ui_grid = QGridLayout()
+        
+        # 添加正则槽显示复选框
+        self.regex_slot_checkbox = QCheckBox("显示正则槽")
+        self.regex_slot_checkbox.setChecked(self.user_settings.get("show_regex_slot", True))
+        ui_grid.addWidget(self.regex_slot_checkbox, 0, 0, 1, 2)
+        
+        # 添加预设显示复选框
+        self.preset_slot_checkbox = QCheckBox("显示预设")
+        self.preset_slot_checkbox.setChecked(self.user_settings.get("show_preset_slot", True))
+        ui_grid.addWidget(self.preset_slot_checkbox, 1, 0, 1, 2)
+        
+        # 添加说明标签
+        ui_description = QLabel("取消勾选将在主界面中隐藏相应组件。更改将在重启应用后生效。")
+        ui_description.setWordWrap(True)
+        ui_grid.addWidget(ui_description, 2, 0, 1, 2)
+        
+        ui_group.setLayout(ui_grid)
+        ui_layout.addWidget(ui_group)
+        ui_layout.addStretch()
+        
+        # 添加到选项卡
+        tab_widget.addTab(ui_tab, "界面设置")
+        
         main_layout.addWidget(tab_widget)
         
         # 确定和取消按钮
@@ -303,6 +337,8 @@ class ConfigDialog(QDialog):
             
             # 更新用户设置
             self.user_settings["first_run_reminder"] = self.first_run_checkbox.isChecked()
+            self.user_settings["show_regex_slot"] = self.regex_slot_checkbox.isChecked()
+            self.user_settings["show_preset_slot"] = self.preset_slot_checkbox.isChecked()
             
             # 保存用户设置
             with open(self.user_settings_file, 'w', encoding='utf-8') as f:

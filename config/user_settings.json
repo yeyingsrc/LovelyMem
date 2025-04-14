@@ -24,5 +24,7 @@
     "font_settings": {
         "font_family": "汉仪文黑-85W"
     },
-    "first_run_reminder": true
+    "first_run_reminder": true,
+    "show_regex_slot": true,
+    "show_preset_slot": true
 }

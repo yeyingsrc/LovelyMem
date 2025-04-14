@@ -6,6 +6,7 @@ from PySide6.QtGui import (QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QC
 from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize
 import logging
 import os
+import json
 from core.file_manager import FileManager  
 import zipfile
 from datetime import datetime
@@ -19,7 +20,7 @@ from ui.vol2linux_area import Vol2LinuxArea
 from ui.quick_check_area import QuickCheckArea
 from ui.preset_manager import PresetManager
 from ui.file_menu_area import FileMenuArea  
-from ui.main_window_rightpanel import RightPanel
+from ui.memory_workbench import MemoryWorkbench
 from core.loadmem import MemImageLoader
 from plugin.vol2 import Vol2Plugin  
 from plugin.vol3 import Vol3Plugin  
@@ -150,6 +151,9 @@ class MainWindow(QMainWindow):
         # 连接样式更新信号
         self.style_updated_signal.connect(self.update_all_styles)
 
+        # 加载用户设置
+        self.user_settings_file = os.path.join(os.getcwd(), "config", "user_settings.json")
+        
         # 初始化主题相关变量
         self.theme_names = list(color_schemes.keys())
         self.current_theme_index = 0
@@ -199,13 +203,13 @@ class MainWindow(QMainWindow):
         self.close_button.clicked.connect(self.close)
         self.close_button.setToolTip("关闭")
         
-
-        
+        # 添加标题栏按钮
         title_layout.addWidget(self.theme_button)
         title_layout.addWidget(self.min_button)
         title_layout.addWidget(self.max_button)
         title_layout.addWidget(self.close_button)
         
+        # 添加标题栏到主布局
         main_layout.addWidget(self.title_bar)
         
         # 创建内容区域
@@ -279,26 +283,29 @@ class MainWindow(QMainWindow):
                 # 创建文件管理器
         self.file_manager = FileManager("output")  # 确保指定了正确的输出目录
 
-        # 添加右侧面板
-        self.right_panel = RightPanel(self.file_manager)
-        self.right_panel.setStyleSheet(splitter_style)  # 应用新的样式到右侧面板
-        self.upper_layout.addWidget(self.right_panel, 5)  # 右侧占比1
+        # 添加内存工作台
+        self.memory_workbench = MemoryWorkbench(self.file_manager)
+        self.memory_workbench.setStyleSheet(splitter_style)  # 应用新的样式到内存工作台
+        self.upper_layout.addWidget(self.memory_workbench, 5)  # 右侧占比1
 
-        # 设置预设管理器的right_panel
-        self.preset_manager.right_panel = self.right_panel
+        # 加载用户设置并应用
+        self.load_user_settings()
+        
+        # 设置预设管理器的memory_workbench
+        self.preset_manager.memory_workbench = self.memory_workbench
 
         # 连接预设添加信号
-        self.preset_manager.preset_added.connect(self.right_panel.add_button_to_preset)
+        self.preset_manager.preset_added.connect(self.memory_workbench.add_button_to_preset)
 
-        # 连接RightPanel的信号
-        self.right_panel.pack_files_signal.connect(self.pack_files)
-        self.right_panel.clear_files_signal.connect(self.clear_files)
-        self.right_panel.execute_preset_signal.connect(self.execute_preset)
+        # 连接MemoryWorkbench的信号
+        self.memory_workbench.pack_files_signal.connect(self.pack_files)
+        self.memory_workbench.clear_files_signal.connect(self.clear_files)
+        self.memory_workbench.execute_preset_signal.connect(self.execute_preset)
 
         # 设置文件树
-        self.file_tree = self.right_panel.file_slot.file_tree
+        self.file_tree = self.memory_workbench.file_slot.file_tree
         self.file_tree.setContextMenuPolicy(Qt.CustomContextMenu)
-        #self.file_tree.customContextMenuRequested.connect(self.right_panel.show_file_context_menu)
+        #self.file_tree.customContextMenuRequested.connect(self.memory_workbench.show_file_context_menu)
 
         # 创建定时器
         self.file_refresh_timer = QTimer(self)
@@ -360,7 +367,7 @@ class MainWindow(QMainWindow):
         self.vol2linux_area.setStyleSheet(vol2_style)  # 使用与Vol2相同的样式
         self.vol2linux_area.update_styles()  # 更新Vol2Linux区域的按钮样式
         self.quick_check_area.setStyleSheet(quick_check_style)
-        self.right_panel.setStyleSheet(right_panel_style)
+        self.memory_workbench.setStyleSheet(right_panel_style)
 
         # 在初始化时加载保存的主题
         saved_theme = get_saved_theme()
@@ -370,6 +377,14 @@ class MainWindow(QMainWindow):
         self.update_circle_button_style(self.min_button, minimize_button_color)
         self.update_circle_button_style(self.max_button, maximize_button_color)
         self.update_circle_button_style(self.close_button, close_button_color)
+
+    def load_user_settings(self):
+        if os.path.exists(self.user_settings_file):
+            with open(self.user_settings_file, 'r', encoding='utf-8') as f:
+                user_settings = json.load(f)
+                # 设置正则槽和预设的可见性
+                self.memory_workbench.set_regex_slot_visibility(user_settings.get('show_regex_slot', True))
+                self.memory_workbench.set_preset_slot_visibility(user_settings.get('show_preset_slot', True))
 
     def update_cmd_output(self, text, color=None):
         cursor = self.cmd_output.textCursor()
@@ -481,10 +496,10 @@ class MainWindow(QMainWindow):
     def refresh_file_list(self):
         try:
             # 获取当前展开的项目
-            expanded_items = self.right_panel.file_slot.get_expanded_items(self.right_panel.file_slot.file_tree.invisibleRootItem())
+            expanded_items = self.memory_workbench.file_slot.get_expanded_items(self.memory_workbench.file_slot.file_tree.invisibleRootItem())
             
             # 清空文件树
-            self.right_panel.file_slot.file_tree.clear()
+            self.memory_workbench.file_slot.file_tree.clear()
             
             # 获取文件列表
             file_list = self.file_manager.get_file_list()
@@ -493,7 +508,7 @@ class MainWindow(QMainWindow):
             self.update_file_list(file_list)
             
             # 恢复展开的项目
-            self.right_panel.file_slot.restore_expanded_items(self.right_panel.file_slot.file_tree.invisibleRootItem(), expanded_items)
+            self.memory_workbench.file_slot.restore_expanded_items(self.memory_workbench.file_slot.file_tree.invisibleRootItem(), expanded_items)
         except Exception as e:
             print(f"刷新文件列表时发生错误: {str(e)}")
 
@@ -669,10 +684,10 @@ class MainWindow(QMainWindow):
         return button
 
     def update_file_list(self, file_list):
-        self.right_panel.file_slot.file_tree.clear()
+        self.memory_workbench.file_slot.file_tree.clear()
         for file_info in file_list:
             file_path, file_size, mod_time = file_info
-            self.right_panel.add_file(file_path, file_size, mod_time)
+            self.memory_workbench.add_file(file_path, file_size, mod_time)
 
     def toggle_theme(self):
         theme_selector = ThemeSelectorDialog(list(color_schemes.keys()))
@@ -722,7 +737,7 @@ class MainWindow(QMainWindow):
             self.vol2linux_area.setStyleSheet(ui.styles.vol2_style)  # 使用与Vol2相同的样式
             self.vol2linux_area.update_styles()  # 更新Vol2Linux区域的按钮样式
             self.quick_check_area.setStyleSheet(ui.styles.quick_check_style)
-            self.right_panel.setStyleSheet(ui.styles.right_panel_style)
+            self.memory_workbench.setStyleSheet(ui.styles.right_panel_style)
             #print("各个区域样式已更新")
             
             # 更新标题栏样式
@@ -837,12 +852,12 @@ class MainWindow(QMainWindow):
             
         # 创建独立的文件槽窗口
         from ui.file_slot_window import FileSlotWindow
-        self.file_slot_window = FileSlotWindow(self.right_panel.file_slot)
+        self.file_slot_window = FileSlotWindow(self.memory_workbench.file_slot)
         # 连接关闭信号
         self.file_slot_window.closed.connect(self.on_file_slot_window_closed)
         
         # 隐藏主界面的文件槽
-        self.right_panel.hide_file_slot()
+        self.memory_workbench.hide_file_slot()
         
         # 检查是否需要调整布局
         self.check_and_adjust_main_layout()
@@ -856,19 +871,19 @@ class MainWindow(QMainWindow):
             
         # 创建独立的正则槽窗口
         from ui.regex_slot_window import RegexSlotWindow
-        self.regex_slot_window = RegexSlotWindow(self.right_panel.regex_slot)
+        self.regex_slot_window = RegexSlotWindow(self.memory_workbench.regex_slot)
         # 连接关闭信号
         self.regex_slot_window.closed.connect(self.on_regex_slot_window_closed)
         
         # 隐藏主界面的正则槽
-        self.right_panel.hide_regex_slot()
+        self.memory_workbench.hide_regex_slot()
         
         # 检查是否需要调整布局
         self.check_and_adjust_main_layout()
         
     def on_regex_slot_clicked(self):
         """当正则槽被点击时的处理"""
-        if hasattr(self, 'right_panel') and hasattr(self.right_panel, 'regex_slot'):
+        if hasattr(self, 'memory_workbench') and hasattr(self.memory_workbench, 'regex_slot'):
             # 如果已经分离为独立窗口，则激活窗口
             if hasattr(self, 'regex_slot_window') and self.regex_slot_window is not None:
                 self.regex_slot_window.activateWindow()
@@ -882,7 +897,7 @@ class MainWindow(QMainWindow):
     def on_regex_slot_window_closed(self, regex_slot):
         """当正则槽窗口关闭时重新添加回正则槽"""
         # 将regex_slot添加回右面板
-        self.right_panel.add_regex_slot_back(regex_slot)
+        self.memory_workbench.add_regex_slot_back(regex_slot)
         
         # 重置引用
         self.regex_slot_window = None
@@ -893,13 +908,13 @@ class MainWindow(QMainWindow):
     def on_file_slot_window_closed(self, file_slot):
         """处理文件槽窗口关闭事件"""
         # 将文件槽控件重新添加到主窗口
-        self.right_panel.add_file_slot_back(file_slot)
+        self.memory_workbench.add_file_slot_back(file_slot)
         
         # 重置文件槽窗口引用
         self.file_slot_window = None
         
         # 显示主界面的文件槽
-        self.right_panel.show_file_slot()
+        self.memory_workbench.show_file_slot()
         self.check_and_adjust_main_layout()  # 添加这行
         
     def on_cmd_output_window_closed(self, cmd_output):
@@ -923,9 +938,9 @@ class MainWindow(QMainWindow):
     def adjust_window_size(self):
         """根据独立窗口状态调整主窗口大小"""
         # 检查各个槽是否都已独立出去
-        file_slot_visible = hasattr(self.right_panel, 'file_slot_container') and self.right_panel.file_slot_container.isVisible()
-        regex_slot_visible = hasattr(self.right_panel, 'regex_group') and self.right_panel.regex_group.isVisible()
-        preset_slot_visible = hasattr(self.right_panel, 'preset_group') and self.right_panel.preset_group.isVisible()
+        file_slot_visible = hasattr(self.memory_workbench, 'file_slot_container') and self.memory_workbench.file_slot_container.isVisible()
+        regex_slot_visible = hasattr(self.memory_workbench, 'regex_group') and self.memory_workbench.regex_group.isVisible()
+        preset_slot_visible = hasattr(self.memory_workbench, 'preset_group') and self.memory_workbench.preset_group.isVisible()
         
         # 注意：不再考虑命令输出区域的可见性
         # cmd_output_visible = self.findChild(QGroupBox, "cmd_output_group").isVisible()
@@ -969,22 +984,22 @@ class MainWindow(QMainWindow):
         # 如果任一槽被分离，隐藏右侧面板
         if file_slot_separated or regex_slot_separated:
             # 将右侧面板隐藏或最小化
-            self.right_panel.setMaximumWidth(0)
+            self.memory_workbench.setMaximumWidth(0)
             # 调整左右比例
             if hasattr(self, 'upper_layout'):
                 self.upper_layout.setStretchFactor(self.tab_widget, 1)
-                self.upper_layout.setStretchFactor(self.right_panel, 0)
+                self.upper_layout.setStretchFactor(self.memory_workbench, 0)
                 # 调整窗口宽度为540
                 self.resize(540, self.height())
             else:
                 print("错误：无法找到upper_layout")
         else:
             # 如果两者都回到主窗口，恢复正常布局
-            self.right_panel.setMaximumWidth(16777215)  # 最大值
+            self.memory_workbench.setMaximumWidth(16777215)  # 最大值
             # 恢复原比例
             if hasattr(self, 'upper_layout'):
                 self.upper_layout.setStretchFactor(self.tab_widget, 4)
-                self.upper_layout.setStretchFactor(self.right_panel, 5)
+                self.upper_layout.setStretchFactor(self.memory_workbench, 5)
                 self.adjust_window_size()
             else:
                 print("错误：无法找到upper_layout")
