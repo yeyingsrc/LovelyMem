@@ -19,6 +19,8 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 
 ---
 
+一群已满 请加二群：668600249 
+
 ### 这是什么
 
 一款基于 `MemProcFS`、`Volatility2`、`Volatility3` 的快捷内存取证工具。
