@@ -788,6 +788,7 @@ class MemoryWorkbench(QWidget):
         
         # 检查底部分割器中组件的可见性
         bottom_visible = False
+        bottom_splitter = None
         if main_splitter.count() > 1:
             bottom_splitter = main_splitter.widget(1)
             # 检查底部分割器中是否有可见组件
@@ -795,9 +796,32 @@ class MemoryWorkbench(QWidget):
                 if bottom_splitter.widget(i) and bottom_splitter.widget(i).isVisible():
                     bottom_visible = True
                     break
-        # 新增：根据底部组件可见性隐藏或显示底部分割器及其手柄
-        if main_splitter.count() > 1:
-            bottom_splitter = main_splitter.widget(1)
+                    
+        # 从用户设置文件读取设置
+        try:
+            import json
+            import os
+            settings_path = os.path.join(os.getcwd(), "config", "user_settings.json")
+            if os.path.exists(settings_path):
+                with open(settings_path, 'r', encoding='utf-8') as f:
+                    user_settings = json.load(f)
+                    should_show_regex = user_settings.get('show_regex_slot', True)
+                    should_show_preset = user_settings.get('show_preset_slot', True)
+                    
+                    if hasattr(self, 'regex_slot'):
+                        self.regex_slot.setVisible(should_show_regex)
+                    if hasattr(self, 'preset_group'):
+                        self.preset_group.setVisible(should_show_preset)
+                        
+                    # 强制覆盖bottom_visible
+                    if should_show_regex or should_show_preset:
+                        bottom_visible = True
+        except Exception as e:
+            # 当出现异常时静默处理
+            pass
+                
+        # 确保底部分割器可见性正确
+        if main_splitter.count() > 1 and bottom_splitter:
             bottom_splitter.setVisible(bottom_visible)
             handle = main_splitter.handle(1)
             handle.setVisible(bottom_visible)

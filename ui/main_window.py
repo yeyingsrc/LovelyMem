@@ -288,9 +288,11 @@ class MainWindow(QMainWindow):
         self.memory_workbench.setStyleSheet(splitter_style)  # 应用新的样式到内存工作台
         self.upper_layout.addWidget(self.memory_workbench, 5)  # 右侧占比1
 
-        # 加载用户设置并应用
+        # 根据用户设置显示/隐藏正则槽和预设槽
         self.load_user_settings()
-        
+        # 立即调整内存工作台布局
+        self.memory_workbench.adjust_layout_visibility()
+
         # 设置预设管理器的memory_workbench
         self.preset_manager.memory_workbench = self.memory_workbench
 
