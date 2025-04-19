@@ -790,12 +790,17 @@ class MemoryWorkbench(QWidget):
         bottom_visible = False
         if main_splitter.count() > 1:
             bottom_splitter = main_splitter.widget(1)
-            if isinstance(bottom_splitter, QSplitter):
-                # 检查底部分割器中是否有可见组件
-                for i in range(bottom_splitter.count()):
-                    if bottom_splitter.widget(i) and bottom_splitter.widget(i).isVisible():
-                        bottom_visible = True
-                        break
+            # 检查底部分割器中是否有可见组件
+            for i in range(bottom_splitter.count()):
+                if bottom_splitter.widget(i) and bottom_splitter.widget(i).isVisible():
+                    bottom_visible = True
+                    break
+        # 新增：根据底部组件可见性隐藏或显示底部分割器及其手柄
+        if main_splitter.count() > 1:
+            bottom_splitter = main_splitter.widget(1)
+            bottom_splitter.setVisible(bottom_visible)
+            handle = main_splitter.handle(1)
+            handle.setVisible(bottom_visible)
         
         # 设置分割器比例
         if file_slot_visible and bottom_visible:

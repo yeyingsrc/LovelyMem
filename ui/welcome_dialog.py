@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
 from ui.styles import (background_color, text_color, button_bg_color, 
                       button_hover_color, border_color)
 from core.config_manager import get_saved_theme
+from db.updatevol3cache import update_identifier_cache
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,12 @@ class WelcomeDialog(QDialog):
         self.star_button.clicked.connect(self.open_github)
         button_layout.addWidget(self.star_button)
         
+        # 添加"更新vol3缓存"按钮
+        self.update_vol3_button = QPushButton("更新vol3缓存")
+        self.update_vol3_button.setMinimumWidth(100)
+        self.update_vol3_button.clicked.connect(self.update_vol3_cache)
+        button_layout.addWidget(self.update_vol3_button)
+        
         button_layout.addStretch()
         
         # 确定按钮
@@ -180,14 +187,28 @@ class WelcomeDialog(QDialog):
         # GitHub按钮样式
         self.star_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: #2da44e;
-                color: white;
+                background-color: {button_bg_color};
+                color: {text_color};
                 border: none;
                 border-radius: 5px;
                 padding: 8px 15px;
             }}
             QPushButton:hover {{
-                background-color: #2c974b;
+                background-color: {button_hover_color};
+            }}
+        """)
+        
+        # 更新vol3缓存按钮样式
+        self.update_vol3_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {button_bg_color};
+                color: {text_color};
+                border: none;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }}
+            QPushButton:hover {{
+                background-color: {button_hover_color};
             }}
         """)
         
@@ -212,6 +233,14 @@ class WelcomeDialog(QDialog):
     def open_github(self):
         """打开GitHub页面"""
         webbrowser.open("https://github.com/Tokeii0/LovelyMem")
+
+    def update_vol3_cache(self):
+        """更新Volatility3缓存"""
+        try:
+            update_identifier_cache()
+            logger.info("Volatility3 缓存更新成功")
+        except Exception as e:
+            logger.error(f"更新vol3缓存失败: {e}")
     
     def on_ok_clicked(self):
         """点击确定按钮时的处理函数"""

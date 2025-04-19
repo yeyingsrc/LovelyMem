@@ -181,3 +181,4 @@ db/presets.db
 run.bat
 config/user_settings.json
 tmp/*
+db/identifier_new.cache
