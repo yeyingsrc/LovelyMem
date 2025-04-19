@@ -27,7 +27,7 @@
 
 ```bash
 # 编译带图标的最小化可执行文件
-go build -ldflags "-H windowsgui -s -w" -trimpath -o LovelyMem.exe
+go build -ldflags "-H windowsgui -s -w" -trimpath -o ../LovelyMem.exe
 ```
 
 ## 技术说明
