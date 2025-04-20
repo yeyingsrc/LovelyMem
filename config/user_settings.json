@@ -1,5 +1,5 @@
 {
-    "theme": "水晶之恋",
+    "theme": "紫藤花语",
     "LLM_CONFIG": {
         "openai_api_key": "",
         "openai_organization": "",
@@ -22,9 +22,9 @@
         }
     },
     "font_settings": {
-        "font_family": "汉仪文黑-85W"
+        "font_family": "汉仪文黑"
     },
     "first_run_reminder": true,
-    "show_regex_slot": true,
-    "show_preset_slot": true
+    "show_regex_slot": false,
+    "show_preset_slot": false
 }
