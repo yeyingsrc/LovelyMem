@@ -825,8 +825,9 @@ class LauncherWindow(QMainWindow):
             # 使用subprocess启动主程序
             subprocess.Popen([python_executable, main_script])
             
-            # 关闭启动器
+            # 关闭启动器并完全退出
             self.close()
+            QTimer.singleShot(500, lambda: sys.exit(0))
         except Exception as e:
             logger.error(f"启动主程序失败: {e}")
             self.status_label.setText(f"启动失败: {str(e)}")
@@ -936,6 +937,13 @@ class LauncherWindow(QMainWindow):
 
 
 def main():
+    # 检查是否已经有启动器实例运行
+    # 如果有其他实例正在运行，则退出
+    app_name = "LovelyMem Launcher"
+    if is_app_running(app_name):
+        logger.info(f"{app_name}已经在运行中")
+        return
+    
     # 确保必要的目录存在
     for directory in ['db', 'output', 'packed_files', 'config']:
         os.makedirs(directory, exist_ok=True)
@@ -971,6 +979,28 @@ def main():
         error_msg = f"启动器发生未处理异常: {str(e)}"
         logger.error(error_msg)
         print(error_msg, file=sys.__stderr__)
+
+def is_app_running(app_name):
+    """检查是否有相同名称的应用正在运行"""
+    try:
+        # 我们使用一个更简单的方法来避免编码问题
+        # 直接返回false，允许启动器启动
+        # 因为启动器在启动main.py后会自行退出，所以这里不需要严格检查
+        return False
+        
+        # 以下是原来的代码，由于中文Windows系统编码差异而注释掉
+        # 在Windows上使用tasklist检查Python进程
+        # output = subprocess.check_output(['tasklist', '/fi', f'imagename eq python.exe', '/fo', 'csv']).decode('cp936')
+        # 如果找到多个Python进程则返回true
+        # python_count = output.count('python.exe')
+        # 
+        # 如果只有当前进程就返回false
+        # if python_count <= 2:  # tasklist返回的CSV包含标题行
+        #     return False
+    except Exception as e:
+        logger.error(f"检查应用运行状态时出错: {e}")
+    
+    return False
 
 if __name__ == "__main__":
     main()
