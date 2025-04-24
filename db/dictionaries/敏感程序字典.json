@@ -260,7 +260,7 @@
                 "命名模式"
             ],
             "type_name": "通用",
-            "file_pattern": "",
+            "file_pattern": "*process*",
             "is_exact_match": true
         },
         {
@@ -332,8 +332,9 @@
                 "web"
             ],
             "type_name": "通用",
-            "file_pattern": "*process*",
+            "file_pattern": "",
             "is_exact_match": true
         }
-    ]
+    ],
+    "file_pattern": "*process*"
 }

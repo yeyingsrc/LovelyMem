@@ -184,6 +184,30 @@ class DictionaryTabWidget(QWidget):
         """初始化UI"""
         layout = QVBoxLayout(self)
         
+        # 字典级别的file_pattern编辑区域
+        dict_pattern_group = QGroupBox("字典文件匹配模式")
+        dict_pattern_layout = QVBoxLayout(dict_pattern_group)
+        
+        pattern_help = QLabel("设置此字典适用的文件模式，支持通配符（如*.exe）。多个模式用英文逗号分隔。留空表示匹配所有文件。")
+        pattern_help.setWordWrap(True)
+        dict_pattern_layout.addWidget(pattern_help)
+        
+        self.dict_pattern_edit = QLineEdit()
+        self.dict_pattern_edit.setPlaceholderText("例如: *.exe, *.dll")
+        # 设置当前值
+        if hasattr(self.dict_manager, 'dictionary_patterns') and self.dict_name in self.dict_manager.dictionary_patterns:
+            self.dict_pattern_edit.setText(self.dict_manager.dictionary_patterns[self.dict_name])
+        
+        # 添加保存按钮
+        pattern_save_layout = QHBoxLayout()
+        pattern_save_layout.addWidget(self.dict_pattern_edit)
+        self.pattern_save_button = QPushButton("保存模式")
+        self.pattern_save_button.clicked.connect(self.save_dict_pattern)
+        pattern_save_layout.addWidget(self.pattern_save_button)
+        
+        dict_pattern_layout.addLayout(pattern_save_layout)
+        layout.addWidget(dict_pattern_group)
+        
         # 创建分割器
         splitter = QSplitter(Qt.Horizontal)
         
@@ -379,6 +403,13 @@ class DictionaryTabWidget(QWidget):
         clipboard = QGuiApplication.clipboard()
         clipboard.setText(item.content)
         QMessageBox.information(self, "已复制", f"条目'{item.name}'的内容已复制到剪贴板")
+    
+    def save_dict_pattern(self):
+        """保存字典级别的file_pattern"""
+        pattern = self.dict_pattern_edit.getText() if hasattr(self.dict_pattern_edit, 'getText') else self.dict_pattern_edit.text()
+        self.dict_manager.dictionary_patterns[self.dict_name] = pattern
+        self.dict_manager.save_dictionary(self.dict_name)
+        QMessageBox.information(self, "保存成功", f"字典'{self.dict_name}'的文件匹配模式已保存")
 
 class DictionaryManagerDialog(QDialog):
     """字典管理器对话框"""

@@ -85,6 +85,7 @@ class DictionaryManager:
     def __init__(self, dictionary_dir="db/dictionaries"):
         self.dictionary_dir = dictionary_dir
         self.dictionaries = {}  # 字典 {dictionary_name: {item_name: DictionaryItem}}
+        self.dictionary_patterns = {}  # 字典级别的file_pattern {dictionary_name: file_pattern}
         self.ensure_directory_exists()
         self.load_all_dictionaries()
     
@@ -108,6 +109,13 @@ class DictionaryManager:
                     item = DictionaryItem.from_dict(item_data)
                     items[item.name] = item
                 self.dictionaries[dictionary_name] = items
+                
+                # 读取字典级别的file_pattern
+                if "file_pattern" in data:
+                    self.dictionary_patterns[dictionary_name] = data["file_pattern"]
+                else:
+                    self.dictionary_patterns[dictionary_name] = ""
+                    
                 logger.info(f"已加载字典: {dictionary_name}")
                 return True
             except Exception as e:
@@ -116,6 +124,7 @@ class DictionaryManager:
         else:
             # 如果字典不存在，创建一个空字典
             self.dictionaries[dictionary_name] = {}
+            self.dictionary_patterns[dictionary_name] = ""
             logger.info(f"创建了新的空字典: {dictionary_name}")
             return True
     
@@ -132,17 +141,21 @@ class DictionaryManager:
     
     def save_dictionary(self, dictionary_name):
         """保存单个字典"""
-        if dictionary_name not in self.dictionaries:
-            logger.warning(f"尝试保存不存在的字典: {dictionary_name}")
-            return False
-        
         path = self.get_dictionary_path(dictionary_name)
         try:
-            items = self.dictionaries[dictionary_name]
+            items_data = []
+            for item in self.dictionaries.get(dictionary_name, {}).values():
+                items_data.append(item.to_dict())
+            
             data = {
                 "name": dictionary_name,
-                "items": [item.to_dict() for item in items.values()]
+                "items": items_data
             }
+            
+            # 保存字典级别的file_pattern
+            if dictionary_name in self.dictionary_patterns:
+                data["file_pattern"] = self.dictionary_patterns[dictionary_name]
+            
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             logger.info(f"已保存字典: {dictionary_name}")
@@ -167,6 +180,7 @@ class DictionaryManager:
             return False
         
         self.dictionaries[dictionary_name] = {}
+        self.dictionary_patterns[dictionary_name] = ""
         return self.save_dictionary(dictionary_name)
     
     def delete_dictionary(self, dictionary_name):
@@ -180,6 +194,7 @@ class DictionaryManager:
             if os.path.exists(path):
                 os.remove(path)
             del self.dictionaries[dictionary_name]
+            del self.dictionary_patterns[dictionary_name]
             logger.info(f"已删除字典: {dictionary_name}")
             return True
         except Exception as e:

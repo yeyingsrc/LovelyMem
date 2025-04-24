@@ -2,6 +2,7 @@ import os
 import re
 import json
 import logging
+import fnmatch
 from pathlib import Path
 from plugin.dictionary_manager import DictionaryManager
 
@@ -44,9 +45,32 @@ class DictionaryScanner:
             if isinstance(content, str):
                 return re.sub(r',\s+', ',', content)
             return content
+            
+        # 辅助函数：检查文件名是否匹配字典级别的模式
+        def match_dictionary_pattern(dict_name, file_name):
+            # 获取字典级别的file_pattern
+            pattern = self.dict_manager.dictionary_patterns.get(dict_name, "")
+            if not pattern:
+                return True  # 如果没有设置模式，则匹配所有文件
+                
+            # 如果设置了多个模式（以英文逗号分隔），则只要匹配其中一个即可
+            patterns = [p.strip() for p in pattern.split(',') if p.strip()]
+            if not patterns:
+                return True
+                
+            # 检查文件名是否匹配任一模式
+            for p in patterns:
+                if fnmatch.fnmatch(file_name, p):
+                    return True
+                    
+            return False
         
         try:
             for dict_name, dictionary in self.dict_manager.dictionaries.items():
+                # 首先检查字典级别的file_pattern
+                if not match_dictionary_pattern(dict_name, file_name):
+                    continue  # 如果文件名不匹配字典级别的模式，则跳过整个字典
+                
                 # 预先筛选适用于该文件名的字典条目
                 applicable_items = []
                 for item in dictionary.values():

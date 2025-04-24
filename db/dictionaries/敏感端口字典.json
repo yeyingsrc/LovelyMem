@@ -5,201 +5,315 @@
             "name": "SSH端口",
             "content": "22",
             "description": "SSH服务默认端口，可能被用于远程连接和控制",
-            "tags": ["远程访问", "连接", "SSH"],
+            "tags": [
+                "远程访问",
+                "连接",
+                "SSH"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "Telnet端口",
             "content": "23",
             "description": "Telnet服务默认端口，使用明文传输，存在安全风险",
-            "tags": ["远程访问", "连接", "Telnet", "明文"],
+            "tags": [
+                "远程访问",
+                "连接",
+                "Telnet",
+                "明文"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "FTP命令端口",
             "content": "21",
             "description": "FTP服务命令通道默认端口，文件传输协议控制端口",
-            "tags": ["文件传输", "FTP"],
+            "tags": [
+                "文件传输",
+                "FTP"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "FTP数据端口",
             "content": "20",
             "description": "FTP服务数据通道默认端口，用于实际文件传输",
-            "tags": ["文件传输", "FTP"],
+            "tags": [
+                "文件传输",
+                "FTP"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "SMTP端口",
             "content": "25",
             "description": "简单邮件传输协议默认端口，用于发送邮件",
-            "tags": ["邮件", "SMTP"],
+            "tags": [
+                "邮件",
+                "SMTP"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "DNS端口",
             "content": "53",
             "description": "域名解析服务默认端口，可能被用于DNS隧道和数据渗透",
-            "tags": ["DNS", "域名解析"],
+            "tags": [
+                "DNS",
+                "域名解析"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "HTTP端口",
             "content": "80",
             "description": "Web服务默认端口，可能托管恶意网站或被用作C&C服务器",
-            "tags": ["Web", "HTTP"],
+            "tags": [
+                "Web",
+                "HTTP"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "HTTPS端口",
             "content": "443",
             "description": "安全Web服务默认端口，加密通信可能隐藏恶意流量",
-            "tags": ["Web", "HTTPS", "加密"],
+            "tags": [
+                "Web",
+                "HTTPS",
+                "加密"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "NetBIOS端口",
             "content": "137,138,139",
             "description": "Windows网络文件共享相关端口，可能被用于横向移动",
-            "tags": ["Windows", "NetBIOS", "文件共享"],
+            "tags": [
+                "Windows",
+                "NetBIOS",
+                "文件共享"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "SMB/CIFS端口",
             "content": "445",
             "description": "Windows SMB协议端口，常被用于横向移动和勒索软件传播",
-            "tags": ["Windows", "SMB", "文件共享"],
+            "tags": [
+                "Windows",
+                "SMB",
+                "文件共享"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "LDAP端口",
             "content": "389",
             "description": "轻型目录访问协议端口，用于目录服务查询",
-            "tags": ["目录服务", "LDAP"],
+            "tags": [
+                "目录服务",
+                "LDAP"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "LDAPS端口",
             "content": "636",
             "description": "加密的LDAP连接端口",
-            "tags": ["目录服务", "LDAP", "加密"],
+            "tags": [
+                "目录服务",
+                "LDAP",
+                "加密"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "RDP端口",
             "content": "3389",
             "description": "远程桌面协议默认端口，可能被用于远程访问",
-            "tags": ["远程访问", "RDP", "Windows"],
+            "tags": [
+                "远程访问",
+                "RDP",
+                "Windows"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "VNC端口",
             "content": "5900-5903",
             "description": "远程桌面控制服务端口，常用于远程图形界面访问",
-            "tags": ["远程访问", "VNC"],
+            "tags": [
+                "远程访问",
+                "VNC"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "PostgreSQL端口",
             "content": "5432",
             "description": "PostgreSQL数据库服务默认端口",
-            "tags": ["数据库", "PostgreSQL"],
+            "tags": [
+                "数据库",
+                "PostgreSQL"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "MySQL端口",
             "content": "3306",
             "description": "MySQL数据库服务默认端口",
-            "tags": ["数据库", "MySQL"],
+            "tags": [
+                "数据库",
+                "MySQL"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "MSSQL端口",
             "content": "1433",
             "description": "Microsoft SQL Server默认端口",
-            "tags": ["数据库", "MSSQL", "Microsoft"],
+            "tags": [
+                "数据库",
+                "MSSQL",
+                "Microsoft"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "Oracle端口",
             "content": "1521",
             "description": "Oracle数据库服务默认端口",
-            "tags": ["数据库", "Oracle"],
+            "tags": [
+                "数据库",
+                "Oracle"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "MongoDB端口",
             "content": "27017",
             "description": "MongoDB数据库服务默认端口",
-            "tags": ["数据库", "MongoDB", "NoSQL"],
+            "tags": [
+                "数据库",
+                "MongoDB",
+                "NoSQL"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "Redis端口",
             "content": "6379",
             "description": "Redis数据库服务默认端口",
-            "tags": ["数据库", "Redis", "NoSQL"],
+            "tags": [
+                "数据库",
+                "Redis",
+                "NoSQL"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "IRC端口",
             "content": "6660-6669",
             "description": "Internet中继聊天默认端口范围，常被用于僵尸网络C&C通讯",
-            "tags": ["IRC", "聊天", "C&C"],
+            "tags": [
+                "IRC",
+                "聊天",
+                "C&C"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "常见后门端口",
             "content": "4444,31337,1337,666,6666",
             "description": "常见后门程序使用的端口，如Metasploit默认的4444端口",
-            "tags": ["后门", "渗透测试", "Metasploit"],
+            "tags": [
+                "后门",
+                "渗透测试",
+                "Metasploit"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "隐蔽数据传输端口",
             "content": "1024-65535中的高位端口",
             "description": "高位非常用端口通常被用来隐藏恶意通信",
-            "tags": ["隐蔽", "数据泄露"],
+            "tags": [
+                "隐蔽",
+                "数据泄露"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "WebShell常用端口",
             "content": "80,443,8080,8443",
             "description": "Web服务器端口，常被用于部署WebShell",
-            "tags": ["WebShell", "Web渗透"],
+            "tags": [
+                "WebShell",
+                "Web渗透"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         },
         {
             "name": "Tor默认端口",
             "content": "9050,9051,9150",
             "description": "Tor服务相关端口，用于匿名通信",
-            "tags": ["Tor", "匿名网络"],
+            "tags": [
+                "Tor",
+                "匿名网络"
+            ],
             "type_name": "通用",
+            "file_pattern": "",
             "is_exact_match": true
         }
-    ]
+    ],
+    "file_pattern": "*net*"
 }
