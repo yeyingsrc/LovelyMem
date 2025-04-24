@@ -71,6 +71,7 @@ class QuickCheckArea(QWidget):
             QPushButton("任务编排"),
             QPushButton("报告编辑器"),
             QPushButton("AIlovelymem"),
+            QPushButton("字典管理"),
             QPushButton("设置"),
         ]
         self.advanced_group = CollapsibleButtonGroup("高级功能", advanced_buttons, self.main_window)
@@ -92,7 +93,8 @@ class QuickCheckArea(QWidget):
         advanced_buttons[0].clicked.connect(self.show_task_scheduler)
         advanced_buttons[1].clicked.connect(self.show_report_editor)
         advanced_buttons[2].clicked.connect(self.start_AI_assistant)
-        advanced_buttons[3].clicked.connect(self.show_config_dialog)
+        advanced_buttons[3].clicked.connect(self.show_dictionary_manager)
+        advanced_buttons[4].clicked.connect(self.show_config_dialog)
         # 为其他高级功能按钮添加连接
         
 
@@ -170,4 +172,10 @@ class QuickCheckArea(QWidget):
     def show_config_dialog(self):
         """显示配置对话框"""
         dialog = ConfigDialog(self)
+        dialog.exec()
+        
+    def show_dictionary_manager(self):
+        """显示字典管理器"""
+        from ui.dictionary_manager_dialog import DictionaryManagerDialog
+        dialog = DictionaryManagerDialog(self)
         dialog.exec()

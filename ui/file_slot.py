@@ -632,56 +632,101 @@ class FileSlot(QGroupBox):
     
     def show_context_menu_for_path(self, file_path, global_pos):
         """为指定文件路径显示上下文菜单"""
+        menu = QMenu()
+        
         try:
-            menu = QMenu()
-            open_action = menu.addAction("快速打开")
-            open_file_dir_action = menu.addAction("打开文件目录")
+            file_name = os.path.basename(file_path)
+            is_dir = os.path.isdir(file_path)
             
-            # 添加扩展菜单
-            reload_plugins_action = menu.addAction("重新加载插件")
-            extensions_menu = menu.addMenu("扩展")
+            # 创建菜单标题
+            title_action = menu.addAction(file_name)
+            title_action.setEnabled(False)
+            menu.addSeparator()
             
-            # 添加扩展子菜单
-            for category, category_plugins in self.plugins.items():
-                category_menu = extensions_menu.addMenu(category)
-                for plugin_title, plugin_data in category_plugins.items():
-                    plugin_action = category_menu.addAction(plugin_title)
-                    # 使用lambda创建闭包，确保正确捕获参数
-                    plugin_action.triggered.connect(lambda checked=False, fp=file_path, pd=plugin_data: self.execute_plugin(fp, pd))
-            
-            delete_action = menu.addAction("删除")
-            reload_plugins_action.triggered.connect(self.reload_plugins)
-            
-            action = menu.exec(global_pos)
-            
-            if action == open_action:
-                self.quick_open_file(file_path)
-                return True
-            elif action == delete_action:
-                self.delete_selected_file(file_path)
-                self.update_file_list()  # 在删除文件后更新文件列表
-                return True
-            elif action == open_file_dir_action:
-                self.open_file_dir(file_path)
-                return True
-            elif action == reload_plugins_action:
-                self.reload_plugins()
-                return True
+            # 目录特有选项
+            if is_dir:
+                menu.addAction("在资源管理器中打开", lambda: self.open_file_dir(file_path))
+            # 文件特有选项
+            else:
+                # 根据文件类型添加不同的打开选项
+                file_ext = os.path.splitext(file_path)[1].lower()
                 
-            # 检查是否选择了插件操作
-            for category, category_plugins in self.plugins.items():
-                for plugin_title, plugin_data in category_plugins.items():
-                    plugin_action_text = plugin_title
-                    if action and action.text() == plugin_action_text:
-                        return True
+                # 通用选项
+                menu.addAction("快速打开", lambda: self.quick_open_file(file_path))
+                
+                # 添加字典快速检测选项
+                menu.addAction("使用字典进行快速检测", lambda: self.scan_with_dictionary(file_path))
+                
+                # CSV文件特殊处理
+                if file_ext == '.csv':
+                    menu.addAction("以CSV格式打开", lambda: self.open_csv_file(file_path))
+                    
+                # 文本文件特殊处理
+                if file_ext in ['.txt', '.log', '.md', '.json', '.xml', '.html', '.htm', '.css', '.js', '.py', '.c', '.cpp', '.h', '.ini', '.conf', '.cfg']:
+                    menu.addAction("以文本格式打开", lambda: self.open_text_file(file_path))
+                    
+                # 图片文件特殊处理
+                if file_ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']:
+                    menu.addAction("以图片格式打开", lambda: self.open_image_file(file_path))
+                
+                # 添加其他打开方式
+                menu.addAction("打开方式...", lambda: self.open_other_file(file_path))
+                
+                # 检查是否有插件可以处理此文件
+                if self.plugins:
+                    # 在菜单中添加插件选项
+                    plugins_menu = menu.addMenu("插件")
+                    
+                    # 按分类创建子菜单
+                    for category, category_plugins in self.plugins.items():
+                        category_menu = plugins_menu.addMenu(category)
                         
-            return action is not None  # 如果选择了任何操作，返回True
+                        for plugin_title, plugin_data in category_plugins.items():
+                            # 检查是否支持该文件类型
+                            extensions = plugin_data.get("info", {}).get("extensions", [])
+                            if not extensions or file_ext in extensions or "*" in extensions:
+                                plugin_action = category_menu.addAction(plugin_title)
+                                # 使用lambda创建闭包，确保正确捕获参数
+                                plugin_action.triggered.connect(
+                                    lambda checked=False, fp=file_path, pd=plugin_data: 
+                                    self.execute_plugin(fp, pd)
+                                )
+                
+                menu.addSeparator()
+                
+                # 在资源管理器中打开
+                menu.addAction("在资源管理器中打开所在文件夹", lambda: self.open_file_dir(file_path))
+            
+            menu.addSeparator()
+            
+            # 删除文件选项
+            menu.addAction("删除", lambda: self.delete_selected_file(file_path))
+            
+            # 执行菜单
+            menu.exec(global_pos)
             
         except Exception as e:
             print(f"显示上下文菜单时出错: {e}")
             traceback.print_exc()
-            return False
-
+    
+    def scan_with_dictionary(self, file_path):
+        """使用字典进行快速检测"""
+        try:
+            from plugin.dictionary_scanner import DictionaryScanner
+            from ui.dictionary_scan_result_dialog import DictionaryScanResultDialog
+            
+            # 创建结果对话框并显示，内部已设置为非模态方式显示
+            dialog = DictionaryScanResultDialog(file_path, parent=self)
+            
+            # 保存对话框引用，防止被垃圾回收
+            if not hasattr(self, 'dict_scan_dialogs'):
+                self.dict_scan_dialogs = []
+            self.dict_scan_dialogs.append(dialog)
+            
+        except Exception as e:
+            QMessageBox.warning(self, "扫描错误", f"扫描过程中发生错误：{str(e)}")
+            logging.error(f"字典扫描错误: {str(e)}\n{traceback.format_exc()}")
+    
     def get_full_path(self, item):
         """获取完整文件路径"""
         path = []
@@ -851,26 +896,52 @@ class FileSlot(QGroupBox):
 
         try:
             # 获取插件文件路径
-            plugin_file_path = plugin_data["file_path"]
+            if isinstance(plugin_data, dict) and "file_path" in plugin_data:
+                plugin_file_path = plugin_data["file_path"]
+            else:
+                # 对于旧格式的插件数据，尝试从module属性中获取文件路径
+                if isinstance(plugin_data, dict) and "module" in plugin_data:
+                    module = plugin_data["module"]
+                    plugin_file_path = module.__file__
+                else:
+                    # 直接使用模块本身
+                    plugin_file_path = plugin_data.__file__
+            
             print(f"插件文件路径: {plugin_file_path}")  # 调试信息
             
+            # 确定模块名称
+            if isinstance(plugin_data, dict) and "module" in plugin_data:
+                module_name = plugin_data["module"].__name__
+            else:
+                module_name = plugin_data.__name__
+            
             # 使用 importlib.util.spec_from_file_location 重新加载模块
-            spec = importlib.util.spec_from_file_location(plugin_data["module"].__name__, plugin_file_path)
+            spec = importlib.util.spec_from_file_location(module_name, plugin_file_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             
             # 更新 sys.modules
-            sys.modules[plugin_data["module"].__name__] = module
+            sys.modules[module_name] = module
             
             # 执行插件的run函数
-            module.run(file_path)
+            if hasattr(module, "run"):
+                module.run(file_path)
+            else:
+                raise ValueError("插件缺少run函数")
             
-            logging.info(f"成功执行插件: {plugin_data['info']['title']}")
+            if isinstance(plugin_data, dict) and "info" in plugin_data:
+                logging.info(f"成功执行插件: {plugin_data['info'].get('title', '未知插件')}")
+            else:
+                logging.info(f"成功执行插件: {module_name}")
+                
         except Exception as e:
-            print(f"执行插件时发生错误: {str(e)}")
+            error_msg = f"执行插件时发生错误: {str(e)}"
+            print(error_msg)
             traceback.print_exc()
-            QMessageBox.critical(self, "插件执行错误", f"执行插件时发生错误: {str(e)}")
-
+            logging.error(error_msg)
+            logging.error(traceback.format_exc())
+            QMessageBox.critical(self, "插件执行错误", error_msg)
+    
     def closeEvent(self, event):
         """关闭事件处理"""
         for viewer in self.viewers:
