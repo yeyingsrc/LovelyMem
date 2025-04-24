@@ -96,7 +96,7 @@ other_tools:
 配置好相关内容后，运行：
 
 ```bash
-python main.py
+python launcher.py
 ```
 
 ---
