@@ -182,3 +182,4 @@ run.bat
 config/user_settings.json
 tmp/*
 db/identifier_new.cache
+config/user_settings.json

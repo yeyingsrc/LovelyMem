@@ -123,7 +123,18 @@ class memprocfsplugin:
         self.new_window_memprofs_product_id.show()
         shutil.copy(product_txt, 'output/product_id.txt')
         print('导出产品id完成')
-        
+    def convert_driver_to_csv(self):
+        from script.driver2csv import convert_driver_to_csv
+        convert_driver_to_csv()
+    # "M:\misc\procinfo\dtb.txt"
+    def get_dtb(self):
+        dtbpath = r"M:\misc\procinfo\dtb.txt"
+        self.new_window_memprofs_dtb = QuicklyView('MemPorcfs-DTB', (800, 600))
+        self.new_window_memprofs_dtb.load_file_content(dtbpath)
+        self.new_window_memprofs_dtb.show()
+        shutil.copy(dtbpath, 'output/dtb.txt')
+        print('导出DTB完成')
+    
 
     def copy_alleventlog2output(self):
         eventlog_path = r'M:/misc/eventlog'

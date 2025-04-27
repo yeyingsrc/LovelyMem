@@ -161,7 +161,12 @@ class DictionaryScanner:
                                             items_to_match = [item.strip() for item in normalized_item_content.split(',')]
                                             for single_item in items_to_match:
                                                 if single_item:  # 跳过空项
-                                                    pattern = r'\b' + re.escape(single_item) + r'\b'
+                                                    # 检查是否为注册表路径（包含HKLM\或HKCU\）
+                                                    if single_item.startswith(('HKLM\\', 'HKCU\\', 'HKU\\', 'HKCR\\', 'HKCC\\')):
+                                                        # 注册表路径使用普通匹配而非单词边界
+                                                        pattern = re.escape(single_item)
+                                                    else:
+                                                        pattern = r'\b' + re.escape(single_item) + r'\b'
                                                     for match in re.finditer(pattern, normalized_line):
                                                         if item not in results:
                                                             results[item] = []
@@ -178,7 +183,12 @@ class DictionaryScanner:
                                                             progressor_callback(item, match.group(), line_num, line.strip())
                                         else:
                                             # 单个项目的精确匹配
-                                            pattern = r'\b' + re.escape(normalized_item_content) + r'\b'
+                                            # 检查是否为注册表路径（包含HKLM\或HKCU\）
+                                            if normalized_item_content.startswith(('HKLM\\', 'HKCU\\', 'HKU\\', 'HKCR\\', 'HKCC\\')):
+                                                # 注册表路径使用普通匹配而非单词边界
+                                                pattern = re.escape(normalized_item_content)
+                                            else:
+                                                pattern = r'\b' + re.escape(normalized_item_content) + r'\b'
                                             for match in re.finditer(pattern, normalized_line):
                                                 if item not in results:
                                                     results[item] = []

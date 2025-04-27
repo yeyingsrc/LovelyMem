@@ -447,7 +447,35 @@ class TableOperationsMixin:
         clear_filter_action.triggered.connect(lambda: self.clear_filter(column))
         menu.addAction(clear_filter_action)
         
+        # 添加置顶该列选项
+        menu.addSeparator()
+        move_to_first_action = QAction("置顶该列", menu)
+        move_to_first_action.triggered.connect(lambda: self.move_column_to_first(column))
+        menu.addAction(move_to_first_action)
+        
         menu.exec(header.viewport().mapToGlobal(pos))
+
+    def move_column_to_first(self, column):
+        """将指定列移动到第一列位置"""
+        if column <= 0:
+            # 如果已经是第一列，不需要移动
+            return
+            
+        # 获取表头
+        header = self.table_view.horizontalHeader()
+        
+        # 移动列到第一个位置
+        header.moveSection(column, 0)
+        
+        # 更新状态栏信息
+        column_name = self.proxy_model.sourceModel().headerData(column, Qt.Horizontal)
+        self.status_bar.showMessage(f"已将列 '{column_name}' 置顶", 3000)  # 显示3秒后消失
+        
+        # 如果有排序，可能需要重新应用排序
+        sort_column = header.sortIndicatorSection()
+        sort_order = header.sortIndicatorOrder()
+        if sort_column >= 0:
+            self.on_sort_changed(sort_column, sort_order)
 
     def show_filter_dialog(self, column):
         """显示筛选对话框"""
