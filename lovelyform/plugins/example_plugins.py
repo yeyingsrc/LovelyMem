@@ -759,7 +759,7 @@ class MemprocfsAllpoolsTagPlugin(CellPlugin):
         
     @property
     def category(self) -> str:
-        return "内存分析"
+        return "在allpools中查找对应tag"
         
     @property
     def file_pattern(self) -> str:
