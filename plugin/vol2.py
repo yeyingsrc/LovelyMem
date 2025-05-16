@@ -627,6 +627,11 @@ class Vol2Plugin(QObject):
             self.show_result('驱动IRP钩子检测', 'output/output_vol2_driverirp.csv')
         else:   
             self.run_plugin('driverirp', '驱动IRP钩子检测')
+    def vol2_bigpools(self):
+        if os.path.exists('output/output_vol2_bigpools.csv') and os.path.getsize('output/output_vol2_bigpools.csv') > 0:
+            self.show_result('大内存池', 'output/output_vol2_bigpools.csv')
+        else:   
+            self.run_plugin('bigpools', '大内存池')
     def vol2_session(self):
         if os.path.exists('output/output_vol2_session.csv') and os.path.getsize('output/output_vol2_session.csv') > 0:
             self.show_result('会话信息', 'output/output_vol2_session.csv')

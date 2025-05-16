@@ -278,6 +278,7 @@ class Vol2Area(QWidget):
             ("GDI定时器(gditimers)", lambda: self.button_clicked(self.vol2_plugin.vol2_gditimers)),
             ("驱动扫描(driverscan)", lambda: self.button_clicked(self.vol2_plugin.vol2_driverscan)),
             ("驱动IRP钩子检测(driverirp)", lambda: self.button_clicked(self.vol2_plugin.vol2_driverirp)),
+            ("bigpools(bigpools)", lambda: self.button_clicked(self.vol2_plugin.vol2_bigpools)),
         ]
         memory_buttons = [self.create_button(text, func) for text, func in memory_functions]
         self.memory_group = CollapsibleButtonGroup("内存和模块分析", memory_buttons, self.main_window)
