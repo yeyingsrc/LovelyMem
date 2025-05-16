@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from ui.styles import quick_check_style
 import random
+import os
 from plugin.knowledge_base import KnowledgeBaseDialog
 from plugin.quickcheck import QuickCheck
 from db.updatevol3cache import update_identifier_cache
@@ -73,6 +74,7 @@ class QuickCheckArea(QWidget):
             QPushButton("AIlovelymem"),
             QPushButton("字典管理"),
             QPushButton("设置"),
+            QPushButton("高亮设置"),
         ]
         self.advanced_group = CollapsibleButtonGroup("高级功能", advanced_buttons, self.main_window)
         layout.addWidget(self.advanced_group)
@@ -95,6 +97,7 @@ class QuickCheckArea(QWidget):
         advanced_buttons[2].clicked.connect(self.start_AI_assistant)
         advanced_buttons[3].clicked.connect(self.show_dictionary_manager)
         advanced_buttons[4].clicked.connect(self.show_config_dialog)
+        advanced_buttons[5].clicked.connect(self.show_highlight_settings)
         # 为其他高级功能按钮添加连接
         
 
@@ -178,4 +181,12 @@ class QuickCheckArea(QWidget):
         """显示字典管理器"""
         from ui.dictionary_manager_dialog import DictionaryManagerDialog
         dialog = DictionaryManagerDialog(self)
+        dialog.exec()
+        
+    def show_highlight_settings(self):
+        """显示按钮高亮设置对话框"""
+        from ui.highlight_settings_dialog import HighlightSettingsDialog
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'highlight_buttons.json')
+        highlight_manager = self.main_window.highlight_manager if hasattr(self.main_window, 'highlight_manager') else None
+        dialog = HighlightSettingsDialog(self, config_path, highlight_manager)
         dialog.exec()

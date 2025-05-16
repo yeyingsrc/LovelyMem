@@ -28,6 +28,7 @@ def main():
     # 确保必要的目录存在
     for directory in ['db', 'output', 'packed_files', 'config']:
         os.makedirs(directory, exist_ok=True)
+
         
     # 检查用户设置文件是否存在，如果不存在则创建默认设置
     user_settings_file = os.path.join(os.getcwd(), "config", "user_settings.json")

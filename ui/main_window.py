@@ -40,6 +40,7 @@ from ui.styles import (main_window_style, candy_background, common_font_style,
                        color_schemes, apply_color_scheme, is_dark_mode, 
                        cmd_output_text_color,
                        theme_button_color, minimize_button_color, maximize_button_color, close_button_color)
+from utils.highlight_manager import ButtonHighlightManager
 
 import sys,time
 logger = logging.getLogger(__name__)
@@ -360,6 +361,9 @@ class MainWindow(QMainWindow):
         self.glass_overlay = GlassOverlay(self)
         self.glass_overlay.hide()
 
+        # 创建按钮高亮管理器
+        self.highlight_manager = ButtonHighlightManager(self)
+
         self.setStyleSheet(main_window_style)
         self.memprocfs_area.setStyleSheet(memprocfs_style)
         self.vol2_area.setStyleSheet(vol2_style)
@@ -399,6 +403,12 @@ class MainWindow(QMainWindow):
         cursor.insertHtml(f'<span style="color: {text_color};">{formatted_text}</span>')
         self.cmd_output.setTextCursor(cursor)
         self.cmd_output.ensureCursorVisible()
+        
+        # 检测是否包含“[+] 自动匹配的Profile:”文本，如果包含则触发Vol2和Vol3区域按钮高亮
+        if "[+] 自动匹配的Profile:" in text:
+            print("[调试] 检测到Profile匹配成功消息，触发高亮效果")
+            if hasattr(self, 'highlight_manager'):
+                self.highlight_manager.highlight_after_profile_match()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -475,25 +485,46 @@ class MainWindow(QMainWindow):
     def on_load_finished(self, success, message):
         if success:
             self.cmd_output.append(f"[成功] {message}")
+            # 在内存导入成功后高亮指定按钮
+            if hasattr(self, 'highlight_manager'):
+                self.highlight_manager.highlight_after_memory_import()
         else:
             self.cmd_output.append(f"[失败] {message}")
 
     def unload_image(self):
-        if not self.current_mem_path:
-            return
-
-        self.current_mem_path = ''
-        # profile 清空
-        self.vol2_area.profile = None
-        # 删除 output/image_info.txt
-        if os.path.exists('output/image_info.txt'):
-            os.remove('output/image_info.txt')
-        # 终止 MemProcFS.exe 进程
-        os.system("taskkill /F /IM MemProcFS.exe")
-        os.system("taskkill /F /IM python27.exe")
-        print("[+] 卸载镜像成功")
-        # 标题修改
-        self.setWindowTitle("Lovelymem Ver 0.94")
+        """卸载内存镜像"""
+        if hasattr(self, 'current_mem_path') and self.current_mem_path:
+            # 显示正在卸载的消息
+            self.cmd_output.append("正在卸载内存镜像...")
+            
+            # 卸载镜像
+            self.current_mem_path = None
+            
+            # 更新标题
+            title_label = self.findChild(QLabel, "title_label")
+            if title_label:
+                title_label.setText("Lovelymem Ver 0.94")
+            
+            # profile 清空
+            self.vol2_area.profile = None
+            # 删除 output/image_info.txt
+            if os.path.exists('output/image_info.txt'):
+                os.remove('output/image_info.txt')
+            # 终止 MemProcFS.exe 进程
+            os.system("taskkill /F /IM MemProcFS.exe")
+            os.system("taskkill /F /IM python27.exe")
+            print("[+] 卸载镜像成功")
+            
+            # 清空文件列表
+            self.refresh_file_list()
+            
+            # 停止所有按钮高亮效果
+            if hasattr(self, 'highlight_manager'):
+                print("[调试] 正在停止所有按钮高亮效果")
+                self.highlight_manager.stop_all_highlights()
+            
+            # 显示卸载完成消息
+            self.cmd_output.append("内存镜像已卸载")
 
     def refresh_file_list(self):
         try:
