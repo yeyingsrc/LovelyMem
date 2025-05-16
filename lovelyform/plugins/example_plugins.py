@@ -747,6 +747,85 @@ class MemprocfsNTFSExplorerPlugin(CellPlugin):
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
         return df
+# 在allpools中 查找对应tag
+class MemprocfsAllpoolsTagPlugin(CellPlugin):
+    @property
+    def name(self) -> str:
+        return "在allpools中查找对应tag"
+    
+    @property
+    def description(self) -> str:
+        return "在allpools中查找对应tag"
+        
+    @property
+    def category(self) -> str:
+        return "内存分析"
+        
+    @property
+    def file_pattern(self) -> str:
+        return "process.csv"
+        
+    @property
+    def column_patterns(self) -> List[str]:
+        return ["EPROCESS"]
+
+    def process_cells(self, df: pd.DataFrame, selected_cells: List[tuple]) -> pd.DataFrame:
+        # 提取所选单元格内容
+        from lovelyform import show_csv_viewer
+        
+        for row, col in selected_cells:
+            value = get_sorted_cell_value(df, row, col).strip('"')
+            print(f"[+] 获取到的EPROCESS： {value}")
+            # 计算范围 一般为 value-0x10~value-0x60 
+            start_addr = int(value, 16) - 0x10
+            end_addr = int(value, 16) - 0x60
+            print(f"[+] 计算范围,16进制： {hex(start_addr)} ~ {hex(end_addr)}")
+            # 在output/allpools.csv中查找 ,并显示
+            allpools_path = 'output/allpools.csv'
+
+            print(f"[+] 正在读取 {allpools_path}")
+            # 读取CSV文件并直接处理A.1列
+            allpools_df = pd.read_csv(allpools_path)
+            print(f"[+] 成功读取CSV，共 {len(allpools_df)} 行")
+            
+            # 创建一个新的DataFrame来存储过滤后的结果
+            filtered_rows = []
+            
+            # 手动遍历每一行进行过滤
+            for idx, row in allpools_df.iterrows():
+                try:
+                    # 将A.1列的十六进制字符串转换为整数
+                    addr_int = int(row['A.1'], 16)
+                    # 检查是否在范围内
+                    if end_addr <= addr_int <= start_addr:
+                        # 创建行的副本，不包含索引
+                        row_dict = row.to_dict()
+                        filtered_rows.append(row_dict)
+                        print(f"[+] 找到匹配地址: {row['A.1']}")
+                except (ValueError, TypeError) as e:
+                    # 如果转换失败，跳过该行
+                    print(f"[+] 第 {idx} 行处理失败: {e}")
+                    continue
+            
+            # 创建过滤后的DataFrame
+            if filtered_rows:
+                filtered_df = pd.DataFrame(filtered_rows)
+                print(f"[+] 找到 {len(filtered_rows)} 条匹配记录，正在显示结果")
+                # 显示结果但不显示索引
+                pd.set_option('display.max_rows', 10)
+                print(filtered_df.to_string(index=False))
+                
+                # 将结果保存到临时CSV并显示
+                temp_csv_path = 'output/temp_allpools_filtered.csv'
+                filtered_df.to_csv(temp_csv_path, index=False)
+                show_csv_viewer(temp_csv_path)
+                
+                
+            else:
+                print("[+] 未找到匹配的记录")
+            
+
+
 
 # 权限信息
 
