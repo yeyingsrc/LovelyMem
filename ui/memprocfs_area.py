@@ -94,6 +94,8 @@ class MemProcFSArea(QWidget):
             ("获取产品id", self.memprocfs_plugin.get_product_id),
             ("获取DTB", self.memprocfs_plugin.get_dtb),
             ("driver_irp", self.memprocfs_plugin.convert_driver_to_csv),
+            ("bigpools", self.memprocfs_plugin.memprocfs_bigpools),
+            ("allpools", self.memprocfs_plugin.memprocfs_allpools),
         ]
         basic_buttons = [self.create_button(text, func) for text, func in basic_functions]
         self.basic_group = CollapsibleButtonGroup("基本功能", basic_buttons, self.main_window)

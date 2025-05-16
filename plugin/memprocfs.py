@@ -205,6 +205,27 @@ class memprocfsplugin:
         except Exception as e:
             print(e)
 
+    # bigpools "M:\sys\pool\big\allocations.txt"
+    def memprocfs_bigpools(self):
+        bigpools_path = r'M:/sys/pool/big/allocations.txt'
+        # self.new_window_memprofs_bigpools = QuicklyView('MemPorcfs-bigpools', (800, 600))
+        # self.new_window_memprofs_bigpools.load_file_content(bigpools_path)
+        # self.new_window_memprofs_bigpools.show()
+        shutil.copy(bigpools_path, 'output/bigpools.txt')
+        from script.allpools_to_csv import convert_allpools_to_csv
+        convert_allpools_to_csv(bigpools_path, 'output/bigpools.csv')
+        show_csv_viewer('output/bigpools.csv')
+
+    # allpools M:\sys\pool\all\allocations.txt
+    def memprocfs_allpools(self):
+        allpools_path = r'M:/sys/pool/all/allocations.txt'
+        #self.new_window_memprofs_allpools = QuicklyView('MemPorcfs-allpools', (800, 600))
+        #self.new_window_memprofs_allpools.load_file_content(allpools_path)
+        #self.new_window_memprofs_allpools.show()
+        shutil.copy(allpools_path, 'output/allpools.txt')
+        from script.allpools_to_csv import convert_allpools_to_csv
+        convert_allpools_to_csv(allpools_path, 'output/allpools.csv')
+        show_csv_viewer('output/allpools.csv')
     def lovelymem_ifeodebug(self):
         # M:\registry\HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options
         # 查看这个目录下包括子文件夹是否含有 "Debugger" 文件，如果有就是有疑似劫持
