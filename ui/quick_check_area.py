@@ -71,7 +71,6 @@ class QuickCheckArea(QWidget):
         advanced_buttons = [
             QPushButton("任务编排"),
             QPushButton("报告编辑器"),
-            QPushButton("AIlovelymem"),
             QPushButton("字典管理"),
             QPushButton("设置"),
             QPushButton("高亮设置"),
@@ -94,10 +93,9 @@ class QuickCheckArea(QWidget):
 
         advanced_buttons[0].clicked.connect(self.show_task_scheduler)
         advanced_buttons[1].clicked.connect(self.show_report_editor)
-        advanced_buttons[2].clicked.connect(self.start_AI_assistant)
-        advanced_buttons[3].clicked.connect(self.show_dictionary_manager)
-        advanced_buttons[4].clicked.connect(self.show_config_dialog)
-        advanced_buttons[5].clicked.connect(self.show_highlight_settings)
+        advanced_buttons[2].clicked.connect(self.show_dictionary_manager)
+        advanced_buttons[3].clicked.connect(self.show_config_dialog)
+        advanced_buttons[4].clicked.connect(self.show_highlight_settings)
         # 为其他高级功能按钮添加连接
         
 
@@ -166,11 +164,6 @@ class QuickCheckArea(QWidget):
         self.report_editor.setWindowTitle("报告编辑器")
         self.report_editor.resize(1000, 600)
         self.report_editor.show()
-    def start_AI_assistant(self):
-        import subprocess,os
-        # 检测一下OfflineLicense文件是否存在
-        print("正在启动AI助手")
-        subprocess.Popen([r"../Tools/python3/python.exe", r"AItools\gradio_ui.py"])
         
     def show_config_dialog(self):
         """显示配置对话框"""
