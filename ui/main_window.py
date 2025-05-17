@@ -16,7 +16,8 @@ from requests.exceptions import RequestException
 from ui.memprocfs_area import MemProcFSArea
 from ui.vol2_area import Vol2Area, CollapsibleButtonGroup
 from ui.vol3_area import Vol3Area, CollapsibleButtonGroup as Vol3CollapsibleButtonGroup
-from ui.vol2linux_area import Vol2LinuxArea  
+from ui.vol2linux_area import Vol2LinuxArea
+from ui.vol3_linux_area import Vol3LinuxArea  
 from ui.quick_check_area import QuickCheckArea
 from ui.preset_manager import PresetManager
 from ui.file_menu_area import FileMenuArea  
@@ -260,6 +261,7 @@ class MainWindow(QMainWindow):
         self.vol3_area = Vol3Area(self, self)
         self.vol2linux_area = Vol2LinuxArea(self, self)  # 创建Vol2Linux区域
         self.quick_check_area = QuickCheckArea(self, self)
+        self.vol3linux_area = Vol3LinuxArea(self, self)
 
         # 创建旋转后的图标
         def rotate_icon(icon_path):
@@ -277,8 +279,10 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(2, "Volatility3功能区")
         self.tab_widget.addTab(self.vol2linux_area, rotate_icon('res/vol2linux.png'), "")  # 使用Vol2的图标
         self.tab_widget.setTabToolTip(3, "Volatility2 Linux功能区")
+        self.tab_widget.addTab(self.vol3linux_area, rotate_icon('res/vol2linux.png'), "")  # 使用Vol2的图标
+        self.tab_widget.setTabToolTip(4, "Volatility3 Linux功能区")
         self.tab_widget.addTab(self.quick_check_area, rotate_icon('res/quick.png'), "")  # 使用logo图标
-        self.tab_widget.setTabToolTip(4, "高级功能区")
+        self.tab_widget.setTabToolTip(5, "高级功能区")
 
         self.upper_layout.addWidget(left_group, 4)  # 左侧占比1
                 # 创建文件管理器
