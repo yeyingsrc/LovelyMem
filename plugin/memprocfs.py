@@ -134,7 +134,11 @@ class memprocfsplugin:
         self.new_window_memprofs_dtb.show()
         shutil.copy(dtbpath, 'output/dtb.txt')
         print('导出DTB完成')
-    
+    def search_hidden_process(self):
+        from script.search_hidden_process import search_hidden_process
+        search_hidden_process()
+        print('搜索隐藏进程完成')
+        
 
     def copy_alleventlog2output(self):
         eventlog_path = r'M:/misc/eventlog'

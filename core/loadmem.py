@@ -62,6 +62,7 @@ class MemImageLoader(QObject):
                     self.memprocfs_plugin.lovelymem_checkRun()
                     self.memprocfs_plugin.lovelymem_defaultbrowser()
                     self.memprocfs_plugin.merge_console_txt_files()
+                    self.memprocfs_plugin.search_hidden_process()
                     
             for line in process.stderr:
                 self.output_received.emit(f"错误输出：{line}", self.stderr_color)
