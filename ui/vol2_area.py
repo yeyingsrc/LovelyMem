@@ -193,10 +193,14 @@ class Vol2Area(QWidget):
             for group in self.button_groups:
                 group.setVisible(True)
                 group.content_widget.setVisible(group.is_expanded)
+            # 恢复所有按钮的可见性和样式
+            for button, group, button_text in self.all_buttons:
+                button.setVisible(True)
+                button.setStyleSheet(ui.styles.button_style)
             # 恢复所有按钮的样式
             self.update_button_styles()
             return
-            
+        
         search_text = search_text.lower()
         search_terms = [term.strip() for term in search_text.split() if term.strip()]
         
@@ -225,7 +229,7 @@ class Vol2Area(QWidget):
         
         # 对所有可见组应用当前主题样式
         self.update_button_styles()
-        
+
     def create_function_groups(self, layout):
         # 基本功能组（保持不变）
         basic_functions = [
