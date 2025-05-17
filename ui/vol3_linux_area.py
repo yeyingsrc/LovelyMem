@@ -5,6 +5,7 @@ import ui.styles
 from plugin.vol3linux import Vol3LinuxPlugin, WorkerThread
 from functools import partial
 import json
+import os
 
 class Vol3LinuxButton(QPushButton):
     def __init__(self, text, function=None):
@@ -151,7 +152,7 @@ class Vol3LinuxArea(QWidget):
         # 定义功能分组 - 根据lin_func.md更新
         self.function_groups = {
             "系统基础信息": [
-                ("Banner识别(Banners)", "vol3linux_banners_Banners"),
+                ("Banner识别(Banners)", "vol3linux_banners"),
                 ("引导时间(Boottime)", "vol3linux_boottime_Boottime"),
                 ("IOMEM映射(IOMem)", "vol3linux_iomem_IOMem"),
                 ("VMCore信息(VMCoreInfo)", "vol3linux_vmcoreinfo_VMCoreInfo"),
