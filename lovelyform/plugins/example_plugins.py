@@ -405,13 +405,22 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值： {value}")
             def process_dump():
-                    filespath = rf'M:/pid/{value}/files/vads/'
+                    filespath = rf'M:/pid/{value}/minidump/minidump.dmp'
                     if os.path.exists(filespath):
-                        shutil.copytree(filespath, f'output/files_{value}')
-
-                        print(f'[+] 已把该程序所使用的所有文件复制到output/files_{value}文件夹，请注意不要运行任何文件！！！！！！')
+                        shutil.copy(filespath, f'output/minidump_{value}.dmp')
+                        print(f'[+] 已把该程序所使用的所有文件复制到output/minidump_{value}.dmp文件夹，请注意不要运行任何文件！！！！！！')
+                        os.makedirs('tmp', exist_ok=True)
+                        newpath = rf'tmp/{value}.data'
+                        if os.path.exists(newpath):
+                            os.remove(newpath)
+                        shutil.copy(filespath, newpath)
+                        cmd2 = rf'"{gimppath}" tmp/{value}.data'
+                        print('[*] 正在调用gimp执行命令：' + cmd2)
+                        subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                        print('[+] 执行成功！')
                     else:
                         print('[×] 该文件夹不存在！')
+                    
             from threading import Thread
             thread = Thread(target=process_dump)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
