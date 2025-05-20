@@ -197,10 +197,20 @@ class memprocfsplugin:
                     break
         
         try:
-            http_browser = open(fr'M:/registry/HKU/{username}/SOFTWARE/Microsoft/Windows/Shell/Associations/UrlAssociations/http/UserChoice/ProgId', 'r')
-            httpbrowser = http_browser.read()
-            https_browser = open(fr'M:/registry/HKU/{username}/SOFTWARE/Microsoft/Windows/Shell/Associations/UrlAssociations/https/UserChoice/ProgId', 'r')
-            httpsbrowser = https_browser.read()
+            http_browser_path = fr'M:/registry/HKU/{username}/SOFTWARE/Microsoft/Windows/Shell/Associations/UrlAssociations/http/UserChoice/ProgId'
+            https_browser_path = fr'M:/registry/HKU/{username}/SOFTWARE/Microsoft/Windows/Shell/Associations/UrlAssociations/https/UserChoice/ProgId'
+            
+            httpbrowser = "未找到"
+            httpsbrowser = "未找到"
+            
+            if os.path.exists(http_browser_path):
+                with open(http_browser_path, 'r') as http_browser:
+                    httpbrowser = http_browser.read()
+            
+            if os.path.exists(https_browser_path):
+                with open(https_browser_path, 'r') as https_browser:
+                    httpsbrowser = https_browser.read()
+            
             output_file = 'output/默认浏览器.txt'
             with open(output_file, 'w') as f:
                 f.write(f"PS:AppXq0fevzme2pys62n3e0fbqa7peapykr8v为Edge\n")
