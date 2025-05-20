@@ -19,6 +19,7 @@ from ui.vol3_area import Vol3Area, CollapsibleButtonGroup as Vol3CollapsibleButt
 from ui.vol2linux_area import Vol2LinuxArea
 from ui.vol3_linux_area import Vol3LinuxArea  
 from ui.quick_check_area import QuickCheckArea
+from ui.miaomiao_tools_area import MiaoMiaoToolsArea
 from ui.preset_manager import PresetManager
 from ui.file_menu_area import FileMenuArea  
 from ui.memory_workbench import MemoryWorkbench
@@ -182,7 +183,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.94")
+        title_label = QLabel("Lovelymem Ver 0.95")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -241,7 +242,7 @@ class MainWindow(QMainWindow):
         # 创建标签页控件并应用样式
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabPosition(QTabWidget.West)  # 将标签页设置为左侧
-        self.tab_widget.setIconSize(QSize(24, 24))  # 设置图标大小为24*24
+        self.tab_widget.setIconSize(QSize(43, 43))  # 设置图标大小为24*24
         self.tab_widget.setStyleSheet(tab_style)
         
         # 设置标签页的固定宽度，使图标居中
@@ -261,11 +262,13 @@ class MainWindow(QMainWindow):
         self.vol3_area = Vol3Area(self, self)
         self.vol2linux_area = Vol2LinuxArea(self, self)  # 创建Vol2Linux区域
         self.quick_check_area = QuickCheckArea(self, self)
+        self.miaomiao_tools_area = MiaoMiaoToolsArea(self, self)  # 创建妙妙工具区域    
         self.vol3linux_area = Vol3LinuxArea(self, self)
+
 
         # 创建旋转后的图标
         def rotate_icon(icon_path):
-            pixmap = QIcon(icon_path).pixmap(24, 24)
+            pixmap = QIcon(icon_path).pixmap(43, 43)
             transform = QTransform().rotate(90)  # 顺时针旋转90度
             rotated_pixmap = pixmap.transformed(transform)
             return QIcon(rotated_pixmap)
@@ -279,10 +282,13 @@ class MainWindow(QMainWindow):
         self.tab_widget.setTabToolTip(2, "Volatility3功能区")
         self.tab_widget.addTab(self.vol2linux_area, rotate_icon('res/vol2linux.png'), "")  # 使用Vol2的图标
         self.tab_widget.setTabToolTip(3, "Volatility2 Linux功能区")
-        self.tab_widget.addTab(self.vol3linux_area, rotate_icon('res/vol2linux.png'), "")  # 使用Vol2的图标
+        self.tab_widget.addTab(self.vol3linux_area, rotate_icon('res/vol3linux.png'), "")  # 使用Vol2的图标
         self.tab_widget.setTabToolTip(4, "Volatility3 Linux功能区")
+        self.tab_widget.addTab(self.miaomiao_tools_area, rotate_icon('res/Tools.png'), "")  # 暂时使用相同图标
+        self.tab_widget.setTabToolTip(5, "妙妙工具区")
         self.tab_widget.addTab(self.quick_check_area, rotate_icon('res/quick.png'), "")  # 使用logo图标
-        self.tab_widget.setTabToolTip(5, "高级功能区")
+        self.tab_widget.setTabToolTip(6, "高级功能区")
+
 
         self.upper_layout.addWidget(left_group, 4)  # 左侧占比1
                 # 创建文件管理器
@@ -456,7 +462,7 @@ class MainWindow(QMainWindow):
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.94 - {image_path}")
+                title_label.setText(f"Lovelymem Ver 0.95 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -507,7 +513,7 @@ class MainWindow(QMainWindow):
             # 更新标题
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText("Lovelymem Ver 0.94")
+                title_label.setText("Lovelymem Ver 0.95")
             
             # profile 清空
             self.vol2_area.profile = None

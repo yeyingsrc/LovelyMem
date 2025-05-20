@@ -181,8 +181,8 @@ def update_styles():
             border-bottom-left-radius: 4px;
             padding: 5px 0px;
             margin-bottom: 1px;
-            min-height: 22px;
-            max-height: 22px;
+            min-height: 40px;
+            max-height: 40px;
             min-width: 40px;
             max-width: 40px;
             {common_font_style}

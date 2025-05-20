@@ -1,5 +1,5 @@
 {
-    "theme": "紫藤花语",
+    "theme": "默认",
     "LLM_CONFIG": {
         "openai_api_key": "",
         "openai_organization": "",
