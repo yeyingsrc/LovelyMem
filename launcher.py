@@ -628,17 +628,21 @@ class LauncherWindow(QMainWindow):
         self.start_button.setEnabled(False)
         self.start_button.clicked.connect(self.launch_main_app)
         
-        # 添加更新按钮
-        self.update_button = QPushButton("更新程序")
-        self.update_button.setFixedSize(160, 32)  # 缩小按钮尺寸
-        self.update_button.setEnabled(True)
-        self.update_button.clicked.connect(self.update_from_github)
+        # 创建更新按钮
+        update_layout = QHBoxLayout()
+        
+        self.update_button = QPushButton("检查更新")
+        self.update_button.setFixedSize(100, 30)
+        self.update_button.setCursor(Qt.PointingHandCursor)
+        self.update_button.clicked.connect(lambda: self.show_update_options())
+        
+        update_layout.addWidget(self.update_button)
         self.update_button.setToolTip("从GitHub更新程序")
         
         # 创建垂直布局来放置按钮
         buttons_layout = QVBoxLayout()
         buttons_layout.setSpacing(8)  # 减少按钮之间的间距
-        buttons_layout.addWidget(self.update_button)
+        buttons_layout.addLayout(update_layout)  # 添加更新按钮
         buttons_layout.addWidget(self.start_button)
         
         # 添加底部按钮
@@ -833,21 +837,28 @@ class LauncherWindow(QMainWindow):
             self.status_label.setText(f"启动失败: {str(e)}")
             self.show()  # 如果启动失败，重新显示启动器
     
-    def update_from_github(self):
-        """从GitHub更新程序"""
+    def update_app(self, source="github"):
+        """从指定源更新程序"""
         try:
             # 禁用更新按钮，防止重复点击
             self.update_button.setEnabled(False)
             self.status_label.setText("正在检查更新...")
             
-            # GitHub仓库URL
-            github_url = "https://github.com/Tokeii0/LovelyMem"
+            # 更新源URL
+            update_sources = {
+                "github": "https://github.com/Tokeii0/LovelyMem",
+                "gitee": "https://gitee.com/tokeii0/LovelyMem.git"
+            }
+            
+            # 获取选定的更新源
+            repo_url = update_sources.get(source, update_sources["github"])
+            source_name = "GitHub" if source == "github" else "Gitee"
             
             # 确认是否更新
             reply = QMessageBox.question(
                 self, 
                 "更新确认", 
-                f"确定要从GitHub更新程序吗？\n\n更新源: {github_url}\n\n注意: 更新前请确保已保存您的工作。", 
+                f"确定要从{source_name}更新程序吗？\n\n更新源: {repo_url}\n\n注意: 更新前请确保已保存您的工作。", 
                 QMessageBox.Yes | QMessageBox.No, 
                 QMessageBox.No
             )
@@ -855,7 +866,7 @@ class LauncherWindow(QMainWindow):
             if reply == QMessageBox.Yes:
                 # 创建更新线程
                 self.update_thread = QThread()
-                self.update_worker = GitUpdateWorker(github_url)
+                self.update_worker = GitUpdateWorker(repo_url)
                 self.update_worker.moveToThread(self.update_thread)
                 
                 # 连接信号
@@ -876,22 +887,54 @@ class LauncherWindow(QMainWindow):
             logger.error(f"准备更新时发生错误: {e}")
             self.on_update_error(f"准备更新时发生错误: {str(e)}")
     
+    def update_from_github(self):
+        """从GitHub更新程序（兼容旧方法）"""
+        self.update_app(source="github")
+        
+    def show_update_options(self):
+        """显示更新源选择对话框"""
+        # 创建一个简单的对话框
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("选择更新源")
+        msg_box.setText("请选择更新源:")
+        
+        # 添加按钮
+        github_button = msg_box.addButton("GitHub", QMessageBox.ActionRole)
+        gitee_button = msg_box.addButton("Gitee", QMessageBox.ActionRole)
+        cancel_button = msg_box.addButton("取消", QMessageBox.RejectRole)
+        
+        # 显示对话框
+        msg_box.exec()
+        
+        # 处理选择
+        clicked_button = msg_box.clickedButton()
+        if clicked_button == github_button:
+            self.update_app(source="github")
+        elif clicked_button == gitee_button:
+            self.update_app(source="gitee")
+    
     def on_update_finished(self, success_message):
         """更新完成后的处理"""
-        # 重新启用按钮
-        self.update_button.setEnabled(True)
-        
         # 显示成功消息
-        self.status_label.setText(success_message)
         QMessageBox.information(self, "更新成功", success_message)
         
-        # 重置状态
-        QTimer.singleShot(2000, lambda: self.status_label.setText("准备就绪，点击按钮启动"))
+        # 重置UI状态
+        self.update_button.setEnabled(True)
+        self.status_label.setText("更新完成，请重启应用")
         
-        # 清理线程
-        if hasattr(self, 'update_thread') and self.update_thread.isRunning():
-            self.update_thread.quit()
-            self.update_thread.wait()
+        # 询问是否立即重启
+        reply = QMessageBox.question(
+            self,
+            "重启应用",
+            "更新已完成，是否立即重启应用？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        
+        if reply == QMessageBox.Yes:
+            # 重启应用
+            python = sys.executable
+            os.execl(python, python, *sys.argv)
     
     def on_update_error(self, error_message):
         """更新出错的处理"""

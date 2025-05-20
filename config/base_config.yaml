@@ -41,4 +41,4 @@ tools:
   volatility3:
     path: ../Tools/volatility3/vol.py
   volatility3_symbols:
-    path: ../Tools/volatility3/symbols
+    path: ../Tools/volatility3/volatility3/symbols
