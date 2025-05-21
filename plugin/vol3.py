@@ -18,9 +18,16 @@ class WorkerThread(QThread):
 
     def run(self):
         try:
+            # 设置环境变量强制使用 UTF-8 编码
+            env = os.environ.copy()
+            env['PYTHONIOENCODING'] = 'utf-8'
+            
             process = subprocess.Popen(
-                " ".join(self.cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
-                shell=True
+                " ".join(self.cmd), 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE, 
+                shell=True,
+                env=env
             )
             
             stdout, stderr = process.communicate()
@@ -28,7 +35,7 @@ class WorkerThread(QThread):
             if process.returncode == 0:
                 self.task_completed.emit(True, "任务成功完成", stdout)
             else:
-                error_msg = f"命令执行失败，返回代码 {process.returncode}。\n错误: {stderr.decode('utf-8')}"
+                error_msg = f"命令执行失败，返回代码 {process.returncode}。\n错误: {stderr.decode('utf-8', errors='replace')}"
                 self.task_completed.emit(False, error_msg, b"")
         except Exception as e:
             error_msg = f"发生错误: {str(e)}"
@@ -115,17 +122,33 @@ class Vol3Plugin(QObject):
             print(f"错误信息: {msg}")
 
     def write_to_csv(self, output, output_file):
-        output_io = io.TextIOWrapper(io.BytesIO(output), encoding='utf-8')
-        reader = csv.reader(output_io)
-        
-        with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            for row in reader:
-                writer.writerow(row)
+        try:
+            # 尝试使用 UTF-8 解码处理输出
+            output_io = io.TextIOWrapper(io.BytesIO(output), encoding='utf-8', errors='replace')
+            reader = csv.reader(output_io)
+            
+            with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                for row in reader:
+                    # 对每个单元格进行额外的清理，移除或替换不兼容的字符
+                    cleaned_row = []
+                    for cell in row:
+                        if cell is not None:
+                            # 替换或移除可能导致编码问题的字符
+                            cleaned_cell = ''.join(c if ord(c) < 0x10000 else '?' for c in cell)
+                            cleaned_row.append(cleaned_cell)
+                        else:
+                            cleaned_row.append('')
+                    writer.writerow(cleaned_row)
+        except Exception as e:
+            print(f"CSV 处理错误: {str(e)}")
+            # 如果处理失败，至少保存原始数据
+            with open(output_file, 'wb') as f:
+                f.write(output)
 
     def write_to_txt(self, output, output_file):
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(output.decode('utf-8'))
+            f.write(output.decode('utf-8', errors='replace'))
 
     def vol3memmap(self, pid):
         cmd = [
@@ -174,13 +197,16 @@ class Vol3Plugin(QObject):
         cmd2 = [self.pythonpath, self.volatility3, '-f', self.mem_path , '-o','output', f'windows.dumpfile', f'--virtaddr {offset}']
         print(f"正在执行：{' '.join(cmd)}")
         try:
+            # 设置环境变量强制使用 UTF-8 编码
+            env = os.environ.copy()
+            env['PYTHONIOENCODING'] = 'utf-8'
+            
             print(f"正在尝试执行：{' '.join(cmd)}")
-            a = subprocess.Popen(' '.join(cmd), encoding='utf-8')
+            a = subprocess.Popen(' '.join(cmd), encoding='utf-8', env=env)
             a.wait()
             print(f"正在尝试执行：{' '.join(cmd2)}")
-            b = subprocess.Popen(' '.join(cmd2), encoding='utf-8')
+            b = subprocess.Popen(' '.join(cmd2), encoding='utf-8', env=env)
             b.wait()
-
 
             return True
         except Exception as e:
@@ -215,7 +241,8 @@ class Vol3Plugin(QObject):
         'strings', 'symlinkscan', 'thrdscan', 'truecrypt', 'vadinfo', 'vadwalk',
         'verinfo', 'virtmap','unloadedmodules','hollowprocesses','kpcrs','pedump','processghosting',
         'psxview','registry.getcellroutine','shimcachemem','suspicious_threads','svcdiff','svclist',
-        'threads','timers','iat'
+        'threads','timers','iat','deskscan','desktops','direct_system_calls','indirect_system_calls','suspended_threads',
+        'vadregexscan','windows','windowstations'
     ]
 
     def __getattr__(self, name):

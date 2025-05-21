@@ -196,6 +196,7 @@ class Vol3Area(QWidget):
                 ("隐藏进程检测(psxview)", "vol3_psxview"),
                 ("线程信息(threads)", "vol3_threads"),
                 ("可疑线程检测(suspicious_threads)", "vol3_suspicious_threads"),
+                ("挂起线程检测(suspended_threads)", "vol3_suspended_threads"),
             ],
             "系统信息": [
                 ("系统基本信息(info)", "vol3_info"),
@@ -224,6 +225,13 @@ class Vol3Area(QWidget):
                 ("KPCR信息(kpcrs)", "vol3_kpcrs"),
                 ("定时器信息(timers)", "vol3_timers"),
                 ("导入地址表(IAT)", "vol3_iat"),
+                ("桌面扫描(deskscan)", "vol3_deskscan"),
+                ("桌面信息(desktops)", "vol3_desktops"),
+                ("直接系统调用(direct_system_calls)", "vol3_direct_system_calls"),
+                ("间接系统调用(indirect_system_calls)", "vol3_indirect_system_calls"),
+                ("VAD正则扫描(vadregexscan)", "vol3_vadregexscan"),
+                ("Windows信息(windows)", "vol3_windows"),
+                ("窗口站(windowstations)", "vol3_windowstations"),
             ],
             "文件和网络": [
                 ("文件对象扫描(filescan)", "vol3_filescan"), 
