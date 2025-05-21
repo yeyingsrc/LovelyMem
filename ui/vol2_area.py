@@ -406,6 +406,7 @@ class Vol2Area(QWidget):
             ("信任记录(trustrecords)", lambda: self.button_clicked(self.vol2_plugin.vol2_trustrecords)),
             ("卸载信息(uninstallinfo)", lambda: self.button_clicked(self.vol2_plugin.vol2_uninstallinfo)),
             ("截图(screenshot)", lambda: self.button_clicked(self.vol2_plugin.vol2_screenshot)),
+            ("getprocbyaclin(getprocbyaclin)", lambda: self.button_clicked(self.vol2_plugin.vol2_getprocbyaclin)),
         ]
         extended_buttons = [self.create_button(text, func) for text, func in extended_functions]
         self.extended_group = CollapsibleButtonGroup("扩展功能", extended_buttons, self.main_window)

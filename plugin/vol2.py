@@ -764,6 +764,14 @@ class Vol2Plugin(QObject):
         else:   
             self.run_plugin('wintree', '窗口结构')
     # 对于一些特殊的插件,可能需要单独处理
+    # getprocbyaclin txt
+    def vol2_getprocbyaclin(self):
+        if os.path.exists('output/output_vol2_getprocbyaclin.txt') and os.path.getsize('output/output_vol2_getprocbyaclin.txt') > 0:
+            #self.show_text_result('getprocbyaclin', 'output/output_vol2_getprocbyaclin.txt')
+            pass
+        else:   
+            #self.run_plugin('getprocbyaclin', 'getprocbyaclin', output_type='text')
+            print("请右键选择参数执行")
     def vol2_yarascan(self, rules_file):
         cmd = self.construct_command('yarascan')
         cmd.extend(['-y', rules_file])
