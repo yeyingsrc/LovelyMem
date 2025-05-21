@@ -115,14 +115,14 @@ class MemProcFSArea(QWidget):
         self.advanced_group = CollapsibleButtonGroup("时间线功能", advanced_buttons, self.main_window)
         layout.addWidget(self.advanced_group)
 
-        lovelymem_functions = [
-            ("开机自启检测", self.memprocfs_plugin.lovelymem_checkRun),
-            ("默认浏览器检测", self.memprocfs_plugin.lovelymem_defaultbrowser),
-            ("IFEO劫持检测", self.memprocfs_plugin.lovelymem_ifeodebug),
-        ]
-        lovelymem_buttons = [self.create_button(text, func) for text, func in lovelymem_functions]
-        self.lovelymem_group = CollapsibleButtonGroup("快速检测", lovelymem_buttons, self.main_window)
-        layout.addWidget(self.lovelymem_group)
+        # lovelymem_functions = [
+        #     ("开机自启检测", self.memprocfs_plugin.lovelymem_checkRun),
+        #     ("默认浏览器检测", self.memprocfs_plugin.lovelymem_defaultbrowser),
+        #     ("IFEO劫持检测", self.memprocfs_plugin.lovelymem_ifeodebug),
+        # ]
+        # lovelymem_buttons = [self.create_button(text, func) for text, func in lovelymem_functions]
+        # self.lovelymem_group = CollapsibleButtonGroup("快速检测", lovelymem_buttons, self.main_window)
+        # layout.addWidget(self.lovelymem_group)
 
     def create_button(self, text, func):
         button = MemProcFSButton(text)

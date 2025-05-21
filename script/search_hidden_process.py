@@ -47,7 +47,7 @@ def search_hidden_process():
                 writer.writerow([proc['name'], proc['pid'], proc['parent'], proc['flag']])
                 print(f"进程名: {proc['name']}, PID: {proc['pid']}, 父PID: {proc['parent']}, 标记: {proc['flag']}")
         
-        print(f"发现 {len(hidden_processes)} 个隐藏进程，已保存到 {output_path}")
+        print(f"发现 {len(hidden_processes)} 个隐藏进程,请重点关注，已保存到 {output_path}")
         return hidden_processes
     except Exception as e:
         print(f"搜索隐藏进程时出错: {str(e)}")

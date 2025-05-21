@@ -255,7 +255,7 @@ class memprocfsplugin:
                     output_path = os.path.join('output', os.path.basename(root))
                     shutil.copytree(root, output_path)
                     # 输出到文件
-                    output_file = 'output/ifeodebug.txt'
+                    output_file = 'output/ifeo劫持.txt'
                     with open(output_file, 'w', encoding='utf-8') as f:
                         # 文件夹名+debugger内容
                         f.write(f"{os.path.basename(root)}:\n")
