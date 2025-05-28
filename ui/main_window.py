@@ -229,6 +229,9 @@ class MainWindow(QMainWindow):
         self.memory_workbench.pack_files_signal.connect(self.pack_files)
         self.memory_workbench.clear_files_signal.connect(self.clear_files)
         self.memory_workbench.execute_preset_signal.connect(self.execute_preset)
+        
+        # 连接QuickCheckArea的add_tab_signal信号
+        self.quick_check_area.add_tab_signal.connect(self.add_dynamic_tab)
 
         # 设置文件树
         self.file_tree = self.memory_workbench.file_slot.file_tree
@@ -379,6 +382,9 @@ class MainWindow(QMainWindow):
                 self.task_manager.add_task("MemProcFS - 加载内存镜像")
             
             self.file_menu_area.set_image_path(image_path)
+            # 同时设置QuickCheckArea的镜像路径
+            if hasattr(self, 'quick_check_area'):
+                self.quick_check_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
                 title_label.setText(f"Lovelymem Ver 0.96 - {image_path}")
@@ -410,6 +416,19 @@ class MainWindow(QMainWindow):
 
     def get_current_mem_path(self):
         return self.current_mem_path if hasattr(self, 'current_mem_path') else None
+        
+    def add_dynamic_tab(self, widget, title):
+        """动态添加标签页"""
+        # 检查是否已经存在相同标题的标签页，如果存在则移除
+        for i in range(self.tab_widget.count()):
+            if self.tab_widget.tabText(i) == title:
+                self.tab_widget.removeTab(i)
+                break
+        
+        # 添加新的标签页
+        index = self.tab_widget.addTab(widget, title)
+        # 切换到新添加的标签页
+        self.tab_widget.setCurrentIndex(index)
 
     def on_load_finished(self, success, message):
         # 移除内存加载任务
