@@ -575,7 +575,7 @@
             "cmd_output_text_color": "rgba(173, 216, 230, 0.95)"
         }
     },
-    "绿色莫吉托": {
+    "绿莫吉托": {
         "light": {
             "background_color": "rgba(240, 255, 240, 0.9)",
             "text_color": "rgba(34, 139, 34, 0.95)",

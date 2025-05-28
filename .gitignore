@@ -177,9 +177,9 @@ db/presets.db
 db/presets.db
 update_list.json
 CteateUpdateJson.py
-config/user_settings.json
 db/presets.db
 run.bat
 tmp/*
 db/identifier_new.cache
+.trae/rules/project_rules.md
 
