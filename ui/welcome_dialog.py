@@ -6,8 +6,7 @@ from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QIcon, QPixmap, QMouseEvent
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                               QPushButton, QFrame, QCheckBox)
-from ui.styles import (background_color, text_color, button_bg_color, 
-                      button_hover_color, border_color)
+import ui.styles
 from core.config_manager import get_saved_theme
 from db.updatevol3cache import update_identifier_cache
 
@@ -145,6 +144,16 @@ class WelcomeDialog(QDialog):
     def apply_theme(self):
         """应用当前主题样式"""
         theme = get_saved_theme()
+        
+        # 强制重新应用当前主题，确保颜色变量是最新的
+        ui.styles.apply_color_scheme(theme, ui.styles.is_dark_mode())
+        
+        # 获取当前主题的颜色值
+        background_color = ui.styles.background_color
+        text_color = ui.styles.text_color
+        button_bg_color = ui.styles.button_bg_color
+        button_hover_color = ui.styles.button_hover_color
+        border_color = ui.styles.border_color
         
         # 主框架样式
         self.main_frame.setStyleSheet(f"""
