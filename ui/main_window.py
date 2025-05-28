@@ -147,6 +147,9 @@ class MainWindow(QMainWindow):
         self.file_menu_area = FileMenuArea(self)
         self.file_menu_area.load_image_signal.connect(self.load_image)  # 连接信号到新的load_image方法
         left_layout.addWidget(self.file_menu_area)
+        
+        # 获取任务管理器的引用，供其他区域使用
+        self.task_manager = self.file_menu_area.task_manager
 
         # 创建预设管理器
         self.preset_manager = PresetManager()
@@ -328,7 +331,7 @@ class MainWindow(QMainWindow):
         
         # 检测是否包含“[+] 自动匹配的Profile:”文本，如果包含则触发Vol2和Vol3区域按钮高亮
         if "[+] 自动匹配的Profile:" in text:
-            print("[调试] 检测到Profile匹配成功消息，触发高亮效果")
+            #print("[调试] 检测到Profile匹配成功消息，触发高亮效果")
             if hasattr(self, 'highlight_manager'):
                 self.highlight_manager.highlight_after_profile_match()
 
@@ -371,6 +374,10 @@ class MainWindow(QMainWindow):
             if not image_path:
                 return
         if image_path:
+            # 添加内存加载任务
+            if hasattr(self, 'task_manager'):
+                self.task_manager.add_task("MemProcFS - 加载内存镜像")
+            
             self.file_menu_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
@@ -383,13 +390,13 @@ class MainWindow(QMainWindow):
                 f.write(image_path + ", ")
             # 创建 Vol2Plugin 实例并开始获取 profile
             vol2_plugin = Vol2Plugin(image_path)
-            vol2_plugin.start_get_profile()
+            
+            # 使用带任务跟踪的profile获取方法
+            self.vol2_area.vol2_plugin = vol2_plugin
+            self.vol2_area.start_get_profile_with_task()
             
             # 连接信号以更新 UI
             vol2_plugin.get_profile_thread.profile_obtained.connect(self.on_profile_obtained)
-            
-            # 更新 Vol2Area 的 vol2_plugin 实例
-            self.vol2_area.vol2_plugin = vol2_plugin
             
             # 创建 Vol3Plugin 实例
             self.vol3_plugin = Vol3Plugin(image_path)
@@ -405,6 +412,10 @@ class MainWindow(QMainWindow):
         return self.current_mem_path if hasattr(self, 'current_mem_path') else None
 
     def on_load_finished(self, success, message):
+        # 移除内存加载任务
+        if hasattr(self, 'task_manager'):
+            self.task_manager.remove_task("MemProcFS - 加载内存镜像")
+        
         if success:
             self.cmd_output.append(f"[成功] {message}")
             # 在内存导入成功后高亮指定按钮
@@ -442,7 +453,7 @@ class MainWindow(QMainWindow):
             
             # 停止所有按钮高亮效果
             if hasattr(self, 'highlight_manager'):
-                print("[调试] 正在停止所有按钮高亮效果")
+                #print("[调试] 正在停止所有按钮高亮效果")
                 self.highlight_manager.stop_all_highlights()
             
             # 显示卸载完成消息

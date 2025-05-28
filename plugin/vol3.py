@@ -42,7 +42,10 @@ class WorkerThread(QThread):
             self.task_completed.emit(False, error_msg, b"")
 
 class Vol3Plugin(QObject):
+    task_completed_signal = Signal(str)  # 任务完成信号
+    
     def __init__(self, mem_path):
+        super().__init__()
         self.mem_path = mem_path
         self.workers = []
         self.readconfig()
@@ -120,6 +123,9 @@ class Vol3Plugin(QObject):
         else:
             print(f"[×] 执行失败：{title}")  
             print(f"错误信息: {msg}")
+        
+        # 发出任务完成信号
+        self.task_completed_signal.emit(title)
 
     def write_to_csv(self, output, output_file):
         try:

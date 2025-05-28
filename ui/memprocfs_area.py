@@ -126,7 +126,21 @@ class MemProcFSArea(QWidget):
 
     def create_button(self, text, func):
         button = MemProcFSButton(text)
-        button.clicked.connect(func)
+        
+        def wrapped_func():
+            # 添加任务到任务管理器
+            task_name = f"MemProcFS - {text}"
+            if hasattr(self.main_window, 'task_manager'):
+                self.main_window.task_manager.add_task(task_name)
+            
+            try:
+                func()
+            finally:
+                # 任务完成后从任务管理器中移除
+                if hasattr(self.main_window, 'task_manager'):
+                    self.main_window.task_manager.remove_task(task_name)
+        
+        button.clicked.connect(wrapped_func)
         return button
 
     def update_button_styles(self):

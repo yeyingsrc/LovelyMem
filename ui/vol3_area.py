@@ -140,6 +140,11 @@ class Vol3Area(QWidget):
         self.vol3_plugin = None
         self.button_groups = []  # 存储所有按钮组
         self.all_buttons = []    # 存储所有按钮
+        
+        # 连接任务完成信号
+        if self.vol3_plugin:
+            self.vol3_plugin.task_completed_signal.connect(self.on_task_completed)
+        
         self.setup_ui()
         self.update_styles()
 
@@ -318,6 +323,9 @@ class Vol3Area(QWidget):
         new_mem_path = self.main_window.get_current_mem_path()
         if new_mem_path:
             self.vol3_plugin = self.main_window.vol3_plugin
+            # 重新连接任务完成信号
+            if self.vol3_plugin and hasattr(self.vol3_plugin, 'task_completed_signal'):
+                self.vol3_plugin.task_completed_signal.connect(self.on_task_completed)
             return new_mem_path
         return None
 
@@ -340,12 +348,31 @@ class Vol3Area(QWidget):
 
             func = getattr(self.vol3_plugin, func_name, None)
             if func:
+                # 添加任务到任务管理器
+                task_name = f"Volatility 3 - {func_name.replace('vol3_', '')}"
+                if hasattr(self.main_window, 'task_manager'):
+                    self.main_window.task_manager.add_task(task_name)
+                
+                # 保存任务名称，以便在任务完成时移除
+                if not hasattr(self, 'active_tasks'):
+                    self.active_tasks = {}
+                self.active_tasks[func_name.replace('vol3_', '')] = task_name
+                
                 offline_mode = self.offline_checkbox.isChecked()
                 func(offline=offline_mode)
             else:
                 QMessageBox.warning(self, "警告", f"Vol3Plugin 中没有 {func_name} 方法！")
         else:
             QMessageBox.warning(self, "警告", "Vol3Plugin 未正确初始化！")
+    
+    def on_task_completed(self, plugin_name):
+        """任务完成时的回调函数"""
+        if hasattr(self, 'active_tasks') and plugin_name in self.active_tasks:
+            task_name = self.active_tasks[plugin_name]
+            if hasattr(self.main_window, 'task_manager'):
+                self.main_window.task_manager.remove_task(task_name)
+            # 从活动任务列表中移除
+            del self.active_tasks[plugin_name]
     
     # 添加新方法：带参数执行命令
     def execute_with_params(self, button, params):

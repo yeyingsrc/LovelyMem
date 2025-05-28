@@ -136,21 +136,31 @@ class QuickCheckArea(QWidget):
                 area = task["area"]
                 function = task["task"]
                 
-                # 显示当前执行的任务
-                self.main_window.cmd_output.append(f"正在执行 [{i+1}/{len(tasks)}]: {area} - {function}")
+                # 添加任务到任务管理器
+                task_name = f"任务流程 - {area} - {function}"
+                if hasattr(self.main_window, 'task_manager'):
+                    self.main_window.task_manager.add_task(task_name)
                 
-                # 根据任务区域执行相应的功能
-                if area == "MemProcFS":
-                    self.main_window.execute_memprocfs_function(function)
-                elif area == "Volatility 2":
-                    self.main_window.execute_vol2_function(function)
-                elif area == "Volatility 3":
-                    self.main_window.execute_vol3_function(function)
-                elif area == "快速检查":
-                    self.main_window.execute_quick_check_function(function)
-                
-                # 每个任务执行后短暂暂停，让用户有时间查看输出
-                QApplication.processEvents()
+                try:
+                    # 显示当前执行的任务
+                    self.main_window.cmd_output.append(f"正在执行 [{i+1}/{len(tasks)}]: {area} - {function}")
+                    
+                    # 根据任务区域执行相应的功能
+                    if area == "MemProcFS":
+                        self.main_window.execute_memprocfs_function(function)
+                    elif area == "Volatility 2":
+                        self.main_window.execute_vol2_function(function)
+                    elif area == "Volatility 3":
+                        self.main_window.execute_vol3_function(function)
+                    elif area == "快速检查":
+                        self.main_window.execute_quick_check_function(function)
+                    
+                    # 每个任务执行后短暂暂停，让用户有时间查看输出
+                    QApplication.processEvents()
+                finally:
+                    # 任务完成后从任务管理器中移除
+                    if hasattr(self.main_window, 'task_manager'):
+                        self.main_window.task_manager.remove_task(task_name)
                 
             except Exception as e:
                 QMessageBox.warning(self, "错误", f"执行任务 '{area} - {function}' 时发生错误：{str(e)}")

@@ -133,6 +133,7 @@ class Vol2Area(QWidget):
         self.vol2_plugin = Vol2Plugin('')
         self.button_groups = []  # 存储所有按钮组
         self.all_buttons = []    # 存储所有按钮
+        self.active_tasks = {}   # 存储活跃任务
         
         # 初始化时调用一次样式更新
         self.current_button_style = button_style
@@ -185,6 +186,10 @@ class Vol2Area(QWidget):
         
         # 初始化完成后更新所有样式
         self.update_styles()
+        
+        # 连接profile获取完成信号
+        if hasattr(self.vol2_plugin, 'profile_obtained'):
+            self.vol2_plugin.profile_obtained.connect(self.on_profile_obtained)
 
     def filter_buttons(self, search_text):
         """根据搜索文本过滤按钮"""
@@ -418,6 +423,9 @@ class Vol2Area(QWidget):
         new_mem_path = self.main_window.get_current_mem_path()
         if new_mem_path != self.vol2_plugin.mem_path:
             self.vol2_plugin = Vol2Plugin(new_mem_path)
+            # 重新连接任务完成信号
+            if hasattr(self.vol2_plugin, 'task_completed_signal'):
+                self.vol2_plugin.task_completed_signal.connect(self.on_task_completed)
         return new_mem_path
 
     def create_button(self, text, func):
@@ -443,6 +451,23 @@ class Vol2Area(QWidget):
             QMessageBox.warning(self, "警告", "请先载入内存镜像文件！")
             return
         if callable(func):
+            # 获取任务名称（通过函数名推断）
+            task_name = "Volatility 2 任务"
+            if hasattr(func, '__name__'):
+                func_name = func.__name__
+                if func_name.startswith('vol2_'):
+                    # 移除前缀并格式化任务名称
+                    task_name = f"Volatility 2 - {func_name[5:]}"
+            
+            # 添加任务到任务管理器
+            if hasattr(self.main_window, 'task_manager'):
+                self.main_window.task_manager.add_task(task_name)
+            
+            # 存储活跃任务以便后续移除
+            if not hasattr(self, 'active_tasks'):
+                self.active_tasks = {}
+            self.active_tasks[task_name] = True
+            
             func()
         else:
             print(f"无效的函数: {func}")
@@ -467,6 +492,14 @@ class Vol2Area(QWidget):
         self.profile_combo.addItems(profilelist)
         self.profile_combo.setCurrentText(profile)
         self.profile_combo.currentTextChanged.connect(self.on_profile_changed)
+        
+        # 当profile框有值时，移除获取Profile任务
+        task_name = "Volatility 2 - 获取内存镜像Profile"
+        if profile and hasattr(self.main_window, 'task_manager'):
+            self.main_window.task_manager.remove_task(task_name)
+            # 从活跃任务列表中移除
+            if hasattr(self, 'active_tasks') and task_name in self.active_tasks:
+                del self.active_tasks[task_name]
 
     def on_profile_changed(self, new_profile):
         self.profile = new_profile
@@ -562,7 +595,7 @@ class Vol2Area(QWidget):
             )
         except Exception as e:
             QMessageBox.warning(self, "错误", f"执行命令时出错：{str(e)}")
-
+ 
     # 添加新方法：带参数执行命令
     def execute_with_params(self, button, params):
         self.update_mem_path()
@@ -608,3 +641,36 @@ class Vol2Area(QWidget):
             )
         except Exception as e:
             QMessageBox.warning(self, "错误", f"执行命令时出错：{str(e)}")
+    
+    def on_task_completed(self, task_name):
+        """处理任务完成事件"""
+        if hasattr(self.main_window, 'task_manager') and task_name in self.active_tasks:
+            self.main_window.task_manager.remove_task(task_name)
+            del self.active_tasks[task_name]
+    
+    def on_profile_obtained(self, profile, profilelist):
+        """处理profile获取完成事件"""
+        task_name = "Volatility 2 - 获取内存镜像Profile"
+        # 移除profile获取任务
+        if hasattr(self.main_window, 'task_manager'):
+            self.main_window.task_manager.remove_task(task_name)
+        
+        # 从活跃任务列表中移除
+        if hasattr(self, 'active_tasks') and task_name in self.active_tasks:
+            del self.active_tasks[task_name]
+        
+        # 更新profile信息
+        self.update_profile(profile, profilelist)
+    
+    def start_get_profile_with_task(self):
+        """带任务跟踪的profile获取"""
+        task_name = "Volatility 2 - 获取内存镜像Profile"
+        if hasattr(self.main_window, 'task_manager'):
+            self.main_window.task_manager.add_task(task_name)
+        
+        # 添加到活跃任务列表
+        if not hasattr(self, 'active_tasks'):
+            self.active_tasks = {}
+        self.active_tasks[task_name] = True
+        
+        self.vol2_plugin.start_get_profile()

@@ -101,6 +101,8 @@ class Vol2:
 
 
 class Vol2Plugin(QObject):
+    task_completed_signal = Signal(str)  # 添加任务完成信号
+    
     def __init__(self, mem_path):
         super().__init__()
         self.mem_path = mem_path
@@ -108,7 +110,7 @@ class Vol2Plugin(QObject):
         self.workers = []  # 确保初始化 workers 属性
         self.open_windows = []
         self.python27, self.volatility2, self.volatility2_plugin = self.readconfig()
-        self.default_profile = "WinXPSP2x86"  # 添加默认 profile
+        self.default_profile = "无法获取profile"  # 添加默认 profile
 
     def readconfig(self):
         with open('config/base_config.yaml', 'r', encoding='utf-8') as file:
@@ -183,9 +185,11 @@ class Vol2Plugin(QObject):
                 self.display_output(display_name, output_file)
             else:
                 print(f"[!] 输出文件 {output_file} 不存在")
-
         else:
             print(f"[-] {display_name} 执行失败: {message}")
+        
+        # 发射任务完成信号
+        self.task_completed_signal.emit(display_name)
         self.workers = [w for w in self.workers if w.isRunning()]
 
     def display_output(self, title, file_path):
@@ -811,6 +815,9 @@ class GetProfileThread(QThread):
     def run(self):
         profile, profilelist = self.vol2_plugin.get_profile(self.vol2_plugin.default_profile)
         self.profile_obtained.emit(profile, profilelist)
+        # 发射任务完成信号
+        if hasattr(self.vol2_plugin, 'task_completed_signal'):
+            self.vol2_plugin.task_completed_signal.emit("Volatility 2 - 获取内存镜像Profile")
 
 # 添加这行来保持向后兼容性
 vol2Plugin = Vol2Plugin
