@@ -1,6 +1,11 @@
 import json
 import os
-import jieba
+try:
+    import jieba
+except ImportError:
+    print("jieba模块未安装，无法进行离线分析。")
+    print("请在启动目录打开终端执行命令 '..\Tools\python3\python.exe -m pip install jieba'")
+    jieba = None
 import re
 import yaml
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
