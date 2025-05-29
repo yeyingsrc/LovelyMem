@@ -5,9 +5,9 @@
             "group": "基本功能",
             "button_text": "系统信息",
             "effect": "pulse",
-            "color": "#2ECC71",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -15,9 +15,9 @@
             "group": "基本功能",
             "button_text": "进程信息",
             "effect": "pulse",
-            "color": "#E67E22",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -25,9 +25,9 @@
             "group": "时间线功能",
             "button_text": "NTFS文件时间线",
             "effect": "pulse",
-            "color": "#3498DB",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -35,9 +35,9 @@
             "group": "基本功能",
             "button_text": "Windows进程",
             "effect": "pulse",
-            "color": "#16A085",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -45,9 +45,9 @@
             "group": "基本功能",
             "button_text": "Windows网络",
             "effect": "pulse",
-            "color": "#27AE60",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -55,9 +55,9 @@
             "group": "系统信息",
             "button_text": "Windows信息",
             "effect": "pulse",
-            "color": "#D35400",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -65,9 +65,9 @@
             "group": "交互操作",
             "button_text": "Windows注册表",
             "effect": "pulse",
-            "color": "#8E44AD",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -75,9 +75,9 @@
             "group": "基本功能",
             "button_text": "pslist",
             "effect": "pulse",
-            "color": "#2980B9",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -85,9 +85,9 @@
             "group": "基本功能",
             "button_text": "cmdline",
             "effect": "pulse",
-            "color": "#C0392B",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -95,9 +95,9 @@
             "group": "基本功能",
             "button_text": "netscan",
             "effect": "pulse",
-            "color": "#7D3C98",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         }
     ],
@@ -107,9 +107,9 @@
             "group": "基本功能",
             "button_text": "进程列表",
             "effect": "pulse",
-            "color": "#2ECC71",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -117,9 +117,9 @@
             "group": "内存和模块分析",
             "button_text": "内存映射",
             "effect": "pulse",
-            "color": "#9B59B6",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -127,9 +127,9 @@
             "group": "基本功能",
             "button_text": "文件扫描",
             "effect": "pulse",
-            "color": "#E74C3C",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -137,9 +137,9 @@
             "group": "基本功能",
             "button_text": "网络扫描",
             "effect": "pulse",
-            "color": "#1ABC9C",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -147,9 +147,9 @@
             "group": "基本功能",
             "button_text": "编辑框",
             "effect": "pulse",
-            "color": "#34495E",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -157,9 +157,9 @@
             "group": "基本功能",
             "button_text": "控制台",
             "effect": "pulse",
-            "color": "#F39C12",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
 
@@ -168,9 +168,9 @@
             "group": "基本功能",
             "button_text": "命令行",
             "effect": "pulse",
-            "color": "#2980B9",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         },
         {
@@ -178,9 +178,9 @@
             "group": "基本功能",
             "button_text": "命令扫描",
             "effect": "pulse",
-            "color": "#C0392B",
+            "color": null,
             "duration": 1800,
-            "auto_stop": true,
+            "auto_stop": false,
             "stop_after": 60000
         }
     ]

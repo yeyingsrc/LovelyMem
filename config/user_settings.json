@@ -1,12 +1,12 @@
 {
-    "theme": "雪竹青松",
+    "theme": "玉兰清香",
     "LLM_CONFIG": {
-        "openai_api_key": "",
+        "openai_api_key": "sk-b47939************7bf06d",
         "openai_organization": "",
-        "openai_api_base": "https://api.openai.com/v1",
+        "openai_api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "openai_api_version": "2023-05-15",
         "openai_api_type": "open_ai",
-        "openai_model": "llama-3.2-3b-instruct",
+        "openai_model": "qwen-plus-latest",
         "openai_temperature": 0.7,
         "openai_max_tokens": 2000,
         "openai_top_p": 1.0,
@@ -14,7 +14,7 @@
         "openai_presence_penalty": 0.0,
         "openai_request_timeout": 60,
         "openai_proxy": "",
-        "openai_api_url": "http://127.0.0.1:1234/v1"
+        "openai_api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"
     },
     "base_config": {
         "proxy": {

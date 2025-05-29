@@ -437,9 +437,9 @@ class MainWindow(QMainWindow):
         
         if success:
             self.cmd_output.append(f"[成功] {message}")
-            # 在内存导入成功后高亮指定按钮
-            if hasattr(self, 'highlight_manager'):
-                self.highlight_manager.highlight_after_memory_import()
+            # 原有的自动按钮高亮功能已被题意分析功能替代
+            # if hasattr(self, 'highlight_manager'):
+            #     self.highlight_manager.highlight_after_memory_import()
         else:
             self.cmd_output.append(f"[失败] {message}")
 

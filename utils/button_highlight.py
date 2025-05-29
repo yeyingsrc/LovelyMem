@@ -12,7 +12,18 @@ class ButtonHighlighter:
         self.highlighted_buttons = {}  # 保存正在高亮的按钮及其效果
         self.default_styles = {}       # 保存按钮的原始样式
     
-    def highlight_button(self, button, effect_type="border", color="#FF5500", duration=2000, 
+    def _generate_random_color(self):
+        """生成纯随机的高亮颜色"""
+        import random
+        
+        # 生成更深的随机RGB颜色
+        r = random.randint(30, 180)  # 使用更深的颜色范围
+        g = random.randint(30, 180)
+        b = random.randint(30, 180)
+        
+        return f"#{r:02x}{g:02x}{b:02x}"
+    
+    def highlight_button(self, button, effect_type="border", color=None, duration=2000, 
                         loop_count=-1, auto_stop=False, stop_after=30000):
         """
         为按钮添加高亮效果
@@ -20,12 +31,16 @@ class ButtonHighlighter:
         参数:
             button: QPushButton对象
             effect_type: 效果类型，可以是 "border", "glow", "color", "pulse"
-            color: 高亮颜色
+            color: 高亮颜色，如果为None则使用随机颜色
             duration: 单次动画持续时间（毫秒）
             loop_count: 重复次数，-1为无限循环
             auto_stop: 是否自动停止高亮
             stop_after: 自动停止的时间（毫秒）
         """
+        # 如果没有指定颜色，使用随机颜色
+        if color is None:
+            color = self._generate_random_color()
+        
         # 使用按钮对象的id作为键
         button_id = id(button)
         
@@ -150,15 +165,15 @@ class ButtonHighlighter:
         """添加颜色渐变效果"""
         original_style = self.default_styles[button]
         
-        # 创建颜色列表（彩虹色渐变）
+        # 创建颜色列表（更深的彩虹色渐变）
         colors = [
-            "#FF0000",  # 红
-            "#FF7F00",  # 橙
-            "#FFFF00",  # 黄
-            "#00FF00",  # 绿
-            "#0000FF",  # 蓝
-            "#4B0082",  # 靛
-            "#9400D3",  # 紫
+            "#CC0000",  # 深红
+            "#CC5500",  # 深橙
+            "#CCCC00",  # 深黄
+            "#00CC00",  # 深绿
+            "#0000CC",  # 深蓝
+            "#330055",  # 深靛
+            "#660099",  # 深紫
         ]
         
         # 创建定时器

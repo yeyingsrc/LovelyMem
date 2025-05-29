@@ -83,7 +83,7 @@ class ButtonHighlightManager:
                         button_highlighter.highlight_button(
                             button,
                             effect_type=btn_config.get('effect', 'border'),
-                            color=btn_config.get('color', '#FF5500'),
+                            color=btn_config.get('color'),  # 如果为None，会使用随机颜色
                             duration=btn_config.get('duration', 2000),
                             loop_count=-1,
                             auto_stop=btn_config.get('auto_stop', False),
