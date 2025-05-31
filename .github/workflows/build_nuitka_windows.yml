@@ -21,14 +21,13 @@ jobs:
 
       - name: 安装依赖和 Nuitka
         run: |
-          python -m venv venv_build
-          venv_build\Scripts\pip install --upgrade pip
-          venv_build\Scripts\pip install -r requirements.txt
-          venv_build\Scripts\pip install nuitka
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
 
       - name: 打包主程序 (main.py)
         run: |
-          venv_build\Scripts\python -m nuitka `
+          python -m nuitka `
             --standalone `
             --output-dir=dist `
             --include-data-dir=config=config `
@@ -58,4 +57,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuitka-dist
-          path: dist/
+          path: dist/main.dist
