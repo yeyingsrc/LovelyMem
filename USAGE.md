@@ -1,17 +1,16 @@
 # LovelyMem 使用说明书
 
-本文档介绍了如何安装、配置和使用 LovelyMem，一款基于 **MemProcFS**、**Volatility2** 和 **Volatility3** 的可视化内存取证工具。
+本文档详细介绍如何安装和使用 LovelyMem。该软件集成 **MemProcFS**、**Volatility2** 与 **Volatility3**，通过图形化界面提供快速的内存取证分析能力。
 
-## 1. 准备工作
+## 1. 环境准备
 
-1. **安装依赖**：确保系统安装 Python3（推荐 3.10）。在项目根目录执行：
-
+1. **安装 Python**：推荐使用 Python 3.10，并确保 `pip` 可用。
+2. **安装依赖库**：在项目根目录执行：
    ```bash
    pip install -r requirements.txt
    ```
-
-2. **准备外部工具**：根据 `config/base_config.yaml` 配置外部工具路径，或在软件中通过“高级功能 -> 设置”进行图形化配置。配置示例如下：
-
+3. **获取外部取证工具**：下载 MemProcFS、Volatility2/3 等并放置在自定义目录。
+4. **配置路径**：复制 `config/base_config.yaml` 为同名文件或在程序中"高级功能 -> 设置"图形化配置，示例：
    ```yaml
    tools:
      memprocfs:
@@ -41,60 +40,77 @@
      EvtxECmd:
        path: "../Tools/EvtxECmd/EvtxECmd.exe"
    ```
+5. **安装 Dokan**：程序启动会检查 Dokan，用于挂载内存映像。若未安装，请从 [Dokan Releases](https://github.com/dokan-dev/dokany/releases) 下载并安装。
 
-3. **系统组件**：程序启动时会检查是否安装 Dokan（用于挂载内存文件）。如未安装，请到 [Dokan 官方仓库](https://github.com/dokan-dev/dokany/releases) 下载并安装。
+## 2. 启动与初始化
 
-## 2. 启动程序
+1. 在命令行运行：
+   ```bash
+   python launcher.py
+   ```
+2. 首次启动会显示欢迎界面，可选择是否下次再提示。
+3. 进入主界面后，建议先在“高级功能 -> 设置”中确认工具路径、代理及主题等选项。
 
-配置完成后，在项目根目录运行：
+## 3. 基本操作流程
 
-```bash
-python launcher.py
-```
+1. **载入内存文件**
+   - 将内存镜像拖入窗口左侧的文件槽，或点击菜单选择文件。
+   - 程序会在 `output` 目录创建处理结果。
+2. **快速检查**
+   - 点击“快速检查”可执行常见扫描，如搜索 flag 或敏感字符串，适合 CTF 场景快速获取线索。
+3. **MemProcFS 模块**
+   - 在“基础功能”中选择系统信息、进程信息或网络信息，调用 MemProcFS 快速解析并在表格中展示。
+4. **Volatility2 模块**
+   - 通过菜单或按钮运行诸如 `pslist`、`netscan`、`timeliner` 等插件。
+   - 结果以 CSV 或文本形式保存在 `output/`，可在界面内直接查看。
+5. **Volatility3 模块**
+   - 针对较新系统，可切换到 Volatility3 进行分析，支持离线模式与导出内存段等操作。
+6. **字典扫描与知识库**
+   - 利用“字典扫描”插件匹配常见敏感词或路径。
+   - “知识库”面板提供 Volatility 插件说明与示例，便于了解各插件用途。
+7. **任务编排与批量执行**
+   - 在“任务流”界面自定义节点，按顺序批量执行多个取证步骤。
+   - 任务结果会依次输出到命令窗口，并在完成后生成报表。
+8. **报告编辑器与导出**
+   - 所有表格或文本结果均可一键导出到 `output/` 下，也可在“报告编辑器”中整理并生成最终报告。
+9. **AI 助手（可选）**
+   - 在设置中填入兼容 OpenAI 的接口和密钥后，可对结果进行自然语言分析和自动摘要。
 
-启动后将进入图形界面，可在首次启动的欢迎界面中查看基本说明并选择是否显示下次提示。
+## 4. 插件开发指南
 
-## 3. 界面与功能
+1. 在 `extensions` 目录新建 Python 脚本，如 `myplugin.py`。
+2. 文件需包含 `plugin_info` 字典和 `run(file_path)` 函数：
+   ```python
+   plugin_info = {
+       "title": "示例插件",
+       "description": "对文件执行自定义处理",
+       "usage": "选择文件后点击插件",
+       "category": "自定义"
+   }
 
-LovelyMem 集成多项取证相关功能，主要包括：
+   def run(file_path):
+       # 在此编写你的处理逻辑
+       print(f"正在处理 {file_path}")
+   ```
+3. 重启程序后插件将自动出现在扩展列表中，可在界面中点击执行。
 
-- **工具集成**：集中调用 `MemProcFS`、`Volatility2`、`Volatility3` 等取证工具。
-- **快速检查**：常用取证命令一键执行，加快分析流程。
-- **任务编排**：自定义任务流，批量执行多项操作。
-- **报告编辑器**：在界面内查看并编辑取证结果，生成报告。
-- **AI 助手**：可配置 OpenAI 兼容接口，对取证结果进行智能分析。
-- **配置管理**：图形化设置工具路径、代理与 LLM 参数，支持主题与字体个性化。
+## 5. 设置与个性化
 
-界面主要区域包括文件槽、命令输出窗口及插件面板。可将文件拖入文件槽或通过菜单选择目标文件。各面板均支持独立窗口模式，方便根据需求调整布局。
+- **主题与字体**：在设置中切换浅色或深色主题，并调整显示字体。
+- **代理与网络**：若需要访问外部服务，可在“代理设置”中配置 HTTP/HTTPS 代理。
+- **输出目录**：所有生成的文件默认位于 `output/`，可在设置中修改。
+- **快捷按钮**：可在 `config/highlight_buttons.json` 定制常用命令按钮。
 
-## 4. 插件与扩展
+## 6. 常见问题
 
-LovelyMem 支持插件机制，扩展位于 `extensions` 目录。插件以 Python 文件形式存在，并包含 `plugin_info` 元数据与 `run(file_path)` 函数。例如，解压缩插件示例：
+1. **软件适用于哪些场景？** 主要针对 Windows 内存取证，适合解题和日常分析。对于混淆复杂或其他平台，可根据需要编写自定义插件。
+2. **未检测到 Dokan 如何处理？** 请确认已安装对应版本的 Dokan，并重新启动系统或程序。
+3. **Volatility 输出乱码？** 确保外部工具路径正确并使用 UTF‑8 编码，在设置中可调整环境变量。
+4. **如何更新程序？** 直接从仓库拉取最新代码，或运行 `git pull` 后重新安装新依赖。
 
-```python
-plugin_info = {
-    "title": "解压文件",
-    "description": "解压ZIP、RAR等压缩文件",
-    "usage": "选择一个压缩文件,然后点击此插件",
-    "category": "文件操作"
-}
+## 7. 相关资源
 
-def run(file_path):
-    # 处理代码...
-    pass
-```
+- 项目仓库：[GitHub - LovelyMem](https://github.com/Tokeii0/LovelyMem)
+- 演示视频：[Bilibili](https://www.bilibili.com/video/BV1z912YpECB)
 
-可参考现有插件进行编写，将脚本放入 `extensions` 目录后重启程序即可加载。
-
-## 5. 常见问题
-
-1. **项目适用场景？** 适用于一般 Windows 内存取证及没有过度混淆的取证题目。
-2. **开源后是否持续维护？** 作者表示会在时间允许的情况下继续更新并欢迎社区参与。
-
-## 6. 相关链接
-
-- 项目主页：[GitHub - LovelyMem](https://github.com/Tokeii0/LovelyMem)
-- 视频演示：[Bilibili 演示视频](https://www.bilibili.com/video/BV1z912YpECB)
-
-希望本说明书能够帮助您顺利使用 LovelyMem 进行内存取证分析。
-
+通过以上步骤，你就可以顺利使用 LovelyMem 对内存镜像进行取证分析并生成报告。祝你玩得愉快！
