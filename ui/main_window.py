@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.96")
+        title_label = QLabel("Lovelymem Ver 0.97")
         title_layout.addWidget(title_label)
         title_layout.addStretch()
         
@@ -387,7 +387,7 @@ class MainWindow(QMainWindow):
                 self.quick_check_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.96 - {image_path}")
+                title_label.setText(f"Lovelymem Ver 0.97 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -455,7 +455,7 @@ class MainWindow(QMainWindow):
             # 更新标题
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText("Lovelymem Ver 0.96")
+                title_label.setText("Lovelymem Ver 0.97")
             
             # profile 清空
             self.vol2_area.profile = None

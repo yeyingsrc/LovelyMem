@@ -371,14 +371,14 @@ class Vol2Area(QWidget):
         self.button_groups.append(self.malware_group)
         self.all_buttons.extend([(button, self.malware_group, text) for button, (text, _) in zip(malware_buttons, malware_functions)])
 
-        # 文件导出组
-        export_functions = [
-            ("导出注册表(dumpregistry)", lambda: self.button_clicked(self.vol2_plugin.vol2_dumpregistry)),
-            ("导出压缩包", lambda: self.button_clicked(self.vol2_plugin.vol2_dump_all_zip)),
-            ("导出文本文件", lambda: self.button_clicked(self.vol2_plugin.vol2_dump_all_txt)),
-            ("导出图片文件", lambda: self.button_clicked(self.vol2_plugin.vol2_dump_all_images)),
-        ]
-        export_buttons = [self.create_button(text, func) for text, func in export_functions]
+        # # 文件导出组
+        # export_functions = [
+        #     ("导出注册表(dumpregistry)", lambda: self.button_clicked(self.vol2_plugin.vol2_dumpregistry)),
+        #     ("导出压缩包", lambda: self.button_clicked(self.vol2_plugin.vol2_dump_all_zip)),
+        #     ("导出文本文件", lambda: self.button_clicked(self.vol2_plugin.vol2_dump_all_txt)),
+        #     ("导出图片文件", lambda: self.button_clicked(self.vol2_plugin.vol2_dump_all_images)),
+        # ]
+        # export_buttons = [self.create_button(text, func) for text, func in export_functions]
 
         # 添加自定义导出功能
         custom_export_layout = QHBoxLayout()
@@ -391,17 +391,17 @@ class Vol2Area(QWidget):
 
         export_widget = QWidget()
         export_layout = QVBoxLayout(export_widget)
-        for button in export_buttons:
-            export_layout.addWidget(button)
-        export_layout.addLayout(custom_export_layout)
+        # for button in export_buttons:
+        #     export_layout.addWidget(button)
+        # export_layout.addLayout(custom_export_layout)
 
         self.export_group = CollapsibleButtonGroup("文件导出", [export_widget], self.main_window)
         layout.addWidget(self.export_group)
         self.button_groups.append(self.export_group)
-        # 由于这个组的结构特殊，我们需要单独处理
-        for button, (text, _) in zip(export_buttons, export_functions):
-            self.all_buttons.append((button, self.export_group, text))
-        # 添加自定义导出按钮
+        # # 由于这个组的结构特殊，我们需要单独处理
+        # for button, (text, _) in zip(export_buttons, export_functions):
+        #     self.all_buttons.append((button, self.export_group, text))
+        # # 添加自定义导出按钮
         self.all_buttons.append((custom_export_button, self.export_group, "导出指定格式"))
 
         # 扩展功能组
