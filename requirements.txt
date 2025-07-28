@@ -12,4 +12,3 @@ chardet
 pillow
 hexdump
 markdown
-jieba
