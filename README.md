@@ -25,7 +25,7 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 
 https://pan.quark.cn/s/3139fc2ed314
 
-### 最新无符号表 完整包下载：
+### 完整包下载：
 
 完整包下载：https://pan.quark.cn/s/8343fccf1312
 
