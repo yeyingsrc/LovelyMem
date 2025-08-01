@@ -62,8 +62,8 @@ tools:
     path: "../Tools/volatility3/vol.py"
   volatility3_symbols:
     path: "../Tools/volatility3/symbols"
-  gimp:
-    path: "../Tools/gimp/bin/gimp-console-2.10.exe"
+  lovelypixelweaver:
+    path: "../Tools/lovelypixelweaver/bin/lovelypixelweaver-console-2.10.exe"
   volatility2_plugin:
     path: "../Tools/volatility2_plugin"
 

@@ -282,7 +282,7 @@ class NewtableWidget(QWidget):
         else:
             print('[×] 请选择offset列！')
 
-    def proc_to_gimp_memprocfs(self):
+    def proc_to_lovelypixelweaver_memprocfs(self):
         selectstr = self.get_selected_item_text()
         if selectstr and selectstr.isdigit():
             procmemfile = rf'M:/pid/{selectstr}/minidump/minidump.dmp'
@@ -292,14 +292,14 @@ class NewtableWidget(QWidget):
                 os.remove(newpath)
             shutil.copy(procmemfile, newpath)
 
-            cmd2 = rf'"{config.gimp}" tmp/minidump.data'
-            print('[*] 正在调用gimp执行命令：' + cmd2)
+            cmd2 = rf'"{config.lovelypixelweaver}" tmp/minidump.data'
+            print('[*] 正在调用lovelypixelweaver执行命令：' + cmd2)
             subprocess.Popen(cmd2, shell=True)
             print('[+] 执行成功！')
         else:
             print('[×] 请选择程序的PID！')
 
-    def proc_to_gimp_vol2(self):
+    def proc_to_lovelypixelweaver_vol2(self):
         from plugin.vol2 import Vol2Plugin
         selectstr = self.get_selected_item_text()
         if selectstr and selectstr.isdigit():
@@ -311,14 +311,14 @@ class NewtableWidget(QWidget):
                 os.remove(newpath)
             shutil.copy(procmemfile, newpath)
 
-            cmd2 = rf'"{config.gimp}" tmp/{selectstr}.data'
-            print('[*] 正在调用gimp执行命令：' + cmd2)
+            cmd2 = rf'"{config.lovelypixelweaver}" tmp/{selectstr}.data'
+            print('[*] 正在调用lovelypixelweaver执行命令：' + cmd2)
             subprocess.Popen(cmd2, shell=True)
             print('[+] 执行成功！')
         else:
             print('[×] 请选择程序的PID！')
     
-    def proc_to_gimp_vol3(self):
+    def proc_to_lovelypixelweaver_vol3(self):
         from plugin.vol3 import Vol3Plugin
         from PySide6.QtCore import QTimer
         selectstr = self.get_selected_item_text()
@@ -347,8 +347,8 @@ class NewtableWidget(QWidget):
             os.remove(newpath)
         shutil.copy(procmemfile, newpath)
 
-        cmd2 = rf'"{config.gimp}" tmp/{selectstr}.data'
-        print('[*] 正在调用gimp执行命令：' + cmd2)
+        cmd2 = rf'"{config.lovelypixelweaver}" tmp/{selectstr}.data'
+        print('[*] 正在调用lovelypixelweaver执行命令：' + cmd2)
         subprocess.Popen(cmd2, shell=True)
         print('[+] 执行成功！')
 

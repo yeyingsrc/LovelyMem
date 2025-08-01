@@ -32,8 +32,8 @@ def readconfig():
     volatility2_plugin = config['tools']['volatility2_plugin']['path']
     volatility2 = os.path.abspath(volatility2)
     volatility2_plugin = os.path.abspath(volatility2_plugin)
-    gimppath = config['tools']['gimp']['path']
-    return python27, volatility2, volatility2_plugin, gimppath
+    lovelypixelweaverpath = config['tools']['lovelypixelweaver']['path']
+    return python27, volatility2, volatility2_plugin, lovelypixelweaverpath
 
 def get_sorted_cell_value(df: pd.DataFrame, row: int, col: int) -> str:
     """
@@ -243,15 +243,15 @@ class Vol3PidtoProcPlugin(CellPlugin):
             thread.start()
         return df
 
-# 进程转储后通过GIMP打开 vol2
-class Vol2PidDumptoGimpPlugin(CellPlugin):
+# 进程转储后通过lovelypixelweaver打开 vol2
+class Vol2PidDumptolovelypixelweaverPlugin(CellPlugin):
     @property
     def name(self) -> str:
-        return "进程转储后通过GIMP打开(volatility2)"
+        return "进程转储后通过lovelypixelweaver打开(volatility2)"
     
     @property
     def description(self) -> str:
-        return "将PidDump文件导出并通过GIMP打开"
+        return "将PidDump文件导出并通过lovelypixelweaver打开"
         
     @property
     def category(self) -> str:
@@ -269,7 +269,7 @@ class Vol2PidDumptoGimpPlugin(CellPlugin):
         # 提取所选单元格内容
         from plugin.vol2 import Vol2Plugin
         image_path = get_image_info_file()[0]
-        gimppath = readconfig()[3]
+        lovelypixelweaverpath = readconfig()[3]
         # 处理每个选中的单元格
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
@@ -280,8 +280,8 @@ class Vol2PidDumptoGimpPlugin(CellPlugin):
             # 保持对vol2_plugin的引用，避免对象被提前销毁
             self.vol2_plugin_reference = vol2_plugin
             
-            # 在线程完成后处理GIMP相关操作
-            def process_gimp():
+            # 在线程完成后处理lovelypixelweaver相关操作
+            def process_lovelypixelweaver():
                 procdumpfile = rf'output/{value}.dmp'
                 # 等待文件生成
                 import time
@@ -296,22 +296,22 @@ class Vol2PidDumptoGimpPlugin(CellPlugin):
                     if os.path.exists(newpath):
                         os.remove(newpath)
                     shutil.copy(procdumpfile, newpath)
-                    cmd2 = rf'"{gimppath}" tmp/{value}.data'
-                    print('[*] 正在调用gimp执行命令：' + cmd2)
+                    cmd2 = rf'"{lovelypixelweaverpath}" tmp/{value}.data'
+                    print('[*] 正在调用lovelypixelweaver执行命令：' + cmd2)
                     subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                    print('[+] 执行成功！下面gimp相关报错可无视')
+                    print('[+] 执行成功！下面lovelypixelweaver相关报错可无视')
 
             from threading import Thread
-            thread = Thread(target=process_gimp)
+            thread = Thread(target=process_lovelypixelweaver)
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
         return df
 
-# 进程转储后通过GIMP打开 vol3
-class Vol3PidDumptoGimpPlugin(CellPlugin):
+# 进程转储后通过lovelypixelweaver打开 vol3
+class Vol3PidDumptolovelypixelweaverPlugin(CellPlugin):
     @property
     def name(self) -> str:
-        return "进程转储后通过GIMP打开(volatility3)"
+        return "进程转储后通过lovelypixelweaver打开(volatility3)"
     
     @property
     def description(self) -> str:
@@ -333,7 +333,7 @@ class Vol3PidDumptoGimpPlugin(CellPlugin):
         # 提取所选单元格内容
         from plugin.vol3 import Vol3Plugin
         image_path = get_image_info_file()[0]
-        gimppath = readconfig()[3]
+        lovelypixelweaverpath = readconfig()[3]
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值： {value}")
@@ -360,8 +360,8 @@ class Vol3PidDumptoGimpPlugin(CellPlugin):
                     if os.path.exists(newpath):
                         os.remove(newpath)
                     shutil.copy(procdumpfile, newpath)
-                    cmd2 = rf'"{gimppath}" tmp/{value}.data'
-                    print('[*] 正在调用gimp执行命令：' + cmd2)
+                    cmd2 = rf'"{lovelypixelweaverpath}" tmp/{value}.data'
+                    print('[*] 正在调用lovelypixelweaver执行命令：' + cmd2)
                     subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
                     print('[+] 执行成功！')
                 else:
@@ -375,15 +375,15 @@ class Vol3PidDumptoGimpPlugin(CellPlugin):
             thread.start()
         return df
 
-# 进程转储后通过GIMP打开 memprocfs
-class MemprocfsPidDumptoGimpPlugin(CellPlugin):
+# 进程转储后通过lovelypixelweaver打开 memprocfs
+class MemprocfsPidDumptolovelypixelweaverPlugin(CellPlugin):
     @property
     def name(self) -> str:
-        return "进程转储后通过GIMP打开(memprocfs)"
+        return "进程转储后通过lovelypixelweaver打开(memprocfs)"
     
     @property
     def description(self) -> str:
-        return "将PidDump文件导出并通过GIMP打开"
+        return "将PidDump文件导出并通过lovelypixelweaver打开"
         
     @property
     def category(self) -> str:
@@ -400,7 +400,7 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
     def process_cells(self, df: pd.DataFrame, selected_cells: List[tuple]) -> pd.DataFrame:
         # 提取所选单元格内容
         image_path = get_image_info_file()[0]
-        gimppath = readconfig()[3]
+        lovelypixelweaverpath = readconfig()[3]
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值： {value}")
@@ -414,8 +414,8 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
                         if os.path.exists(newpath):
                             os.remove(newpath)
                         shutil.copy(filespath, newpath)
-                        cmd2 = rf'"{gimppath}" tmp/{value}.data'
-                        print('[*] 正在调用gimp执行命令：' + cmd2)
+                        cmd2 = rf'"{lovelypixelweaverpath}" tmp/{value}.data'
+                        print('[*] 正在调用lovelypixelweaver执行命令：' + cmd2)
                         subprocess.Popen(cmd2, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
                         print('[+] 执行成功！')
                     else:
@@ -426,7 +426,7 @@ class MemprocfsPidDumptoGimpPlugin(CellPlugin):
             thread.daemon = True  # 设置为守护线程，这样主程序退出时线程也会退出
             thread.start()
 
-# 进程转储后通过GIMP打开 vol2
+# 进程转储后通过lovelypixelweaver打开 vol2
 class Vol2PidDumpPlugin(CellPlugin):
     @property
     def name(self) -> str:
@@ -452,7 +452,7 @@ class Vol2PidDumpPlugin(CellPlugin):
         # 提取所选单元格内容
         from plugin.vol2 import Vol2Plugin
         image_path = get_image_info_file()[0]
-        gimppath = readconfig()[3]
+        lovelypixelweaverpath = readconfig()[3]
         # 处理每个选中的单元格
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
@@ -465,7 +465,7 @@ class Vol2PidDumpPlugin(CellPlugin):
             
         return df
 
-# 进程转储后通过GIMP打开 vol3
+# 进程转储后通过lovelypixelweaver打开 vol3
 class Vol3PidtoDumpPlugin(CellPlugin):
     @property
     def name(self) -> str:
@@ -491,7 +491,7 @@ class Vol3PidtoDumpPlugin(CellPlugin):
         # 提取所选单元格内容
         from plugin.vol3 import Vol3Plugin
         image_path = get_image_info_file()[0]
-        gimppath = readconfig()[3]
+        lovelypixelweaverpath = readconfig()[3]
         for row, col in selected_cells:
             value = get_sorted_cell_value(df, row, col).strip('"')
             print(f"获取到的 PID 值： {value}")
@@ -511,7 +511,7 @@ class Vol3PidtoDumpPlugin(CellPlugin):
             thread.start()
         return df
 
-# 进程转储后通过GIMP打开 memprocfs
+# 进程转储后通过lovelypixelweaver打开 memprocfs
 class MemprocfsPidtoDumpPlugin(CellPlugin):
     @property
     def name(self) -> str:

@@ -5,7 +5,7 @@ class config:
     volatility2 = os.path.abspath(r'..\Tools\volatility2\vol.exe')
     volatility3 = os.path.abspath(r'..\Tools\volatility3\vol.py')
     volatility3_symbols = os.path.abspath(r'..\Tools\volatility3\symbols')
-    gimp = os.path.abspath(r'..\Tools\gimp\bin\gimp-console-2.10.exe')
+    lovelypixelweaver = os.path.abspath(r'..\Tools\lovelypixelweaver\bin\lovelypixelweaver-console-2.10.exe')
     pythonpath = os.path.abspath(r'..\python\python.exe')
     strings = os.path.abspath(r'..\Tools\other\strings.exe')
 

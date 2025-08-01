@@ -259,8 +259,8 @@ class ConfigDialog(QDialog):
             # 显示 volatility3 和 volatility3_symbols 相关工具
             filtered_tools = {k: v for k, v in tools_dict.items() if k in ["volatility3", "volatility3_symbols"]}
         elif title == "其他工具":
-            # 显示 gimp 和 volatility2_plugin 相关工具
-            filtered_tools = {k: v for k, v in tools_dict.items() if k in ["gimp", "volatility2_plugin"]}
+            # 显示 lovelypixelweaver 和 volatility2_plugin 相关工具
+            filtered_tools = {k: v for k, v in tools_dict.items() if k in ["lovelypixelweaver", "volatility2_plugin"]}
         elif title == "注册表和事件工具":
             # 显示 RegistryExplorer 和 EvtxECmd 工具
             filtered_tools = {k: v for k, v in tools_dict.items() if k in ["RegistryExplorer", "EvtxECmd"]}
