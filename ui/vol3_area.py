@@ -1,5 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QScrollArea, QGroupBox, QCheckBox, QMenu, QLabel, QDialog, QDialogButtonBox, QFormLayout
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QRegularExpressionValidator
+from PySide6.QtCore import QRegularExpression
 from ui.styles import memprocfs_style, get_current_theme, apply_color_scheme, is_dark_mode
 import ui.styles
 from plugin.vol3 import Vol3Plugin, WorkerThread
@@ -91,7 +93,11 @@ class CollapsibleButtonGroup(QWidget):
         
         # 创建参数输入框
         param_input = QLineEdit()
-        param_input.setPlaceholderText("输入参数 (例如: --pid=1234 或 --dump)")
+        param_input.setPlaceholderText("输入单个参数 (例如: --pid=1234 或 --dump)")
+        # 添加输入验证：只允许输入一个单词（不包含空格）
+        single_word_regex = QRegularExpression(r"^[^\s]*$")
+        single_word_validator = QRegularExpressionValidator(single_word_regex)
+        param_input.setValidator(single_word_validator)
         layout.addRow("参数:", param_input)
         
         # 创建按钮
@@ -472,8 +478,12 @@ class Vol3Area(QWidget):
         
         # Create command input box
         self.custom_command_input = QLineEdit()
-        self.custom_command_input.setPlaceholderText("输入Vol3命令 (例如: windows.pslist)")
-        
+        self.custom_command_input.setPlaceholderText("输入单个Vol3命令 (例如: windows.pslist)")
+        # 添加输入验证：只允许输入一个单词（不包含空格）
+        single_word_regex = QRegularExpression(r"^[^\s]*$")
+        single_word_validator = QRegularExpressionValidator(single_word_regex)
+        self.custom_command_input.setValidator(single_word_validator)
+
         # Create execute button
         execute_button = QPushButton("执行")
         execute_button.clicked.connect(self.execute_custom_command)

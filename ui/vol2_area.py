@@ -1,5 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox, QLabel, QDialog, QDialogButtonBox, QFormLayout
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QRegularExpressionValidator
+from PySide6.QtCore import QRegularExpression
 from ui.styles import vol2_style, button_style
 import ui.styles
 from plugin.vol2 import Vol2Plugin
@@ -84,7 +86,11 @@ class CollapsibleButtonGroup(QWidget):
         
         # 创建参数输入框
         param_input = QLineEdit()
-        param_input.setPlaceholderText("输入参数 (例如: -p 1234 或 -v)")
+        param_input.setPlaceholderText("输入单个参数 (例如: -p1234 或 -v)")
+        # 添加输入验证：只允许输入一个单词（不包含空格）
+        single_word_regex = QRegularExpression(r"^[^\s]*$")
+        single_word_validator = QRegularExpressionValidator(single_word_regex)
+        param_input.setValidator(single_word_validator)
         layout.addRow("参数:", param_input)
         
         # 创建按钮
@@ -383,7 +389,11 @@ class Vol2Area(QWidget):
         # 添加自定义导出功能
         custom_export_layout = QHBoxLayout()
         self.custom_export_input = QLineEdit()
-        self.custom_export_input.setPlaceholderText("输入文件扩展名(如 pdf)")
+        self.custom_export_input.setPlaceholderText("输入单个文件扩展名(如 pdf)")
+        # 添加输入验证：只允许输入一个单词（不包含空格）
+        single_word_regex = QRegularExpression(r"^[^\s]*$")
+        single_word_validator = QRegularExpressionValidator(single_word_regex)
+        self.custom_export_input.setValidator(single_word_validator)
         custom_export_button = Vol2Button("导出指定格式")
         custom_export_button.clicked.connect(self.custom_export)
         custom_export_layout.addWidget(self.custom_export_input)
@@ -549,8 +559,12 @@ class Vol2Area(QWidget):
         
         # 创建命令输入框
         self.custom_command_input = QLineEdit()
-        self.custom_command_input.setPlaceholderText("输入Vol2命令 (例如: pslist)")
-        
+        self.custom_command_input.setPlaceholderText("输入单个Vol2命令 (例如: pslist)")
+        # 添加输入验证：只允许输入一个单词（不包含空格）
+        single_word_regex = QRegularExpression(r"^[^\s]*$")
+        single_word_validator = QRegularExpressionValidator(single_word_regex)
+        self.custom_command_input.setValidator(single_word_validator)
+
         # 创建执行按钮
         self.execute_button = QPushButton("执行")
         self.execute_button.setStyleSheet(ui.styles.button_style)

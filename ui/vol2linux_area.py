@@ -1,5 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QPushButton, QMessageBox, QScrollArea, QLineEdit, QGroupBox, QComboBox, QLabel, QDialog, QDialogButtonBox, QFormLayout, QFileDialog
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QRegularExpressionValidator
+from PySide6.QtCore import QRegularExpression
 from ui.styles import vol2_style, button_style
 import ui.styles
 from plugin.vol2linux import Vol2LinuxPlugin
@@ -88,7 +90,11 @@ class CollapsibleButtonGroup(QWidget):
         
         # 创建参数输入框
         param_input = QLineEdit()
-        param_input.setPlaceholderText("输入参数 (例如: -p 1234 或 -v)")
+        param_input.setPlaceholderText("输入单个参数 (例如: -p1234 或 -v)")
+        # 添加输入验证：只允许输入一个单词（不包含空格）
+        single_word_regex = QRegularExpression(r"^[^\s]*$")
+        single_word_validator = QRegularExpressionValidator(single_word_regex)
+        param_input.setValidator(single_word_validator)
         layout.addRow("参数:", param_input)
         
         # 创建按钮
@@ -254,7 +260,11 @@ class Vol2LinuxArea(QWidget):
         
         input_layout = QHBoxLayout()
         self.custom_input = QLineEdit()
-        self.custom_input.setPlaceholderText("输入Volatility 2 Linux命令...")
+        self.custom_input.setPlaceholderText("输入单个Volatility 2 Linux命令...")
+        # 添加输入验证：只允许输入一个单词（不包含空格）
+        single_word_regex = QRegularExpression(r"^[^\s]*$")
+        single_word_validator = QRegularExpressionValidator(single_word_regex)
+        self.custom_input.setValidator(single_word_validator)
         self.custom_button = Vol2LinuxButton("执行")
         self.custom_button.clicked.connect(self.execute_custom_command)
         
