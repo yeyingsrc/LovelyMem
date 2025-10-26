@@ -10,6 +10,7 @@ from db.updatevol3cache import update_identifier_cache
 from core.task_scheduler import TaskSchedulerDialog
 from plugin.report_editor import ReportEditor
 from ui.config_dialog import ConfigDialog
+from ui.topic_analysis_dialog import TopicAnalysisDialog
 from PySide6.QtWidgets import QApplication
 import multiprocessing
 from PySide6.QtWidgets import QFormLayout, QLineEdit, QSpinBox, QCheckBox, QGroupBox
@@ -131,6 +132,7 @@ class QuickCheckArea(QWidget):
             QPushButton("任务编排"),
             QPushButton("报告编辑器"),
             QPushButton("字典管理"),
+            QPushButton("题意分析"),
             QPushButton("设置"),
             QPushButton("高亮设置"),
             QPushButton("搜索镜像字符串"),
@@ -163,13 +165,14 @@ class QuickCheckArea(QWidget):
         advanced_buttons[0].clicked.connect(self.show_task_scheduler)
         advanced_buttons[1].clicked.connect(self.show_report_editor)
         advanced_buttons[2].clicked.connect(self.show_dictionary_manager)
-        advanced_buttons[3].clicked.connect(self.show_config_dialog)
-        advanced_buttons[4].clicked.connect(self.show_highlight_settings)
-        advanced_buttons[5].clicked.connect(self.show_quick_check)
+        advanced_buttons[3].clicked.connect(self.show_topic_analysis)
+        advanced_buttons[4].clicked.connect(self.show_config_dialog)
+        advanced_buttons[5].clicked.connect(self.show_highlight_settings)
+        advanced_buttons[6].clicked.connect(self.show_quick_check)
         # 为其他高级功能按钮添加连接
-        
+
         # 保存搜索按钮的引用以便后续操作
-        self.quick_check_button = advanced_buttons[5]
+        self.quick_check_button = advanced_buttons[6]
         
 
 
@@ -266,7 +269,16 @@ class QuickCheckArea(QWidget):
         highlight_manager = self.main_window.highlight_manager if hasattr(self.main_window, 'highlight_manager') else None
         dialog = HighlightSettingsDialog(self, config_path, highlight_manager)
         dialog.exec()
-        
+
+    def show_topic_analysis(self):
+        """显示题意分析对话框"""
+        # 获取主窗口的高亮管理器
+        highlight_manager = getattr(self.main_window, 'highlight_manager', None)
+
+        # 创建并显示题意分析对话框
+        dialog = TopicAnalysisDialog(self.main_window, highlight_manager)
+        dialog.show()
+
     def show_quick_check(self):
         if self.is_searching:
             if QMessageBox.question(self, "取消搜索", "是否要取消当前搜索？") == QMessageBox.Yes:

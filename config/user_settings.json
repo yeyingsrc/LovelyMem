@@ -1,5 +1,5 @@
 {
-    "theme": "梅香雪韵",
+    "theme": "默认",
     "LLM_CONFIG": {
         "openai_api_key": "sk-b47939************7bf06d",
         "openai_organization": "",
@@ -24,7 +24,7 @@
     "font_settings": {
         "font_family": "汉仪文黑"
     },
-    "first_run_reminder": false,
+    "first_run_reminder": true,
     "show_regex_slot": false,
     "show_preset_slot": false
 }

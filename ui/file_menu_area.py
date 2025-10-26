@@ -21,7 +21,6 @@ from PySide6.QtCore import Qt
 from .task_cards_bubble import task_cards_tooltip_manager
 
 from plugin.quickcheck import QuickCheckWorker
-from .topic_analysis_dialog import TopicAnalysisDialog
 
 
 
@@ -277,25 +276,19 @@ class FileMenuArea(QWidget):
 
         load_image_button = QPushButton("加载镜像")
         unload_image_button = QPushButton("卸载镜像")
-        
-        # 创建题意分析按钮
-        topic_analysis_button = QPushButton("题意分析")
-        topic_analysis_button.setToolTip("分析题目描述，智能推荐相关工具")
-        
+
         # 创建任务状态按钮
         self.task_status_button = TaskStatusButton(self.task_manager, self)
         self.task_status_button.setToolTip("点击查看当前正在执行的任务")
 
         group_layout.addWidget(load_image_button)
         group_layout.addWidget(unload_image_button)
-        group_layout.addWidget(topic_analysis_button)  # 添加题意分析按钮
         group_layout.addWidget(self.task_status_button)  # 添加任务状态按钮
 
         layout.addWidget(group_box)
 
         load_image_button.clicked.connect(self.load_image_signal.emit)
         unload_image_button.clicked.connect(self.parent().unload_image)
-        topic_analysis_button.clicked.connect(self.show_topic_analysis)
 
 
     def set_image_path(self, path):
@@ -303,30 +296,3 @@ class FileMenuArea(QWidget):
 
     def trigger_load_image(self):
         self.load_image_signal.emit()
-    
-    def show_topic_analysis(self):
-        """显示题意分析对话框"""
-        # 获取主窗口的高亮管理器
-        # 需要向上遍历找到真正的主窗口
-        widget = self
-        main_window = None
-        while widget is not None:
-            widget = widget.parent()
-            if widget and hasattr(widget, 'highlight_manager'):
-                main_window = widget
-                break
-        
-        #print(f"DEBUG: 找到的主窗口: {main_window}")
-        #print(f"DEBUG: 主窗口类型: {type(main_window)}")
-        
-        if main_window:
-            highlight_manager = getattr(main_window, 'highlight_manager', None)
-            #print(f"DEBUG: 获取到的高亮管理器: {highlight_manager}")
-            #print(f"DEBUG: 高亮管理器类型: {type(highlight_manager)}")
-        else:
-            highlight_manager = None
-            print("DEBUG: 未找到主窗口，高亮管理器为None")
-        
-        # 创建并显示题意分析对话框
-        dialog = TopicAnalysisDialog(main_window, highlight_manager)
-        dialog.show()

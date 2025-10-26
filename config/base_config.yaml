@@ -28,6 +28,8 @@ other_tools:
   RegistryExplorer:
     path: ../Tools/RegistryExplorer/RegistryExplorer.exe
 tools:
+  lovelypixelweaver:
+    path: ../LovelymemLuxe/extensions/lovelypixelweaver.exe
   memprocfs:
     path: ../Tools/MemProcFS/MemProcFS.exe
   volatility2_plugin:
@@ -36,5 +38,3 @@ tools:
     path: ../Tools/volatility2_python/vol.py
   volatility3:
     path: ../Tools/volatility3/vol.py
-  lovelypixelweaver:
-    path: ../LovelymemLuxe/extensions/lovelypixelweaver.exe
