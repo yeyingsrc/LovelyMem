@@ -21,6 +21,7 @@ from PySide6.QtCore import Qt
 from .task_cards_bubble import task_cards_tooltip_manager
 
 from plugin.quickcheck import QuickCheckWorker
+from core.i18n import t
 
 
 
@@ -271,15 +272,15 @@ class FileMenuArea(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        group_box = QGroupBox("文件操作")
+        group_box = QGroupBox(t("file_operations.title"))
         group_layout = QHBoxLayout(group_box)
 
-        load_image_button = QPushButton("加载镜像")
-        unload_image_button = QPushButton("卸载镜像")
+        load_image_button = QPushButton(t("file_operations.load_image"))
+        unload_image_button = QPushButton(t("file_operations.unload_image"))
 
         # 创建任务状态按钮
         self.task_status_button = TaskStatusButton(self.task_manager, self)
-        self.task_status_button.setToolTip("点击查看当前正在执行的任务")
+        self.task_status_button.setToolTip(t("file_operations.task_status"))
 
         group_layout.addWidget(load_image_button)
         group_layout.addWidget(unload_image_button)

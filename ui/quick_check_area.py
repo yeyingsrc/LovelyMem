@@ -11,6 +11,7 @@ from core.task_scheduler import TaskSchedulerDialog
 from plugin.report_editor import ReportEditor
 from ui.config_dialog import ConfigDialog
 from ui.topic_analysis_dialog import TopicAnalysisDialog
+from core.i18n import t
 from PySide6.QtWidgets import QApplication
 import multiprocessing
 from PySide6.QtWidgets import QFormLayout, QLineEdit, QSpinBox, QCheckBox, QGroupBox
@@ -129,13 +130,13 @@ class QuickCheckArea(QWidget):
         
         # 新增高级功能组
         advanced_buttons = [
-            QPushButton("任务编排"),
-            QPushButton("报告编辑器"),
-            QPushButton("字典管理"),
-            QPushButton("题意分析"),
-            QPushButton("设置"),
-            QPushButton("高亮设置"),
-            QPushButton("搜索镜像字符串"),
+            QPushButton(t("advanced_features.task_scheduler")),
+            QPushButton(t("advanced_features.report_editor")),
+            QPushButton(t("advanced_features.dictionary_manager")),
+            QPushButton(t("advanced_features.topic_analysis")),
+            QPushButton(t("advanced_features.settings")),
+            QPushButton(t("advanced_features.highlight_settings")),
+            QPushButton(t("advanced_features.search_image_strings")),
         ]
         
         # 初始化搜索相关属性
@@ -146,18 +147,18 @@ class QuickCheckArea(QWidget):
         self.current_smooth_progress = 0
         self.target_progress = 0
         self.image_path = None
-        self.advanced_group = CollapsibleButtonGroup("高级功能", advanced_buttons, self.main_window)
+        self.advanced_group = CollapsibleButtonGroup(t("advanced_features.title"), advanced_buttons, self.main_window)
         layout.addWidget(self.advanced_group)
         # 其他功能组
         
         other_buttons = [
-            QPushButton("常备知识"),
-            QPushButton("强制重置VOL3缓存"),
+            QPushButton(t("other_features.knowledge_base")),
+            QPushButton(t("other_features.reset_vol3_cache")),
         ]
 
         other_buttons[0].clicked.connect(self.show_knowledge_base)
         other_buttons[1].clicked.connect(self.update_vol3_cache)
-        self.other_group = CollapsibleButtonGroup("其他功能", other_buttons, self.main_window)
+        self.other_group = CollapsibleButtonGroup(t("other_features.title"), other_buttons, self.main_window)
         layout.addWidget(self.other_group)
 
 
@@ -183,7 +184,13 @@ class QuickCheckArea(QWidget):
         self.user_info_label.setText(user_info)
 
     def update_vol3_cache(self):
-        reply = QMessageBox.question(self, "提示", "一般来说如果没有更换路径位置不需要点击这里\n强制重置VOL3缓存会删除本地已经有的vol3缓存\n强制构建默认镜像索引，是否继续？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(
+            self,
+            t("common.warning"),
+            "一般来说如果没有更换路径位置不需要点击这里\n强制重置VOL3缓存会删除本地已经有的vol3缓存\n强制构建默认镜像索引，是否继续？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
         if reply == QMessageBox.Yes:
             update_identifier_cache()
 
@@ -281,12 +288,12 @@ class QuickCheckArea(QWidget):
 
     def show_quick_check(self):
         if self.is_searching:
-            if QMessageBox.question(self, "取消搜索", "是否要取消当前搜索？") == QMessageBox.Yes:
+            if QMessageBox.question(self, t("common.warning"), "是否要取消当前搜索？") == QMessageBox.Yes:
                 self.cancel_quick_check()
             return
 
         if self.image_path is None:
-            QMessageBox.warning(self, "错误", "未加载镜像文件")
+            QMessageBox.warning(self, t("common.error"), "未加载镜像文件")
             return
 
         dialog = RegexInputDialog(self)

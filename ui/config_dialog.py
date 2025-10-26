@@ -1,20 +1,21 @@
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, 
-                             QPushButton, QLabel, QLineEdit, QFileDialog, 
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
+                             QPushButton, QLabel, QLineEdit, QFileDialog,
                              QGroupBox, QTabWidget, QWidget, QMessageBox,
-                             QCheckBox)  
+                             QCheckBox, QComboBox)
 from PySide6.QtCore import Qt
 import yaml
 import os
 import logging
 import json
-from db.updatevol3cache import update_identifier_cache  
+from db.updatevol3cache import update_identifier_cache
+from core.i18n import get_i18n, get_available_languages, get_current_language, t
 
 logger = logging.getLogger(__name__)
 
 class ConfigDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("配置设置")
+        self.setWindowTitle(t("settings.title"))
         self.setMinimumWidth(600)
         self.setMinimumHeight(500)
         
@@ -220,13 +221,52 @@ class ConfigDialog(QDialog):
         
         # 添加到选项卡
         tab_widget.addTab(ui_tab, "界面设置")
-        
+
+        # 添加语言设置选项卡
+        language_tab = QWidget()
+        language_layout = QVBoxLayout(language_tab)
+
+        # 语言设置组
+        language_group = QGroupBox(t("settings.language.title"))
+        language_grid = QGridLayout()
+
+        # 当前语言标签
+        current_lang_label = QLabel(t("settings.language.current_language") + ":")
+        language_grid.addWidget(current_lang_label, 0, 0)
+
+        # 语言选择下拉框
+        self.language_combo = QComboBox()
+        available_languages = get_available_languages()
+        current_language = get_current_language()
+
+        # 添加可用语言到下拉框
+        for lang_code, lang_name in available_languages.items():
+            self.language_combo.addItem(lang_name, lang_code)
+            # 设置当前选中的语言
+            if lang_code == current_language:
+                self.language_combo.setCurrentText(lang_name)
+
+        language_grid.addWidget(self.language_combo, 0, 1)
+
+        # 添加说明标签
+        language_description = QLabel(t("settings.language.restart_required"))
+        language_description.setWordWrap(True)
+        language_description.setStyleSheet("color: #666; font-style: italic;")
+        language_grid.addWidget(language_description, 1, 0, 1, 2)
+
+        language_group.setLayout(language_grid)
+        language_layout.addWidget(language_group)
+        language_layout.addStretch()
+
+        # 添加到选项卡
+        tab_widget.addTab(language_tab, t("settings.tabs.language"))
+
         main_layout.addWidget(tab_widget)
-        
+
         # 确定和取消按钮
         buttons_layout = QHBoxLayout()
-        ok_button = QPushButton("确定")
-        cancel_button = QPushButton("取消")
+        ok_button = QPushButton(t("common.ok"))
+        cancel_button = QPushButton(t("common.cancel"))
         buttons_layout.addWidget(ok_button)
         buttons_layout.addWidget(cancel_button)
         main_layout.addLayout(buttons_layout)
@@ -339,12 +379,24 @@ class ConfigDialog(QDialog):
             self.user_settings["first_run_reminder"] = self.first_run_checkbox.isChecked()
             self.user_settings["show_regex_slot"] = self.regex_slot_checkbox.isChecked()
             self.user_settings["show_preset_slot"] = self.preset_slot_checkbox.isChecked()
-            
+
+            # 保存语言设置
+            selected_lang_code = self.language_combo.currentData()
+            if selected_lang_code:
+                self.user_settings["language"] = selected_lang_code
+                # 更新 i18n 实例的语言设置
+                i18n = get_i18n()
+                i18n.set_language(selected_lang_code)
+
             # 保存用户设置
             with open(self.user_settings_file, 'w', encoding='utf-8') as f:
                 json.dump(self.user_settings, f, ensure_ascii=False, indent=4)
-            
-            QMessageBox.information(self, "成功", "配置已保存")
+
+            QMessageBox.information(
+                self,
+                t("common.success"),
+                t("settings.save_success") + "\n\n" + t("settings.language.restart_required")
+            )
             self.accept()
         except Exception as e:
             logger.error(f"保存配置文件失败: {e}")
