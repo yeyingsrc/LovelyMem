@@ -10,8 +10,6 @@ from PySide6.QtGui import QIcon, QPalette, QPixmap
 from PySide6.QtWidgets import QApplication, QSplashScreen
 
 from core.output_redirector import setup_output_redirection
-from ui.main_window import MainWindow
-from ui.welcome_dialog import WelcomeDialog
 
 # 配置日志记录
 logging.basicConfig(
@@ -52,6 +50,14 @@ def main():
         user_settings = {"first_run_reminder": True}
         
     try:
+        # 启用高 DPI 支持
+        # 注意: 在 PySide6/Qt6 中，高DPI缩放默认是启用的，且 AA_EnableHighDpiScaling 已被弃用
+        # 我们只需要设置环境变量或什么都不做（默认行为通常是正确的）
+        # 如果需要强制设置缩放策略，可以使用 setHighDpiScaleFactorRoundingPolicy
+        if hasattr(Qt, 'HighDpiScaleFactorRoundingPolicy'):
+            QApplication.setHighDpiScaleFactorRoundingPolicy(
+                Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+
         # 检查是否已存在 QApplication 实例
         app = QApplication.instance()
         if app is None:
@@ -59,13 +65,30 @@ def main():
         else:
             #print("警告：QApplication 实例已存在，使用现有实例。")
             pass
+        
+        # 优化字体显示
+        from PySide6.QtGui import QFont
+        font = app.font()
+        font.setStyleStrategy(QFont.PreferAntialias)
+        # 优先使用 Microsoft YaHei UI，因为它针对界面进行了优化
+        font.setFamily("Microsoft YaHei UI")
+        app.setFont(font)
 
         app.setWindowIcon(QIcon(r"res\logo.ico"))
         splash_pix = QPixmap(r"res/logo_200.png")
         splash = QSplashScreen(splash_pix)
         splash.show()
+        app.processEvents()
+
+        # 延迟导入主要模块，让启动画面先显示出来
+        from ui.main_window import MainWindow
+        from ui.welcome_dialog import WelcomeDialog
+
+        splash.showMessage("正在初始化界面...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+        app.processEvents()
+
         # 创建主窗口
-        window = MainWindow()
+        window = MainWindow(splash)
         setup_output_redirection(window)
 
         # 使用定时器在0.5秒后关闭启动画面并显示主窗口

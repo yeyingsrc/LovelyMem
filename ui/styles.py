@@ -93,8 +93,10 @@ def update_styles():
     candy_background = f"background-color: {background_color};"
     # 更新通用字体样式
     common_font_style = f"""
-        font-family: {current_font_family},"汉仪文黑-85W", "Microsoft YaHei", "SimHei", sans-serif;
+        font-family: {current_font_family}, "Microsoft YaHei UI", "Microsoft YaHei", "SimHei", sans-serif;
         font-size: 13px;
+        font-weight: normal;
+        font-style: normal;
         color: {text_color};
     """
 

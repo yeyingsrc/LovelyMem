@@ -60,8 +60,9 @@ class MainWindow(QMainWindow):
     style_updated_signal = Signal()
     CURRENT_VERSION = "0.98"
 
-    def __init__(self):
+    def __init__(self, splash=None):
         super().__init__()
+        self.splash = splash
         # 启用拖放功能（支持所有文件类型）
         self.setAcceptDrops(True)
         self.setAttribute(Qt.WA_NativeWindow, True)
@@ -205,13 +206,31 @@ class MainWindow(QMainWindow):
         
         left_layout.addWidget(self.tab_widget)
 
+        def update_splash(message):
+            if self.splash:
+                self.splash.showMessage(message, Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+                QApplication.processEvents()
+
         # 创建各个功能区域
+        update_splash("正在加载 MemProcFS...")
         self.memprocfs_area = MemProcFSArea(self, self)
+        
+        update_splash("正在加载 Volatility 2...")
         self.vol2_area = Vol2Area(self, self)  # 传入 self 作为 main_window 参数
+        
+        update_splash("正在加载 Volatility 3...")
         self.vol3_area = Vol3Area(self, self)
+        
+        update_splash("正在加载 Volatility 2 Linux...")
         self.vol2linux_area = Vol2LinuxArea(self, self)  # 创建Vol2Linux区域
+        
+        update_splash("正在加载高级功能...")
         self.quick_check_area = QuickCheckArea(self, self)
+        
+        update_splash("正在加载妙妙工具...")
         self.miaomiao_tools_area = MiaoMiaoToolsArea(self, self)  # 创建妙妙工具区域    
+        
+        update_splash("正在加载 Volatility 3 Linux...")
         self.vol3linux_area = Vol3LinuxArea(self, self)
 
 
