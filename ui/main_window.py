@@ -1,13 +1,14 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                               QGroupBox, QLineEdit, QTextEdit, QLabel, QListWidget, QPushButton,
                               QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton, QListView, QTabBar,
-                              QStylePainter, QStyleOptionTab, QStyle)
+                              QStylePainter, QStyleOptionTab, QStyle, QScrollArea, QListWidgetItem, QSystemTrayIcon, QApplication)
 from PySide6.QtGui import (QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QCloseEvent,
                           QPalette, QGuiApplication, QFont, QTransform, QDesktopServices)
 from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize, QUrl
 import logging
 import os
 import json
+import re
 from core.file_manager import FileManager  
 import zipfile
 from datetime import datetime
@@ -45,8 +46,11 @@ from ui.styles import (main_window_style, candy_background, common_font_style,
                        theme_button_color, minimize_button_color, maximize_button_color, close_button_color)
 from utils.highlight_manager import ButtonHighlightManager
 from ui.glass_overlay import GlassOverlay
-from utils.github_utils import GithubStarFetcher
+from utils.github_utils import GithubStarFetcher, GithubVersionChecker
 import yaml
+import subprocess
+import shutil
+import tempfile
 
 import sys,time
 logger = logging.getLogger(__name__)
@@ -54,6 +58,7 @@ logger = logging.getLogger(__name__)
 
 class MainWindow(QMainWindow):
     style_updated_signal = Signal()
+    CURRENT_VERSION = "0.98"
 
     def __init__(self):
         super().__init__()
@@ -98,7 +103,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.97")
+        title_label = QLabel(f"Lovelymem Ver {self.CURRENT_VERSION}")
         title_layout.addWidget(title_label)
         
         # 添加 Luxe 广告
@@ -112,6 +117,17 @@ class MainWindow(QMainWindow):
         self.ad_label.setCursor(Qt.PointingHandCursor)
         self.ad_label.mousePressEvent = lambda e: QDesktopServices.openUrl(QUrl("http://lovely.mzy0.com/lovelymemluxe.exe"))
         title_layout.addWidget(self.ad_label)
+
+        # 添加版本更新检测标签
+        self.update_label = QLabel("🔍 检查更新")
+        self.update_label.setStyleSheet("""
+            color: #555555; 
+            margin-left: 15px;
+            font-size: 11px;
+        """)
+        self.update_label.setCursor(Qt.PointingHandCursor)
+        self.update_label.mousePressEvent = lambda e: self.check_for_updates(manual=True)
+        title_layout.addWidget(self.update_label)
         
         title_layout.addStretch()
         
@@ -326,6 +342,9 @@ class MainWindow(QMainWindow):
         # 异步获取GitHub星标数
         self.fetch_github_stars()
 
+        # 启动自动检查更新
+        QTimer.singleShot(5000, lambda: self.check_for_updates(manual=False))
+
     def fetch_github_stars(self):
         """异步获取GitHub星标数"""
         try:
@@ -342,6 +361,68 @@ class MainWindow(QMainWindow):
             self.star_fetcher.start()
         except Exception as e:
             logger.error(f"Error starting star fetcher: {e}")
+
+    def check_for_updates(self, manual=False):
+        """检查版本更新"""
+        if manual:
+            self.update_label.setText("🔄 正在检查...")
+        
+        try:
+            # 加载代理配置
+            config_path = os.path.join(os.getcwd(), "config", "base_config.yaml")
+            proxy_url = None
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    proxy_url = config.get("base_config", {}).get("proxy", {}).get("url")
+
+            self.version_checker = GithubVersionChecker("https://github.com/Tokeii0/LovelyMem", proxy_url)
+            self.version_checker.version_checked.connect(lambda v, u, b: self.on_version_checked(v, u, b, manual))
+            self.version_checker.start()
+        except Exception as e:
+            logger.error(f"Error starting version checker: {e}")
+            if manual:
+                self.update_label.setText("❌ 检查失败")
+                QTimer.singleShot(3000, lambda: self.update_label.setText("🔍 检查更新"))
+
+    def on_version_checked(self, latest_version, download_url, body, manual):
+        """版本检查完成的回调"""
+        if not latest_version:
+            if manual:
+                self.update_label.setText("❌ 检查失败")
+                QTimer.singleShot(3000, lambda: self.update_label.setText("🔍 检查更新"))
+            return
+
+        # 版本号对比
+        try:
+            current = float(re.sub(r'[^0-9.]', '', self.CURRENT_VERSION))
+            latest = float(re.sub(r'[^0-9.]', '', latest_version))
+            
+            if latest > current:
+                self.update_label.setText(f"🎁 新版本 v{latest_version}")
+                self.update_label.setStyleSheet("color: #FF4500; font-weight: bold; margin-left: 15px; font-size: 11px;")
+                
+                # 弹窗提示
+                reply = QMessageBox.information(
+                    self,
+                    "发现新版本",
+                    f"检测到新版本: v{latest_version}\n\n更新内容:\n{body}\n\n是否立即前往下载？",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                if reply == QMessageBox.Yes:
+                    QDesktopServices.openUrl(QUrl(download_url))
+            else:
+                if manual:
+                    self.update_label.setText("✅ 已是最新")
+                    QMessageBox.information(self, "检查更新", f"当前版本 v{self.CURRENT_VERSION} 已是最新版本。")
+                    QTimer.singleShot(3000, lambda: self.update_label.setText("🔍 检查更新"))
+                else:
+                    self.update_label.setText("🔍 检查更新")
+        except Exception as e:
+            logger.error(f"Version comparison error: {e}")
+            if manual:
+                self.update_label.setText("🔍 检查更新")
 
     def update_star_label(self, stars):
         """更新星标数显示"""
@@ -422,7 +503,7 @@ class MainWindow(QMainWindow):
                 self.quick_check_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.97 - {image_path}")
+                title_label.setText(f"Lovelymem Ver {self.CURRENT_VERSION} - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self.mem_image_loader.load_mem_image(image_path)
             self.cmd_output.append("正在加载内存镜像，请稍候...")
@@ -490,7 +571,7 @@ class MainWindow(QMainWindow):
             # 更新标题
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText("Lovelymem Ver 0.97")
+                title_label.setText(f"Lovelymem Ver {self.CURRENT_VERSION}")
             
             # profile 清空
             self.vol2_area.profile = None
