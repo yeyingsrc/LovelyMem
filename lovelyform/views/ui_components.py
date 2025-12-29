@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QPushButton, QLabel, QWidget, QVBoxLayout, QHBoxLayout,
                              QGroupBox, QFrame, QSpinBox)
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QIcon, QDesktopServices
 import ui.styles
 
 class UIComponentMixin:
@@ -46,6 +46,18 @@ class UIComponentMixin:
         self.title_label.setStyleSheet(ui.styles.common_font_style)
         title_layout.addWidget(self.title_label)
         
+        # 添加 Luxe 广告
+        self.ad_label = QLabel("✨ 推荐使用Luxe版本[点击下载]")
+        self.ad_label.setStyleSheet("""
+            color: #FF69B4; 
+            font-weight: bold; 
+            margin-left: 20px;
+            text-decoration: underline;
+        """)
+        self.ad_label.setCursor(Qt.PointingHandCursor)
+        self.ad_label.mousePressEvent = lambda e: QDesktopServices.openUrl(QUrl("http://lovely.mzy0.com/lovelymemluxe.exe"))
+        title_layout.addWidget(self.ad_label)
+        
         # 添加文件名标签
         self.file_label = QLabel()
         self.file_label.setStyleSheet(f"""
@@ -53,8 +65,13 @@ class UIComponentMixin:
             color: #666666;
         """)
         title_layout.addWidget(self.file_label)
-        
         title_layout.addStretch()
+        
+        # 添加星标数显示
+        self.star_label = QLabel("⭐ --")
+        self.star_label.setStyleSheet("margin-right: 10px; color: #666666;")
+        self.star_label.setToolTip("GitHub Stars")
+        title_layout.addWidget(self.star_label)
         
         return self.title_bar, title_layout
 

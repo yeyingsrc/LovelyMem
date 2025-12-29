@@ -176,16 +176,15 @@ def update_styles():
         QTabBar::tab {{
             background: {button_bg_color};
             border: 1px solid {border_color};
-            border-right-color: {border_color};
-            border-top-left-radius: 4px;
-            border-bottom-left-radius: 4px;
-            padding: 5px 0px;
-            margin-bottom: 1px;
-            min-height: 40px;
-            max-height: 40px;
+            border-bottom-color: {border_color};
+            border-top-left-radius: 2px;
+            border-top-right-radius: 2px;
+            padding: 2px 6px;
+            margin-right: 1px;
+            min-height: 18px;
             min-width: 40px;
-            max-width: 40px;
             {common_font_style}
+            font-size: 11px;
             text-align: center;
             
             alignment: center;
@@ -195,10 +194,10 @@ def update_styles():
         }}
         QTabBar::tab:selected {{
             border-color: {border_color};
-            border-right-color: {background_color};
+            border-bottom-color: {background_color};
         }}
         QTabBar::tab:!selected {{
-            margin-left: 2px;
+            margin-top: 1px;
         }}
     """
 

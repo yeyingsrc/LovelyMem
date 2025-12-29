@@ -1,9 +1,10 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                               QGroupBox, QLineEdit, QTextEdit, QLabel, QListWidget, QPushButton,
-                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton, QListView, QTabBar)
+                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton, QListView, QTabBar,
+                              QStylePainter, QStyleOptionTab, QStyle)
 from PySide6.QtGui import (QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QCloseEvent,
-                          QPalette, QGuiApplication, QFont, QTransform)
-from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize
+                          QPalette, QGuiApplication, QFont, QTransform, QDesktopServices)
+from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize, QUrl
 import logging
 import os
 import json
@@ -44,6 +45,8 @@ from ui.styles import (main_window_style, candy_background, common_font_style,
                        theme_button_color, minimize_button_color, maximize_button_color, close_button_color)
 from utils.highlight_manager import ButtonHighlightManager
 from ui.glass_overlay import GlassOverlay
+from utils.github_utils import GithubStarFetcher
+import yaml
 
 import sys,time
 logger = logging.getLogger(__name__)
@@ -97,7 +100,26 @@ class MainWindow(QMainWindow):
         # 添加标题
         title_label = QLabel("Lovelymem Ver 0.97")
         title_layout.addWidget(title_label)
+        
+        # 添加 Luxe 广告
+        self.ad_label = QLabel("✨ 推荐使用Luxe版本[点击下载]")
+        self.ad_label.setStyleSheet("""
+            color: #FF69B4; 
+            font-weight: bold; 
+            margin-left: 20px;
+            text-decoration: underline;
+        """)
+        self.ad_label.setCursor(Qt.PointingHandCursor)
+        self.ad_label.mousePressEvent = lambda e: QDesktopServices.openUrl(QUrl("http://lovely.mzy0.com/lovelymemluxe.exe"))
+        title_layout.addWidget(self.ad_label)
+        
         title_layout.addStretch()
+        
+        # 添加星标数显示
+        self.star_label = QLabel("⭐ --")
+        self.star_label.setStyleSheet("margin-right: 10px; color: #666666;")
+        self.star_label.setToolTip("GitHub Stars")
+        title_layout.addWidget(self.star_label)
         
         # 添加主题切换按钮
         self.theme_button = self.create_circle_button(theme_button_color)
@@ -156,18 +178,14 @@ class MainWindow(QMainWindow):
 
         # 创建标签页控件并应用样式
         self.tab_widget = QTabWidget()
-        self.tab_widget.setTabPosition(QTabWidget.West)  # 将标签页设置为左侧
-        self.tab_widget.setIconSize(QSize(43, 43))  # 设置图标大小为24*24
+        self.tab_widget.setTabPosition(QTabWidget.North)  # 将标签页设置为顶部
         self.tab_widget.setStyleSheet(tab_style)
         
-        # 设置标签页的固定宽度，使图标居中
-        tab_bar = self.tab_widget.tabBar()
-        tab_bar.setFixedWidth(40)  # 设置标签栏的固定宽度
-        
         # 调整标签页的大小，使每个标签高度一致且合适
-        for i in range(5):  # 预计有5个标签
-            tab_bar.setTabButton(i, QTabBar.RightSide, None)  # 移除右侧按钮
-            tab_bar.setTabButton(i, QTabBar.LeftSide, None)   # 移除左侧按钮
+        # tab_bar = self.tab_widget.tabBar()
+        # for i in range(5):  # 预计有5个标签
+        #    tab_bar.setTabButton(i, QTabBar.RightSide, None)  # 移除右侧按钮
+        #    tab_bar.setTabButton(i, QTabBar.LeftSide, None)   # 移除左侧按钮
         
         left_layout.addWidget(self.tab_widget)
 
@@ -181,27 +199,20 @@ class MainWindow(QMainWindow):
         self.vol3linux_area = Vol3LinuxArea(self, self)
 
 
-        # 创建旋转后的图标
-        def rotate_icon(icon_path):
-            pixmap = QIcon(icon_path).pixmap(43, 43)
-            transform = QTransform().rotate(90)  # 顺时针旋转90度
-            rotated_pixmap = pixmap.transformed(transform)
-            return QIcon(rotated_pixmap)
-
-        # 将功能区域添加到标签页中，并设置旋转后的图标
-        self.tab_widget.addTab(self.memprocfs_area, rotate_icon('res/memprocfs.png'), "")
+        # 将功能区域添加到标签页中
+        self.tab_widget.addTab(self.memprocfs_area, "MemProcFS")
         self.tab_widget.setTabToolTip(0, "MemProcFS功能区")
-        self.tab_widget.addTab(self.vol2_area, rotate_icon('res/vol2.png'), "")
+        self.tab_widget.addTab(self.vol2_area, "Volatility 2")
         self.tab_widget.setTabToolTip(1, "Volatility2功能区")
-        self.tab_widget.addTab(self.vol3_area, rotate_icon('res/vol3.png'), "")
+        self.tab_widget.addTab(self.vol3_area, "Volatility 3")
         self.tab_widget.setTabToolTip(2, "Volatility3功能区")
-        self.tab_widget.addTab(self.vol2linux_area, rotate_icon('res/vol2linux.png'), "")  # 使用Vol2的图标
+        self.tab_widget.addTab(self.vol2linux_area, "Vol2 Linux")
         self.tab_widget.setTabToolTip(3, "Volatility2 Linux功能区")
-        self.tab_widget.addTab(self.vol3linux_area, rotate_icon('res/vol3linux.png'), "")  # 使用Vol2的图标
+        self.tab_widget.addTab(self.vol3linux_area, "Vol3 Linux")
         self.tab_widget.setTabToolTip(4, "Volatility3 Linux功能区")
-        self.tab_widget.addTab(self.miaomiao_tools_area, rotate_icon('res/Tools.png'), "")  # 暂时使用相同图标
+        self.tab_widget.addTab(self.miaomiao_tools_area, "妙妙工具")
         self.tab_widget.setTabToolTip(5, "妙妙工具区")
-        self.tab_widget.addTab(self.quick_check_area, rotate_icon('res/quick.png'), "")  # 使用logo图标
+        self.tab_widget.addTab(self.quick_check_area, "高级功能")
         self.tab_widget.setTabToolTip(6, "高级功能区")
 
 
@@ -306,11 +317,35 @@ class MainWindow(QMainWindow):
         # 在初始化时加载保存的主题
         saved_theme = get_saved_theme()
         self.apply_selected_theme(saved_theme)
-                # 立即更新圆形按钮的样式
+        # 立即更新圆形按钮的样式
         self.update_circle_button_style(self.theme_button, theme_button_color)
         self.update_circle_button_style(self.min_button, minimize_button_color)
         self.update_circle_button_style(self.max_button, maximize_button_color)
         self.update_circle_button_style(self.close_button, close_button_color)
+
+        # 异步获取GitHub星标数
+        self.fetch_github_stars()
+
+    def fetch_github_stars(self):
+        """异步获取GitHub星标数"""
+        try:
+            # 加载代理配置
+            config_path = os.path.join(os.getcwd(), "config", "base_config.yaml")
+            proxy_url = None
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    proxy_url = config.get("base_config", {}).get("proxy", {}).get("url")
+
+            self.star_fetcher = GithubStarFetcher("https://github.com/Tokeii0/LovelyMem", proxy_url)
+            self.star_fetcher.stars_fetched.connect(self.update_star_label)
+            self.star_fetcher.start()
+        except Exception as e:
+            logger.error(f"Error starting star fetcher: {e}")
+
+    def update_star_label(self, stars):
+        """更新星标数显示"""
+        self.star_label.setText(f"⭐ {stars}")
 
     def load_user_settings(self):
         if os.path.exists(self.user_settings_file):

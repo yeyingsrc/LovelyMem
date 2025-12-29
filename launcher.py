@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from core.config_manager import load_config, get_saved_theme
 from ui.styles import is_dark_mode, get_color_scheme
+from utils.github_utils import GithubStarFetcher
 
 # 配置日志记录
 logging.basicConfig(
@@ -585,7 +586,26 @@ class LauncherWindow(QMainWindow):
         title_label = QLabel("LovelyMem 启动器")
         title_label.setStyleSheet("font-size: 14px; font-weight: bold;")
         title_layout.addWidget(title_label)
+        
+        # 添加 Luxe 广告
+        self.ad_label = QLabel("✨ 推荐使用Luxe版本[点击下载]")
+        self.ad_label.setStyleSheet("""
+            color: #FF69B4; 
+            font-weight: bold; 
+            margin-left: 20px;
+            text-decoration: underline;
+        """)
+        self.ad_label.setCursor(Qt.PointingHandCursor)
+        self.ad_label.mousePressEvent = lambda e: QDesktopServices.openUrl(QUrl("http://lovely.mzy0.com/lovelymemluxe.exe"))
+        title_layout.addWidget(self.ad_label)
+        
         title_layout.addStretch()
+        
+        # 添加星标数显示
+        self.star_label = QLabel("⭐ --")
+        self.star_label.setStyleSheet("margin-right: 10px; color: #666666;")
+        self.star_label.setToolTip("GitHub Stars")
+        title_layout.addWidget(self.star_label)
         
         # 添加最小化按钮
         self.min_button = self.create_circle_button("rgba(198, 255, 198, 0.9)")
@@ -662,6 +682,30 @@ class LauncherWindow(QMainWindow):
         
         # 设置中央部件
         self.setCentralWidget(main_widget)
+
+        # 异步获取GitHub星标数
+        self.fetch_github_stars()
+
+    def fetch_github_stars(self):
+        """异步获取GitHub星标数"""
+        try:
+            # 加载代理配置
+            config_path = os.path.join(os.getcwd(), "config", "base_config.yaml")
+            proxy_url = None
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    proxy_url = config.get("base_config", {}).get("proxy", {}).get("url")
+
+            self.star_fetcher = GithubStarFetcher("https://github.com/Tokeii0/LovelyMem", proxy_url)
+            self.star_fetcher.stars_fetched.connect(self.update_star_label)
+            self.star_fetcher.start()
+        except Exception as e:
+            logger.error(f"Error starting star fetcher: {e}")
+
+    def update_star_label(self, stars):
+        """更新星标数显示"""
+        self.star_label.setText(f"⭐ {stars}")
         
     def create_circle_button(self, base_color):
         """创建圆形按钮"""
