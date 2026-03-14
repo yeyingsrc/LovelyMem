@@ -1,13 +1,17 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                               QGroupBox, QLineEdit, QTextEdit, QLabel, QListWidget, QPushButton,
                               QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame,
-                              QToolButton, QListView, QTabBar, QStatusBar, QProgressBar)
+                              QToolButton, QListView, QTabBar, QStatusBar, QProgressBar,
+                              QStylePainter, QStyleOptionTab, QStyle, QScrollArea, QListWidgetItem,
+                              QSystemTrayIcon, QApplication)
 from PySide6.QtGui import (QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QCloseEvent,
-                          QPalette, QGuiApplication, QFont, QTransform, QShortcut, QKeySequence, QAction)
-from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize, QFileSystemWatcher
+                          QPalette, QGuiApplication, QFont, QTransform, QShortcut, QKeySequence,
+                          QAction, QDesktopServices)
+from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize, QFileSystemWatcher, QUrl
 import logging
 import os
 import json
+import re
 from core.file_manager import FileManager  
 import zipfile
 from datetime import datetime
@@ -45,6 +49,11 @@ from ui.styles import (main_window_style, candy_background, common_font_style,
                        theme_button_color, minimize_button_color, maximize_button_color, close_button_color)
 from utils.highlight_manager import ButtonHighlightManager
 from ui.glass_overlay import GlassOverlay
+from utils.github_utils import GithubStarFetcher, GithubVersionChecker
+import yaml
+import subprocess
+import shutil
+import tempfile
 
 import sys,time
 logger = logging.getLogger(__name__)
@@ -52,9 +61,11 @@ logger = logging.getLogger(__name__)
 
 class MainWindow(QMainWindow):
     style_updated_signal = Signal()
+    CURRENT_VERSION = "0.98"
 
-    def __init__(self):
+    def __init__(self, splash=None):
         super().__init__()
+        self.splash = splash
         # 启用拖放功能（支持所有文件类型）
         self.setAcceptDrops(True)
         self.setAttribute(Qt.WA_NativeWindow, True)
@@ -106,9 +117,39 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(icon_label)
         
         # 添加标题
-        title_label = QLabel("Lovelymem Ver 0.97")
+        title_label = QLabel(f"Lovelymem Ver {self.CURRENT_VERSION}")
         title_layout.addWidget(title_label)
+        
+        # 添加 Luxe 广告
+        self.ad_label = QLabel("✨ 推荐使用Luxe版本[点击下载]")
+        self.ad_label.setStyleSheet("""
+            color: #FF69B4; 
+            font-weight: bold; 
+            margin-left: 20px;
+            text-decoration: underline;
+        """)
+        self.ad_label.setCursor(Qt.PointingHandCursor)
+        self.ad_label.mousePressEvent = lambda e: QDesktopServices.openUrl(QUrl("http://lovely.mzy0.com/lovelymemluxe.exe"))
+        title_layout.addWidget(self.ad_label)
+
+        # 添加版本更新检测标签
+        self.update_label = QLabel("🔍 检查更新")
+        self.update_label.setStyleSheet("""
+            color: #555555; 
+            margin-left: 15px;
+            font-size: 11px;
+        """)
+        self.update_label.setCursor(Qt.PointingHandCursor)
+        self.update_label.mousePressEvent = lambda e: self.check_for_updates(manual=True)
+        title_layout.addWidget(self.update_label)
+        
         title_layout.addStretch()
+        
+        # 添加星标数显示
+        self.star_label = QLabel("⭐ --")
+        self.star_label.setStyleSheet("margin-right: 10px; color: #666666;")
+        self.star_label.setToolTip("GitHub Stars")
+        title_layout.addWidget(self.star_label)
         
         # 添加主题切换按钮
         self.theme_button = self.create_circle_button(theme_button_color)
@@ -167,52 +208,59 @@ class MainWindow(QMainWindow):
 
         # 创建标签页控件并应用样式
         self.tab_widget = QTabWidget()
-        self.tab_widget.setTabPosition(QTabWidget.West)  # 将标签页设置为左侧
-        self.tab_widget.setIconSize(QSize(43, 43))  # 设置图标大小为24*24
+        self.tab_widget.setTabPosition(QTabWidget.North)  # 将标签页设置为顶部
         self.tab_widget.setStyleSheet(tab_style)
         
-        # 设置标签页的固定宽度，使图标居中
-        tab_bar = self.tab_widget.tabBar()
-        tab_bar.setFixedWidth(40)  # 设置标签栏的固定宽度
-        
         # 调整标签页的大小，使每个标签高度一致且合适
-        for i in range(5):  # 预计有5个标签
-            tab_bar.setTabButton(i, QTabBar.RightSide, None)  # 移除右侧按钮
-            tab_bar.setTabButton(i, QTabBar.LeftSide, None)   # 移除左侧按钮
+        # tab_bar = self.tab_widget.tabBar()
+        # for i in range(5):  # 预计有5个标签
+        #    tab_bar.setTabButton(i, QTabBar.RightSide, None)  # 移除右侧按钮
+        #    tab_bar.setTabButton(i, QTabBar.LeftSide, None)   # 移除左侧按钮
         
         left_layout.addWidget(self.tab_widget)
 
+        def update_splash(message):
+            if self.splash:
+                self.splash.showMessage(message, Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+                QApplication.processEvents()
+
         # 创建各个功能区域
+        update_splash("正在加载 MemProcFS...")
         self.memprocfs_area = MemProcFSArea(self, self)
+        
+        update_splash("正在加载 Volatility 2...")
         self.vol2_area = Vol2Area(self, self)  # 传入 self 作为 main_window 参数
+        
+        update_splash("正在加载 Volatility 3...")
         self.vol3_area = Vol3Area(self, self)
+        
+        update_splash("正在加载 Volatility 2 Linux...")
         self.vol2linux_area = Vol2LinuxArea(self, self)  # 创建Vol2Linux区域
+        
+        update_splash("正在加载高级功能...")
         self.quick_check_area = QuickCheckArea(self, self)
+        
+        update_splash("正在加载妙妙工具...")
         self.miaomiao_tools_area = MiaoMiaoToolsArea(self, self)  # 创建妙妙工具区域    
+        
+        update_splash("正在加载 Volatility 3 Linux...")
         self.vol3linux_area = Vol3LinuxArea(self, self)
 
 
-        # 创建旋转后的图标
-        def rotate_icon(icon_path):
-            pixmap = QIcon(icon_path).pixmap(43, 43)
-            transform = QTransform().rotate(90)  # 顺时针旋转90度
-            rotated_pixmap = pixmap.transformed(transform)
-            return QIcon(rotated_pixmap)
-
-        # 将功能区域添加到标签页中，并设置旋转后的图标
-        self.tab_widget.addTab(self.memprocfs_area, rotate_icon('res/memprocfs.png'), "")
+        # 将功能区域添加到标签页中
+        self.tab_widget.addTab(self.memprocfs_area, "MemProcFS")
         self.tab_widget.setTabToolTip(0, "MemProcFS功能区")
-        self.tab_widget.addTab(self.vol2_area, rotate_icon('res/vol2.png'), "")
+        self.tab_widget.addTab(self.vol2_area, "Volatility 2")
         self.tab_widget.setTabToolTip(1, "Volatility2功能区")
-        self.tab_widget.addTab(self.vol3_area, rotate_icon('res/vol3.png'), "")
+        self.tab_widget.addTab(self.vol3_area, "Volatility 3")
         self.tab_widget.setTabToolTip(2, "Volatility3功能区")
-        self.tab_widget.addTab(self.vol2linux_area, rotate_icon('res/vol2linux.png'), "")  # 使用Vol2的图标
+        self.tab_widget.addTab(self.vol2linux_area, "Vol2 Linux")
         self.tab_widget.setTabToolTip(3, "Volatility2 Linux功能区")
-        self.tab_widget.addTab(self.vol3linux_area, rotate_icon('res/vol3linux.png'), "")  # 使用Vol2的图标
+        self.tab_widget.addTab(self.vol3linux_area, "Vol3 Linux")
         self.tab_widget.setTabToolTip(4, "Volatility3 Linux功能区")
-        self.tab_widget.addTab(self.miaomiao_tools_area, rotate_icon('res/Tools.png'), "")  # 暂时使用相同图标
+        self.tab_widget.addTab(self.miaomiao_tools_area, "妙妙工具")
         self.tab_widget.setTabToolTip(5, "妙妙工具区")
-        self.tab_widget.addTab(self.quick_check_area, rotate_icon('res/quick.png'), "")  # 使用logo图标
+        self.tab_widget.addTab(self.quick_check_area, "高级功能")
         self.tab_widget.setTabToolTip(6, "高级功能区")
 
 
@@ -335,7 +383,7 @@ class MainWindow(QMainWindow):
         # 在初始化时加载保存的主题
         saved_theme = get_saved_theme()
         self.apply_selected_theme(saved_theme)
-                # 立即更新圆形按钮的样式
+        # 立即更新圆形按钮的样式
         self.update_circle_button_style(self.theme_button, theme_button_color)
         self.update_circle_button_style(self.min_button, minimize_button_color)
         self.update_circle_button_style(self.max_button, maximize_button_color)
@@ -346,6 +394,95 @@ class MainWindow(QMainWindow):
 
         # 设置命令输出右键菜单
         self._setup_cmd_output_context_menu()
+
+        # 异步获取GitHub星标数
+        self.fetch_github_stars()
+
+        # 启动自动检查更新
+        QTimer.singleShot(5000, lambda: self.check_for_updates(manual=False))
+
+    def fetch_github_stars(self):
+        """异步获取GitHub星标数"""
+        try:
+            # 加载代理配置
+            config_path = os.path.join(os.getcwd(), "config", "base_config.yaml")
+            proxy_url = None
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    proxy_url = config.get("base_config", {}).get("proxy", {}).get("url")
+
+            self.star_fetcher = GithubStarFetcher("https://github.com/Tokeii0/LovelyMem", proxy_url)
+            self.star_fetcher.stars_fetched.connect(self.update_star_label)
+            self.star_fetcher.start()
+        except Exception as e:
+            logger.error(f"Error starting star fetcher: {e}")
+
+    def check_for_updates(self, manual=False):
+        """检查版本更新"""
+        if manual:
+            self.update_label.setText("🔄 正在检查...")
+        
+        try:
+            # 加载代理配置
+            config_path = os.path.join(os.getcwd(), "config", "base_config.yaml")
+            proxy_url = None
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    proxy_url = config.get("base_config", {}).get("proxy", {}).get("url")
+
+            self.version_checker = GithubVersionChecker("https://github.com/Tokeii0/LovelyMem", proxy_url)
+            self.version_checker.version_checked.connect(lambda v, u, b: self.on_version_checked(v, u, b, manual))
+            self.version_checker.start()
+        except Exception as e:
+            logger.error(f"Error starting version checker: {e}")
+            if manual:
+                self.update_label.setText("❌ 检查失败")
+                QTimer.singleShot(3000, lambda: self.update_label.setText("🔍 检查更新"))
+
+    def on_version_checked(self, latest_version, download_url, body, manual):
+        """版本检查完成的回调"""
+        if not latest_version:
+            if manual:
+                self.update_label.setText("❌ 检查失败")
+                QTimer.singleShot(3000, lambda: self.update_label.setText("🔍 检查更新"))
+            return
+
+        # 版本号对比
+        try:
+            current = float(re.sub(r'[^0-9.]', '', self.CURRENT_VERSION))
+            latest = float(re.sub(r'[^0-9.]', '', latest_version))
+            
+            if latest > current:
+                self.update_label.setText(f"🎁 新版本 v{latest_version}")
+                self.update_label.setStyleSheet("color: #FF4500; font-weight: bold; margin-left: 15px; font-size: 11px;")
+                
+                # 弹窗提示
+                reply = QMessageBox.information(
+                    self,
+                    "发现新版本",
+                    f"检测到新版本: v{latest_version}\n\n更新内容:\n{body}\n\n是否立即前往下载？",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                if reply == QMessageBox.Yes:
+                    QDesktopServices.openUrl(QUrl(download_url))
+            else:
+                if manual:
+                    self.update_label.setText("✅ 已是最新")
+                    QMessageBox.information(self, "检查更新", f"当前版本 v{self.CURRENT_VERSION} 已是最新版本。")
+                    QTimer.singleShot(3000, lambda: self.update_label.setText("🔍 检查更新"))
+                else:
+                    self.update_label.setText("🔍 检查更新")
+        except Exception as e:
+            logger.error(f"Version comparison error: {e}")
+            if manual:
+                self.update_label.setText("🔍 检查更新")
+
+    def update_star_label(self, stars):
+        """更新星标数显示"""
+        self.star_label.setText(f"⭐ {stars}")
 
     def load_user_settings(self):
         if os.path.exists(self.user_settings_file):
@@ -438,7 +575,7 @@ class MainWindow(QMainWindow):
                 self.quick_check_area.set_image_path(image_path)
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText(f"Lovelymem Ver 0.97 - {image_path}")
+                title_label.setText(f"Lovelymem Ver {self.CURRENT_VERSION} - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
             self._update_statusbar_image(image_path)
             self._save_recent_file(image_path)
@@ -511,7 +648,7 @@ class MainWindow(QMainWindow):
             # 更新标题
             title_label = self.findChild(QLabel, "title_label")
             if title_label:
-                title_label.setText("Lovelymem Ver 0.97")
+                title_label.setText(f"Lovelymem Ver {self.CURRENT_VERSION}")
             
             # profile 清空
             self.vol2_area.profile = None

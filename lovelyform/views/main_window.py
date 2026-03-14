@@ -25,6 +25,8 @@ from lovelyform.plugins.command_executor import CommandConfigDialog
 
 # 导入拆分出的模块
 from lovelyform.views.ui_components import UIComponentMixin
+from utils.github_utils import GithubStarFetcher
+import yaml
 from lovelyform.views.table_operations import TableOperationsMixin
 from lovelyform.views.file_operations import FileOperationsMixin
 from lovelyform.views.search_filter import SearchFilterMixin
@@ -79,6 +81,32 @@ class CSVViewer(QMainWindow, UIComponentMixin, TableOperationsMixin,
         self.load_user_theme()
         self._init_ui()  # 只调用本类的_init_ui方法
         self.update_all_styles()
+
+        # 异步获取GitHub星标数
+        self.fetch_github_stars()
+
+    def fetch_github_stars(self):
+        """异步获取GitHub星标数"""
+        try:
+            # 加载代理配置
+            config_path = os.path.join(os.getcwd(), "config", "base_config.yaml")
+            proxy_url = None
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    proxy_url = config.get("base_config", {}).get("proxy", {}).get("url")
+
+            self.star_fetcher = GithubStarFetcher("https://github.com/Tokeii0/LovelyMem", proxy_url)
+            self.star_fetcher.stars_fetched.connect(self.update_star_label)
+            self.star_fetcher.start()
+        except Exception as e:
+            # 静默失败，不影响主程序运行
+            pass
+
+    def update_star_label(self, stars):
+        """更新星标数显示"""
+        if hasattr(self, 'star_label'):
+            self.star_label.setText(f"⭐ {stars}")
 
     def _init_ui(self):
         """初始化UI"""

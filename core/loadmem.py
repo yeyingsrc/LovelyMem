@@ -29,7 +29,7 @@ class MemImageLoader(QObject):
             memprocfs_path = config['tools']['memprocfs']['path']
             memprocfs_path = os.path.abspath(memprocfs_path)
             
-            cmd = f'"{memprocfs_path}" -device "{image_path}" -v -license-accept-elastic-license-2-0 -forensic 1'
+            cmd = f'"{memprocfs_path}" -device "{image_path}" -license-accept-elastic-license-2-0 -forensic 1'
             self.output_received.emit(f'[+] MemProcFS加载命令：{cmd}\n', self.stdout_color)
             
             process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True)

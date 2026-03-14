@@ -29,6 +29,8 @@ _✨ 基于*Memprocfs*和*Volatility*的可视化内存取证工具 ✨_
 
 **视频展示**：https://www.bilibili.com/video/BV1z912YpECB
 
+**完整版下载**：https://pan.quark.cn/s/8343fccf1312
+
 ---
 
 ### 界面展示

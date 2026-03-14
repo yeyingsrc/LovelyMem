@@ -40,7 +40,7 @@
     }
   },
   "main_window": {
-    "title": "Lovelymem Ver 0.97",
+    "title": "Lovelymem Ver 0.98",
     "tabs": {
       "memprocfs": "MemProcFS",
       "vol2": "Volatility 2",
