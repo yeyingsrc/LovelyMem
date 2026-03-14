@@ -142,17 +142,16 @@ class LoadingThread(QThread):
     
     def run(self):
         warnings = []  # 收集警告信息
-        
-        # 检查系统环境
-        self.progress_updated.emit(20, "检查系统环境...")
-        
+
         # 检查Dokan是否安装
+        self.progress_updated.emit(33, "检查Dokan安装...")
         if not self.check_dokan_installed():
             warning_msg = "未检测到Dokan安装。Dokan是一个必要的组件，用于挂载内存页面"
             warnings.append(warning_msg)
             warnings.append("- 请从 https://github.com/dokan-dev/dokany/releases 下载并安装最新版的Dokan")
-            
+
         # 检查目录中是否有中文
+        self.progress_updated.emit(66, "检查路径...")
         chinese_paths = self.check_chinese_in_path(os.getcwd())
         if chinese_paths:
             warning_msg = f"检测到{len(chinese_paths)}个包含中文的路径，可能会影响程序运行"
@@ -161,95 +160,26 @@ class LoadingThread(QThread):
                 warnings.append(f"- {path}")
             if len(chinese_paths) > 3:
                 warnings.append(f"... 及其他{len(chinese_paths)-3}个路径")
-        
-        # 加载配置文件
-        self.progress_updated.emit(50, "正在翻阅魔法书📚...")
-        
-        # 更新进度到60%，表示开始检查工具路径
-        self.progress_updated.emit(60, "检查魔法工具箱🧰...")
-        
-        # 在检查工具前先睡眠一小段时间，允许UI更新
-        self.msleep(200)
-        
-        # 更新进度到63%，避免卡在61%
-        self.progress_updated.emit(63, "给魔法道具施加祝福✨...")
-        
-        # 使用超时机制检查工具路径
+
+        # 检查工具路径
+        self.progress_updated.emit(90, "检查工具...")
         try:
-            # 创建一个定时器来模拟处理中间进度
-            self.progress_updated.emit(65, "确认每个魔法棒都在正确位置🪄...")
-            self.msleep(100)  # 让UI更新
-            
-            # 实际检查工具路径
             missing_tools = self.check_tools_existence()
-            
-            # 更新进度到67%
-            self.progress_updated.emit(67, "整理检查清单📋...")
-            self.msleep(100)  # 让UI更新
-            
+
             if missing_tools:
-                warning_msg = f"哎呀！找不到{len(missing_tools)}个工具"
+                warning_msg = f"找不到{len(missing_tools)}个工具"
                 warnings.append(warning_msg)
                 for tool in missing_tools[:5]:  # 只显示前5个
                     warnings.append(f"- {tool}")
                 if len(missing_tools) > 5:
-                    warnings.append(f"... 还有其他{len(missing_tools)-5}个小工具")
+                    warnings.append(f"... 还有其他{len(missing_tools)-5}个工具")
         except Exception as e:
-            warnings.append(f"寻找魔法工具时遇到了一只调皮的小精灵: {str(e)}")
+            warnings.append(f"检查工具路径时发生错误: {str(e)}")
             logger.error(f"检查工具路径时发生错误: {str(e)}")
-        
-        # 更新进度到70%
-        self.progress_updated.emit(70, "继续施展魔法✨...")
-        
-        # 初始化资源，增加更精细的中间进度点
-        self.progress_updated.emit(72, "召唤小精灵帮忙🧚...")
-        self.msleep(150)
-        
-        self.progress_updated.emit(74, "整理魔法材料🔮...")
-        self.msleep(150)
-        
-        self.progress_updated.emit(76, "检查魔法药水成分🧪...")
-        self.msleep(150)
-        
-        self.progress_updated.emit(78, "确认魔法咒语正确性📜...")
-        self.msleep(150)
-        
-        # 在容易卡住的82%附近增加更多的进度点
-        self.progress_updated.emit(80, "激活核心魔法阵💫...")
-        self.msleep(200)  # 增加睡眠时间
-        
-        self.progress_updated.emit(81, "为记忆水晶充能💎...")
-        self.msleep(250)
-        
-        self.progress_updated.emit(83, "布置魔法界面🌈...")
-        self.msleep(250)
-        
-        self.progress_updated.emit(85, "确认魔法结界完整性🛡️...")
-        self.msleep(200)
-        
-        self.progress_updated.emit(87, "读取你的魔法喜好设置📝...")
-        self.msleep(200)
-        
-        self.progress_updated.emit(90, "最后的魔法准备✨...")
-        self.msleep(250)
-        
-        self.progress_updated.emit(92, "魔法能量注入完成⚡...")
-        self.msleep(150)
-        
-        # 增加更精细的96%-100%的进度点
-        self.progress_updated.emit(94, "整理你的魔法数据📊...")
-        self.msleep(100)
-        
-        self.progress_updated.emit(96, "检查魔法启动条件🔍...")
-        self.msleep(100)
-        
-        self.progress_updated.emit(98, "最后的魔法检查✓...")
-        self.msleep(100)
-        
-        # 准备启动主程序
-        self.progress_updated.emit(100, "魔法准备就绪，等待你的指令✨...")
-        self.msleep(100)  # 添加最后的延迟，确保显示完整的100%
-        
+
+        # 完成
+        self.progress_updated.emit(100, "准备就绪")
+
         # 发送加载完成信号，带上警告信息
         self.loading_finished.emit(warnings)
     

@@ -1,19 +1,21 @@
 import json
 import os
 import yaml
+from core.paths import BASE_CONFIG_FILE, USER_SETTINGS_FILE
 
-BASE_CONFIG_FILE = 'config/base_config.yaml'
-USER_CONFIG_FILE = 'config/user_settings.json'
+# 保留字符串路径以兼容旧代码
+BASE_CONFIG_PATH = str(BASE_CONFIG_FILE)
+USER_CONFIG_PATH = str(USER_SETTINGS_FILE)
 
 def load_base_config():
-    if os.path.exists(BASE_CONFIG_FILE):
-        with open(BASE_CONFIG_FILE, 'r', encoding='utf-8') as f:
+    if os.path.exists(BASE_CONFIG_PATH):
+        with open(BASE_CONFIG_PATH, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     return {}
 
 def load_user_config():
-    if os.path.exists(USER_CONFIG_FILE):
-        with open(USER_CONFIG_FILE, 'r', encoding='utf-8') as f:
+    if os.path.exists(USER_CONFIG_PATH):
+        with open(USER_CONFIG_PATH, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {}
 
@@ -37,7 +39,7 @@ def save_config(config):
     # 深度更新现有配置
     updated_config = deep_update(existing_user_config, config)
     # 保存更新后的配置
-    with open(USER_CONFIG_FILE, 'w', encoding='utf-8') as f:
+    with open(USER_CONFIG_PATH, 'w', encoding='utf-8') as f:
         json.dump(updated_config, f, ensure_ascii=False, indent=4)
 
 def save_theme(theme_name):

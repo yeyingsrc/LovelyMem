@@ -3,8 +3,9 @@ import os
 try:
     import jieba
 except ImportError:
-    print("jieba模块未安装，无法进行离线分析。")
-    print("请在启动目录打开终端执行命令 '..\Tools\python3\python.exe -m pip install jieba'")
+    logger_topic = logging.getLogger(__name__)
+    logger_topic.warning("jieba模块未安装，无法进行离线分析。")
+    logger_topic.warning("请在启动目录打开终端执行命令 '..\Tools\python3\python.exe -m pip install jieba'")
     jieba = None
 import re
 import yaml
@@ -17,13 +18,15 @@ from PySide6.QtWidgets import (
     QScrollArea, QFrame, QListWidget, QListWidgetItem, QApplication, QToolButton, QCheckBox
 )
 
-from utils.button_highlight import button_highlighter
 from ui.styles import (
     background_color, text_color, button_bg_color, button_text_color,
     button_hover_color, border_color, group_title_bg_color,
     common_font_style, theme_button_color, minimize_button_color, 
     maximize_button_color, close_button_color
 )
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class TopicAnalysisWorker(QThread):
@@ -110,33 +113,26 @@ class TopicAnalysisWorker(QThread):
                 )
                 
                 self.progress_updated.emit(90)
-                # 打印提示词
-                print("=== DEBUG: 提示词 ===")
-                print(prompt)
-                print("==================")
+                logger.debug("提示词已发送")
                 
                 # 解析响应
                 content = response.choices[0].message.content
                 
-                # DEBUG: 打印AI原始响应
-                print("=== DEBUG: AI原始响应 ===")
-                print(f"响应内容: {content}")
-                print(f"响应长度: {len(content)}")
-                print("========================")
+                logger.debug(f"AI响应长度: {len(content)}")
                 
                 # 尝试解析JSON
                 try:
                     # 检查是否被markdown代码块包裹
                     json_content = content
                     if content.strip().startswith('```json') and content.strip().endswith('```'):
-                        print("DEBUG: 检测到markdown代码块，提取JSON内容")
+                        logger.debug("检测到markdown代码块，提取JSON内容")
                         # 提取代码块中的JSON内容
                         lines = content.strip().split('\n')
                         json_lines = lines[1:-1]  # 去掉第一行的```json和最后一行的```
                         json_content = '\n'.join(json_lines)
                         #print(f"DEBUG: 提取的JSON内容: {json_content}")
                     elif '```json' in content:
-                        print("DEBUG: 检测到包含```json的内容，尝试提取")
+                        logger.debug("检测到包含```json的内容，尝试提取")
                         # 查找```json和```之间的内容
                         start_idx = content.find('```json') + 7
                         end_idx = content.find('```', start_idx)
@@ -145,20 +141,17 @@ class TopicAnalysisWorker(QThread):
                             #print(f"DEBUG: 提取的JSON内容: {json_content}")
                     
                     result = json.loads(json_content)
-                    print("DEBUG: JSON解析成功")
-                    #print(f"DEBUG: 解析后的结果: {result}")
+                    logger.debug("JSON解析成功")
                     
                     # 确保包含推荐按钮字段
                     if 'recommended_buttons' not in result:
-                        print("DEBUG: 没有找到recommended_buttons字段，尝试从suggested_tools获取")
+                        logger.debug("没有找到recommended_buttons字段，尝试从suggested_tools获取")
                         result['recommended_buttons'] = result.get('suggested_tools', [])
-                        #print(f"DEBUG: 从suggested_tools获取到: {result['recommended_buttons']}")
                     else:
                         #print(f"DEBUG: 找到recommended_buttons字段: {result['recommended_buttons']}")
                         pass
                 except json.JSONDecodeError as e:
-                    #print(f"DEBUG: JSON解析失败: {e}")
-                    print("DEBUG: 使用简单解析模式")
+                    logger.debug(f"JSON解析失败: {e}，使用简单解析模式")
                     # 如果不是标准JSON，进行简单解析
                     result = {
                         'main_topics': [],
@@ -178,8 +171,7 @@ class TopicAnalysisWorker(QThread):
     
     def _offline_analysis(self):
         """离线模式：使用jieba分词和yaml配置文件匹配"""
-        print("=== DEBUG: 开始离线分析 ===")
-        #print(f"DEBUG: 输入文本: {self.text[:200]}...")  # 只显示前200个字符
+        logger.debug("开始离线分析")
         
         self.progress_updated.emit(20)
         
@@ -199,7 +191,7 @@ class TopicAnalysisWorker(QThread):
         recommended_buttons = []
         keywords = []
         
-        print("DEBUG: 开始关键词匹配")
+        logger.debug("开始关键词匹配")
         for word in words:
             word_lower = word.lower()
             for key, config in keywords_mapping.items():
@@ -233,7 +225,7 @@ class TopicAnalysisWorker(QThread):
         }
         
         #print(f"DEBUG: 离线分析最终结果: {result}")
-        print("=== DEBUG: 离线分析完成 ===")
+        logger.debug("离线分析完成")
         
         return result
     
@@ -250,7 +242,7 @@ class TopicAnalysisWorker(QThread):
                 self._save_keywords_mapping(default_config)
                 return default_config
         except Exception as e:
-            print(f"加载关键词配置失败: {str(e)}")
+            logger.error(f"加载关键词配置失败: {e}")
             return self._create_default_keywords_config()
     
     def _load_prompt_template(self):
@@ -261,11 +253,11 @@ class TopicAnalysisWorker(QThread):
                 with open(prompt_path, 'r', encoding='utf-8') as f:
                     return f.read()
             except Exception as e:
-                print(f"加载提示词模板文件失败: {e}")
+                logger.warning(f"加载提示词模板文件失败: {e}")
                 # 返回默认提示词
                 return self._get_default_prompt_template()
         else:
-            print(f"提示词模板文件不存在: {prompt_path}")
+            logger.info(f"提示词模板文件不存在: {prompt_path}")
             return self._get_default_prompt_template()
     
     def _get_default_prompt_template(self):
@@ -339,7 +331,7 @@ class TopicAnalysisWorker(QThread):
             with open(config_path, 'w', encoding='utf-8') as f:
                 yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
         except Exception as e:
-            print(f"保存关键词配置失败: {str(e)}")
+            logger.error(f"保存关键词配置失败: {e}")
     
     def _get_available_buttons(self):
         """获取默认按钮列表（备用方案）"""
@@ -521,7 +513,7 @@ class TopicAnalysisDialog(QDialog):
                     config = json.load(f)
                     return config.get('LLM_CONFIG', {})
         except Exception as e:
-            print(f"加载API配置失败: {str(e)}")
+            logger.error(f"加载API配置失败: {e}")
         return {}
     
     def _create_ui(self):
@@ -823,15 +815,7 @@ class TopicAnalysisDialog(QDialog):
         """分析完成处理"""
         self.analysis_result = result
         
-        # DEBUG: 打印完整的AI输出内容
-        print("=== DEBUG: AI分析结果 ===")
-        print(f"完整结果: {result}")
-        print(f"结果类型: {type(result)}")
-        print(f"主要考点: {result.get('main_topics', [])}")
-        print(f"关键词: {result.get('keywords', [])}")
-        print(f"推荐按钮: {result.get('recommended_buttons', [])}")
-        print(f"分析总结: {result.get('analysis_summary', '无')}")
-        print("========================")
+        logger.debug(f"分析完成 - 考点: {result.get('main_topics', [])}, 关键词: {result.get('keywords', [])}, 推荐按钮: {result.get('recommended_buttons', [])}")
         
         # 显示结果
         result_text = f"""分析完成！

@@ -27,7 +27,8 @@ cmd_output_text_color = "#333333"
 
 # 从user_settings.json读取字体设置
 try:
-    with open("config/user_settings.json", "r", encoding="utf-8") as f:
+    from core.paths import USER_SETTINGS_FILE
+    with open(str(USER_SETTINGS_FILE), "r", encoding="utf-8") as f:
         user_settings = json.load(f)
     font_settings = user_settings.get("font_settings", {})
     current_font_family = font_settings.get("font_family", "Microsoft YaHei")
@@ -43,7 +44,13 @@ def is_dark_mode():
     return app.palette().color(QPalette.Window).lightness() < 128
 
 # 预设配色方案
-color_schemes = json.load(open("config/style.json", "r", encoding="utf-8"))
+try:
+    from core.paths import STYLE_CONFIG_FILE
+    with open(str(STYLE_CONFIG_FILE), "r", encoding="utf-8") as f:
+        color_schemes = json.load(f)
+except Exception as e:
+    logger.error(f"无法加载配色方案: {e}")
+    color_schemes = {"默认": {"light": {}, "dark": {}}}
 
 
 def get_color_scheme(scheme_name, is_dark):

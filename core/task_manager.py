@@ -1,6 +1,9 @@
 import json
 import os
+import logging
 from PySide6.QtCore import QObject, Signal, Slot
+
+logger = logging.getLogger(__name__)
 
 
 class TaskManager(QObject):
@@ -58,7 +61,7 @@ class TaskManager(QObject):
             task_name: 任务名称
         """
         if not self.main_window:
-            print(f"无法执行任务：{area} - {task_name}（未连接到主窗口）")
+            logger.warning(f"无法执行任务：{area} - {task_name}（未连接到主窗口）")
             return
         
         try:
@@ -72,12 +75,10 @@ class TaskManager(QObject):
             elif area == "快速检查":
                 self._execute_quick_check_task(task_name)
             else:
-                print(f"未知区域：{area}")
+                logger.warning(f"未知区域：{area}")
         except Exception as e:
-            print(f"执行任务时出错：{area} - {task_name}")
-            print(f"错误详情：{str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"执行任务时出错：{area} - {task_name}")
+            logger.error(f"错误详情：{str(e)}", exc_info=True)
     
     def _execute_memprocfs_task(self, task_name):
         """执行MemProcFS区域的任务"""

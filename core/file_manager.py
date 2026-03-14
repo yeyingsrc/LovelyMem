@@ -1,6 +1,9 @@
 import os
 import shutil
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 class FileManager:
     def __init__(self, output_dir="output"):
@@ -35,7 +38,7 @@ class FileManager:
                     shutil.rmtree(file_path)
                 return True
             except Exception as e:
-                print(f"删除文件时发生错误: {str(e)}")
+                logger.error(f"删除文件时发生错误: {e}")
                 return False
         return False
 
@@ -47,13 +50,13 @@ class FileManager:
                     try:
                         os.unlink(file_path)
                     except Exception as e:
-                        print(f"无法删除文件 {file_path}。原因：{e}")
+                        logger.error(f"无法删除文件 {file_path}。原因：{e}")
             for dir in dirs:
                 dir_path = os.path.join(root, dir)
                 try:
                     os.rmdir(dir_path)
                 except Exception as e:
-                    print(f"无法删除目录 {dir_path}。原因：{e}")
+                    logger.error(f"无法删除目录 {dir_path}。原因：{e}")
         return True
 
     def get_packed_dir(self):

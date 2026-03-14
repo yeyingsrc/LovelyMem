@@ -1,9 +1,10 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
                               QGroupBox, QLineEdit, QTextEdit, QLabel, QListWidget, QPushButton,
-                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame, QToolButton, QListView, QTabBar)
+                              QSplitter, QPlainTextEdit, QFileDialog, QMenu, QMessageBox, QFrame,
+                              QToolButton, QListView, QTabBar, QStatusBar, QProgressBar)
 from PySide6.QtGui import (QIcon, QTextCursor, QColor, QMouseEvent, QPainter, QCloseEvent,
-                          QPalette, QGuiApplication, QFont, QTransform)
-from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize
+                          QPalette, QGuiApplication, QFont, QTransform, QShortcut, QKeySequence, QAction)
+from PySide6.QtCore import Qt, Slot, QTimer, QPoint, Signal, QThread, QSettings, QSize, QFileSystemWatcher
 import logging
 import os
 import json
@@ -61,8 +62,18 @@ class MainWindow(QMainWindow):
         self.setWindowFlags(Qt.FramelessWindowHint)  # 移除原生标题栏
         self.setAttribute(Qt.WA_TranslucentBackground, False)  # 启用窗口背景透明
         self.setMinimumSize(540, 600)  # 设置最小窗口大小
-        self.setMaximumSize(1600, 1200)  # 设置最大窗口大小
-        self.resize(1000, 700)  # 设置初始窗口大小
+        # 动态设置最大窗口大小（根据屏幕尺寸）
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            screen_geo = screen.availableGeometry()
+            self.setMaximumSize(screen_geo.width(), screen_geo.height())
+        # 恢复保存的窗口几何信息，或使用默认大小
+        settings = QSettings("LovelyMem", "MainWindow")
+        saved_geometry = settings.value("geometry")
+        if saved_geometry:
+            self.restoreGeometry(saved_geometry)
+        else:
+            self.resize(1000, 700)  # 默认初始窗口大小
         # 连接样式更新信号
         self.style_updated_signal.connect(self.update_all_styles)
 
@@ -238,10 +249,22 @@ class MainWindow(QMainWindow):
         self.file_tree.setContextMenuPolicy(Qt.CustomContextMenu)
         #self.file_tree.customContextMenuRequested.connect(self.memory_workbench.show_file_context_menu)
 
-        # 创建定时器
-        self.file_refresh_timer = QTimer(self)
-        self.file_refresh_timer.timeout.connect(self.refresh_file_list)
-        self.file_refresh_timer.start(500)  # 每500毫秒（0.5秒）触发一次
+        # 使用 QFileSystemWatcher 替代 500ms 轮询定时器
+        self._file_watcher = QFileSystemWatcher(self)
+        output_dir = self.file_manager.output_dir
+        if os.path.isdir(output_dir):
+            self._file_watcher.addPath(output_dir)
+            # 也监控子目录
+            for root, dirs, _ in os.walk(output_dir):
+                for d in dirs:
+                    self._file_watcher.addPath(os.path.join(root, d))
+        self._file_watcher.directoryChanged.connect(self._on_output_dir_changed)
+        
+        # 防抖定时器：批量处理连续的文件变更事件
+        self._refresh_debounce = QTimer(self)
+        self._refresh_debounce.setSingleShot(True)
+        self._refresh_debounce.setInterval(300)  # 300ms 防抖
+        self._refresh_debounce.timeout.connect(self.refresh_file_list)
 
         # 添加命令输出区域
         cmd_output_group = QGroupBox("命令输出")
@@ -268,6 +291,12 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(main_splitter)
 
         main_layout.addWidget(content_widget)
+
+        # === 全局状态栏 ===
+        self._setup_statusbar()
+
+        # === 键盘快捷键 ===
+        self._setup_shortcuts()
         
         # 设置样式
         self.setStyleSheet(main_window_style)
@@ -312,6 +341,12 @@ class MainWindow(QMainWindow):
         self.update_circle_button_style(self.max_button, maximize_button_color)
         self.update_circle_button_style(self.close_button, close_button_color)
 
+        # 初始状态栏文本
+        self._update_statusbar_image(None)
+
+        # 设置命令输出右键菜单
+        self._setup_cmd_output_context_menu()
+
     def load_user_settings(self):
         if os.path.exists(self.user_settings_file):
             with open(self.user_settings_file, 'r', encoding='utf-8') as f:
@@ -320,21 +355,34 @@ class MainWindow(QMainWindow):
                 self.memory_workbench.set_regex_slot_visibility(user_settings.get('show_regex_slot', True))
                 self.memory_workbench.set_preset_slot_visibility(user_settings.get('show_preset_slot', True))
 
-    def update_cmd_output(self, text, color=None):
+    def update_cmd_output(self, text, color=None, level="info"):
+        """更新命令输出，支持颜色级别: info/success/warning/error"""
+        from datetime import datetime as _dt
         cursor = self.cmd_output.textCursor()
         cursor.movePosition(QTextCursor.End)
-        formatted_text = text.replace('\n', '<br>')  # 将换行符替换为HTML换行标签
-        
-        # 使用 styles 中定义的文本颜色，除非特别指定
-        text_color = color.name() if color else cmd_output_text_color
-        
-        cursor.insertHtml(f'<span style="color: {text_color};">{formatted_text}</span>')
+        formatted_text = text.replace('\n', '<br>')
+
+        # 根据级别自动推断颜色
+        if color:
+            use_color = color.name() if hasattr(color, 'name') else str(color)
+        elif level == "success" or "[成功]" in text or "[+]" in text:
+            use_color = "#28a745"
+        elif level == "error" or "[失败]" in text or "[错误]" in text:
+            use_color = "#dc3545"
+        elif level == "warning" or "[警告]" in text:
+            use_color = "#ffc107"
+        else:
+            use_color = cmd_output_text_color
+
+        timestamp = _dt.now().strftime("%H:%M:%S")
+        cursor.insertHtml(
+            f'<span style="color: #999; font-size: 11px;">[{timestamp}]</span> '
+            f'<span style="color: {use_color};">{formatted_text}</span><br>'
+        )
         self.cmd_output.setTextCursor(cursor)
         self.cmd_output.ensureCursorVisible()
-        
-        # 检测是否包含“[+] 自动匹配的Profile:”文本，如果包含则触发Vol2和Vol3区域按钮高亮
+
         if "[+] 自动匹配的Profile:" in text:
-            #print("[调试] 检测到Profile匹配成功消息，触发高亮效果")
             if hasattr(self, 'highlight_manager'):
                 self.highlight_manager.highlight_after_profile_match()
 
@@ -381,6 +429,9 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'task_manager'):
                 self.task_manager.add_task("MemProcFS - 加载内存镜像")
             
+            # 显示进度条
+            self._show_progress(True)
+            
             self.file_menu_area.set_image_path(image_path)
             # 同时设置QuickCheckArea的镜像路径
             if hasattr(self, 'quick_check_area'):
@@ -389,8 +440,10 @@ class MainWindow(QMainWindow):
             if title_label:
                 title_label.setText(f"Lovelymem Ver 0.97 - {image_path}")
             self.current_mem_path = image_path  # 更新当前内存镜像路径
+            self._update_statusbar_image(image_path)
+            self._save_recent_file(image_path)
             self.mem_image_loader.load_mem_image(image_path)
-            self.cmd_output.append("正在加载内存镜像，请稍候...")
+            self.update_cmd_output("正在加载内存镜像，请稍候...")
             # 保存mem_path到output/image_info.txt 格式"mem_path, "
             with open('output/image_info.txt', 'w', encoding='utf-8') as f:
                 f.write(image_path + ", ")
@@ -411,8 +464,9 @@ class MainWindow(QMainWindow):
             self.vol3_area.vol3_plugin = self.vol3_plugin
 
     def on_profile_obtained(self, profile, profilelist):
-        self.cmd_output.append(f"获取到的 Profile: {profile}")
+        self.update_cmd_output(f"获取到的 Profile: {profile}", level="success")
         self.vol2_area.update_profile(profile, profilelist)
+        self._update_statusbar_profile(profile)
 
     def get_current_mem_path(self):
         return self.current_mem_path if hasattr(self, 'current_mem_path') else None
@@ -435,22 +489,24 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'task_manager'):
             self.task_manager.remove_task("MemProcFS - 加载内存镜像")
         
+        # 隐藏进度条
+        self._show_progress(False)
+        
         if success:
-            self.cmd_output.append(f"[成功] {message}")
-            # 原有的自动按钮高亮功能已被题意分析功能替代
-            # if hasattr(self, 'highlight_manager'):
-            #     self.highlight_manager.highlight_after_memory_import()
+            self.update_cmd_output(f"[成功] {message}", level="success")
         else:
-            self.cmd_output.append(f"[失败] {message}")
+            self.update_cmd_output(f"[失败] {message}", level="error")
 
     def unload_image(self):
         """卸载内存镜像"""
         if hasattr(self, 'current_mem_path') and self.current_mem_path:
             # 显示正在卸载的消息
-            self.cmd_output.append("正在卸载内存镜像...")
+            self.update_cmd_output("正在卸载内存镜像...", level="info")
             
             # 卸载镜像
             self.current_mem_path = None
+            self._update_statusbar_image(None)
+            self._update_statusbar_profile(None)
             
             # 更新标题
             title_label = self.findChild(QLabel, "title_label")
@@ -465,18 +521,17 @@ class MainWindow(QMainWindow):
             # 终止 MemProcFS.exe 进程
             os.system("taskkill /F /IM MemProcFS.exe")
             os.system("taskkill /F /IM python27.exe")
-            print("[+] 卸载镜像成功")
+            logger.info("[+] 卸载镜像成功")
             
             # 清空文件列表
             self.refresh_file_list()
             
             # 停止所有按钮高亮效果
             if hasattr(self, 'highlight_manager'):
-                #print("[调试] 正在停止所有按钮高亮效果")
                 self.highlight_manager.stop_all_highlights()
             
             # 显示卸载完成消息
-            self.cmd_output.append("内存镜像已卸载")
+            self.update_cmd_output("内存镜像已卸载", level="success")
 
     def refresh_file_list(self):
         try:
@@ -495,12 +550,23 @@ class MainWindow(QMainWindow):
             # 恢复展开的项目
             self.memory_workbench.file_slot.restore_expanded_items(self.memory_workbench.file_slot.file_tree.invisibleRootItem(), expanded_items)
         except Exception as e:
-            print(f"刷新文件列表时发生错误: {str(e)}")
+            logger.error(f"刷新文件列表时发生错误: {e}")
+
+    def _on_output_dir_changed(self, path):
+        """当 output 目录发生变化时触发（QFileSystemWatcher 回调）"""
+        # 重新注册新出现的子目录（QFileSystemWatcher 不自动递归监控）
+        if os.path.isdir(path):
+            for entry in os.scandir(path):
+                if entry.is_dir() and entry.path not in self._file_watcher.directories():
+                    self._file_watcher.addPath(entry.path)
+        
+        # 使用防抖定时器，避免短时间内多次刷新
+        self._refresh_debounce.start()
 
     def pack_files(self):
         files = self.file_manager.get_file_list()
         if not files:
-            self.cmd_output.append("没有文件可以打包")
+            self.update_cmd_output("没有文件可以打包", level="warning")
             return
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -514,27 +580,28 @@ class MainWindow(QMainWindow):
                 full_path = os.path.join(self.file_manager.output_dir, file_path)
                 zipf.write(full_path, file_path)
 
-        self.cmd_output.append(f"文件已打包到 {zip_path}")
+        self.update_cmd_output(f"文件已打包到 {zip_path}", level="success")
         
         # 打包完成后立即清空文件槽
         self.clear_files()
 
     def clear_files(self):
         if self.file_manager.clear_output_directory():
-            self.cmd_output.append("所有文件已清空")
+            self.update_cmd_output("所有文件已清空", level="success")
             self.refresh_file_list()
         else:
-            self.cmd_output.append("清空文件失败")
+            self.update_cmd_output("清空文件失败", level="error")
 
     def execute_preset(self, preset_name):
-        print(f"执行预设: {preset_name}")
+        logger.debug(f"执行预设: {preset_name}")
         
         # 从数据库获取预设的按钮
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        c.execute("SELECT button_text FROM presets WHERE name = ?", (preset_name,))
-        buttons = c.fetchall()
-        conn.close()
+        from core.database import get_connection
+        from core.paths import PRESETS_DB
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            c.execute("SELECT button_text FROM presets WHERE name = ?", (preset_name,))
+            buttons = c.fetchall()
 
         if not buttons:
             QMessageBox.warning(self, "警告", f"预设 '{preset_name}' 中没按钮")
@@ -549,7 +616,7 @@ class MainWindow(QMainWindow):
                 area = "未知"
                 function = button_text
 
-            print(f"执行: 区域 = {area}, 功能 = {function}")  # 添加调试输出
+            logger.debug(f"执行: 区域 = {area}, 功能 = {function}")
             
             if area == "MemProcFS":
                 self.execute_memprocfs_function(function)
@@ -560,7 +627,7 @@ class MainWindow(QMainWindow):
             elif area == "快速检查":
                 self.execute_quick_check_function(function)
             else:
-                print(f"未知区域: {area}")
+                logger.debug(f"未知区域: {area}")
 
     def execute_memprocfs_function(self, function):
         # 在 MemProcFS 区域查找并执行对应的函数
@@ -568,7 +635,7 @@ class MainWindow(QMainWindow):
             if button.text() == function:
                 button.click()
                 return
-        print(f"在 MemProcFS 区域未找到函数: {function}")
+        logger.debug(f"在 MemProcFS 区域未找到函数: {function}")
 
     def execute_vol2_function(self, function):
         # 在 Volatility 2 区域查找并执行对应的函数
@@ -588,7 +655,7 @@ class MainWindow(QMainWindow):
                         widget.click()
                         return
         
-        print(f"在 Volatility 2 区域未找到按钮: {function}")
+        logger.debug(f"在 Volatility 2 区域未找到按钮: {function}")
         
         # 如果没有找到完全匹配的按钮，尝试部分匹配
         for group in self.vol2_area.findChildren(CollapsibleButtonGroup):
@@ -603,10 +670,10 @@ class MainWindow(QMainWindow):
                             return
                         
                         widget.click()
-                        print(f"找到部分匹配的按钮: {widget.text()}")
+                        logger.debug(f"找到部分匹配的按钮: {widget.text()}")
                         return
         
-        print(f"在 Volatility 2 区域未找到任何匹配的按钮: {function}")
+        logger.debug(f"在 Volatility 2 区域未找到任何匹配的按钮: {function}")
 
     def execute_vol3_function(self, function):
         # 在 Volatility 3 区域查找并执行对应的函数
@@ -624,7 +691,7 @@ class MainWindow(QMainWindow):
                     button.click()
                     return
         
-        print(f"在 Volatility 3 区域未找到按钮: {function}")
+        logger.debug(f"在 Volatility 3 区域未找到按钮: {function}")
 
     def execute_quick_check_function(self, function):
         # 在快速检查区域查找并执行对应的函数
@@ -632,7 +699,7 @@ class MainWindow(QMainWindow):
             if button.text() == function:
                 button.click()
                 return
-        print(f"在快速检查区域未找到函数: {function}")
+        logger.debug(f"在快速检查区域未找到函数: {function}")
 
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.LeftButton:
@@ -700,7 +767,7 @@ class MainWindow(QMainWindow):
         apply_color_scheme(theme_name, is_dark)
         self.update_all_styles()
         self.vol3_area.update_button_styles()  # 添加这行
-        self.statusBar().showMessage(f"当前主题: {theme_name}", 3000)
+        self.status_bar.showMessage(f"当前主题: {theme_name}", 3000)
         
         # 保存选择的主题
         save_theme(theme_name)
@@ -773,15 +840,29 @@ class MainWindow(QMainWindow):
                 widget.update()
             # 强制更新整个界面
             self.repaint()
+
+            # 更新状态栏样式
+            if hasattr(self, 'status_bar'):
+                self.status_bar.setStyleSheet(f"""
+                    QStatusBar {{
+                        background-color: {ui.styles.background_color};
+                        color: {ui.styles.text_color};
+                        font-size: 11px;
+                        border-top: 1px solid {ui.styles.border_color};
+                    }}
+                    QStatusBar::item {{
+                        border: none;
+                    }}
+                """)
+                self.status_image_label.setStyleSheet(f"color: {ui.styles.text_color}; padding: 0 8px;")
+                self.status_profile_label.setStyleSheet(f"color: {ui.styles.text_color}; padding: 0 8px;")
             
             # print(f"当前背景颜色: {background_color}")
             # print(f"当前文本颜色: {text_color}")
             # print(f"当前按钮背景颜色: {button_bg_color}")
             
         except Exception as e:
-            pass
-            # print(f"更新样式时发生错误: {str(e)}")
-            # print(traceback.format_exc())
+            logger.error(f"更新样式时发生错误: {e}", exc_info=True)
         #print("样式更新完成")
 
     def update_circle_button_style(self, button, base_color):
@@ -948,6 +1029,9 @@ class MainWindow(QMainWindow):
                                      "是否确定要退出程序？\n退出前将卸载镜像并清空文件槽。",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            # 保存窗口几何信息
+            settings = QSettings("LovelyMem", "MainWindow")
+            settings.setValue("geometry", self.saveGeometry())
             self.unload_image()
             self.clear_files()
             super().closeEvent(event)
@@ -980,7 +1064,7 @@ class MainWindow(QMainWindow):
                 # 调整窗口宽度为540
                 self.resize(540, self.height())
             else:
-                print("错误：无法找到upper_layout")
+                logger.error("错误：无法找到upper_layout")
         else:
             # 如果两者都回到主窗口，恢复正常布局
             self.memory_workbench.setMaximumWidth(16777215)  # 最大值
@@ -990,4 +1074,169 @@ class MainWindow(QMainWindow):
                 self.upper_layout.setStretchFactor(self.memory_workbench, 5)
                 self.adjust_window_size()
             else:
-                print("错误：无法找到upper_layout")
+                logger.error("错误：无法找到upper_layout")
+
+    # ===== 状态栏相关方法 =====
+
+    def _setup_statusbar(self):
+        """初始化全局状态栏"""
+        self.status_bar = QStatusBar(self)
+        self.status_bar.setFixedHeight(22)
+        self.status_bar.setStyleSheet(f"""
+            QStatusBar {{
+                background-color: {background_color};
+                color: {text_color};
+                font-size: 11px;
+                border-top: 1px solid {border_color};
+            }}
+            QStatusBar::item {{
+                border: none;
+            }}
+        """)
+        # 镜像路径标签
+        self.status_image_label = QLabel("未加载镜像")
+        self.status_image_label.setStyleSheet(f"color: {text_color}; padding: 0 8px;")
+        self.status_bar.addWidget(self.status_image_label, 1)
+
+        # Profile 标签
+        self.status_profile_label = QLabel("")
+        self.status_profile_label.setStyleSheet(f"color: {text_color}; padding: 0 8px;")
+        self.status_bar.addPermanentWidget(self.status_profile_label)
+
+        # 进度条（初始隐藏）
+        self.status_progress = QProgressBar()
+        self.status_progress.setFixedWidth(120)
+        self.status_progress.setFixedHeight(14)
+        self.status_progress.setRange(0, 0)  # 不确定模式
+        self.status_progress.setTextVisible(False)
+        self.status_progress.setStyleSheet(f"""
+            QProgressBar {{
+                background-color: {button_bg_color};
+                border: 1px solid {border_color};
+                border-radius: 3px;
+            }}
+            QProgressBar::chunk {{
+                background-color: #28a745;
+                border-radius: 2px;
+            }}
+        """)
+        self.status_progress.hide()
+        self.status_bar.addPermanentWidget(self.status_progress)
+
+        # 添加到主布局（在 content_widget 下方）
+        self.centralWidget().layout().addWidget(self.status_bar)
+
+    def _update_statusbar_image(self, path):
+        """更新状态栏中的镜像路径"""
+        if path:
+            basename = os.path.basename(path)
+            self.status_image_label.setText(f"镜像: {basename}")
+            self.status_image_label.setToolTip(path)
+        else:
+            self.status_image_label.setText("未加载镜像")
+            self.status_image_label.setToolTip("")
+
+    def _update_statusbar_profile(self, profile):
+        """更新状态栏中的 Profile 信息"""
+        if profile:
+            self.status_profile_label.setText(f"Profile: {profile}")
+        else:
+            self.status_profile_label.setText("")
+
+    def _show_progress(self, show):
+        """显示/隐藏状态栏进度条"""
+        if show:
+            self.status_progress.show()
+        else:
+            self.status_progress.hide()
+
+    # ===== 键盘快捷键 =====
+
+    def _setup_shortcuts(self):
+        """注册全局键盘快捷键"""
+        # Ctrl+O: 打开内存镜像
+        QShortcut(QKeySequence("Ctrl+O"), self).activated.connect(
+            lambda: self.load_image()
+        )
+        # Ctrl+W: 卸载镜像
+        QShortcut(QKeySequence("Ctrl+W"), self).activated.connect(
+            self.unload_image
+        )
+        # Ctrl+P: 打包文件
+        QShortcut(QKeySequence("Ctrl+P"), self).activated.connect(
+            self.pack_files
+        )
+        # Ctrl+T: 切换主题
+        QShortcut(QKeySequence("Ctrl+T"), self).activated.connect(
+            self.toggle_theme
+        )
+        # F5: 刷新文件列表
+        QShortcut(QKeySequence("F5"), self).activated.connect(
+            self.refresh_file_list
+        )
+        # Ctrl+L: 聚焦命令输出
+        QShortcut(QKeySequence("Ctrl+L"), self).activated.connect(
+            lambda: self.cmd_output.setFocus()
+        )
+        # Ctrl+Shift+Delete: 清空文件槽
+        QShortcut(QKeySequence("Ctrl+Shift+Delete"), self).activated.connect(
+            self.clear_files
+        )
+
+    # ===== 命令输出右键菜单 =====
+
+    def _setup_cmd_output_context_menu(self):
+        """为命令输出区域设置右键菜单"""
+        self.cmd_output.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.cmd_output.customContextMenuRequested.connect(self._show_cmd_context_menu)
+
+    def _show_cmd_context_menu(self, position):
+        """显示命令输出的右键菜单"""
+        menu = QMenu(self)
+        menu.addAction("复制选中内容", lambda: self.cmd_output.copy())
+        menu.addAction("复制全部", self._copy_all_cmd_output)
+        menu.addSeparator()
+        menu.addAction("清空输出", lambda: self.cmd_output.clear())
+        menu.addSeparator()
+        menu.addAction("保存到文件...", self._save_cmd_output)
+        menu.exec(self.cmd_output.mapToGlobal(position))
+
+    def _copy_all_cmd_output(self):
+        """复制全部命令输出到剪贴板"""
+        from PySide6.QtWidgets import QApplication
+        QApplication.clipboard().setText(self.cmd_output.toPlainText())
+        self.status_bar.showMessage("已复制到剪贴板", 2000)
+
+    def _save_cmd_output(self):
+        """保存命令输出到文件"""
+        path, _ = QFileDialog.getSaveFileName(
+            self, "保存命令输出", "cmd_output.txt", "文本文件 (*.txt)"
+        )
+        if path:
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(self.cmd_output.toPlainText())
+                self.status_bar.showMessage(f"输出已保存到 {path}", 3000)
+            except Exception as e:
+                QMessageBox.warning(self, "保存失败", str(e))
+
+    # ===== 最近文件 =====
+
+    def _save_recent_file(self, path):
+        """将文件路径保存到最近文件列表"""
+        try:
+            if os.path.exists(self.user_settings_file):
+                with open(self.user_settings_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+            else:
+                settings = {}
+            recent = settings.get('recent_files', [])
+            # 移除已存在的同路径（如果有），再添加到最前面
+            if path in recent:
+                recent.remove(path)
+            recent.insert(0, path)
+            settings['recent_files'] = recent[:5]  # 只保留最近5个
+            with open(self.user_settings_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"保存最近文件失败: {e}")

@@ -35,12 +35,12 @@ class GlassOverlay(QWidget):
         # 创建内容容器
         self.content_container = QWidget(self)
         self.content_container.setObjectName("dropContainer")
-        self.content_container.setStyleSheet("""
-            #dropContainer {
+        self.content_container.setStyleSheet(f"""
+            #dropContainer {{
                 background-color: rgba(255, 255, 255, 0.85);
-                border: 5px dashed #808080;
+                border: 5px dashed {border_color};
                 border-radius: 10px;
-            }
+            }}
         """)
         
         # 创建内容布局
@@ -52,7 +52,7 @@ class GlassOverlay(QWidget):
         self.hint_label.setAlignment(Qt.AlignCenter)
         self.hint_label.setFont(QFont(common_font_style, 18, QFont.Bold))
         self.hint_label.setStyleSheet(f"""
-            color: #3498db;
+            color: {text_color};
             font-size: 18px;
             font-weight: bold;
         """)

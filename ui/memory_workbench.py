@@ -16,8 +16,12 @@ import traceback
 import logging
 from datetime import datetime
 import sqlite3
+from core.database import get_connection
+from core.paths import PRESETS_DB
 from ui.regex_slot import RegexSlot
 from ui.file_slot import FileSlot
+
+logger = logging.getLogger(__name__)
 
 class CustomTreeWidget(QTreeWidget):
     def __init__(self, parent=None):
@@ -155,32 +159,28 @@ class MemoryWorkbench(QWidget):
                 QMessageBox.warning(self, "警告", "该预设名称已存在")
 
     def save_preset(self, preset_name):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS preset_names
-                     (name TEXT PRIMARY KEY)''')
-        c.execute("INSERT OR REPLACE INTO preset_names (name) VALUES (?)", (preset_name,))
-        
-        # 创建一个新的空预设
-        c.execute('''CREATE TABLE IF NOT EXISTS presets
-                     (name TEXT, button_text TEXT)''')
-        
-        conn.commit()
-        conn.close()
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS preset_names
+                         (name TEXT PRIMARY KEY)''')
+            c.execute("INSERT OR REPLACE INTO preset_names (name) VALUES (?)", (preset_name,))
+            
+            # 创建一个新的空预设
+            c.execute('''CREATE TABLE IF NOT EXISTS presets
+                         (name TEXT, button_text TEXT)''')
 
     def load_preset(self):
         preset_name = self.preset_combo.currentText()
         if preset_name != "选择预设":
-            conn = sqlite3.connect('db/presets.db')
-            c = conn.cursor()
-            
-            # 首先确保表存在
-            c.execute('''CREATE TABLE IF NOT EXISTS presets
-                         (name TEXT, button_text TEXT)''')
-            
-            c.execute("SELECT button_text FROM presets WHERE name = ?", (preset_name,))
-            buttons = c.fetchall()
-            conn.close()
+            with get_connection(PRESETS_DB) as conn:
+                c = conn.cursor()
+                
+                # 首先确保表存在
+                c.execute('''CREATE TABLE IF NOT EXISTS presets
+                             (name TEXT, button_text TEXT)''')
+                
+                c.execute("SELECT button_text FROM presets WHERE name = ?", (preset_name,))
+                buttons = c.fetchall()
 
             self.preset_list.clear()
             for button in buttons:
@@ -227,20 +227,16 @@ class MemoryWorkbench(QWidget):
             self.delete_preset_from_db(self.preset_combo.currentText(), item.text())
 
     def update_preset_in_db(self, preset_name, old_text, new_text):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        c.execute("UPDATE presets SET button_text = ? WHERE name = ? AND button_text = ?", 
-                  (new_text, preset_name, old_text))
-        conn.commit()
-        conn.close()
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            c.execute("UPDATE presets SET button_text = ? WHERE name = ? AND button_text = ?", 
+                      (new_text, preset_name, old_text))
 
     def delete_preset_from_db(self, preset_name, button_text):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        c.execute("DELETE FROM presets WHERE name = ? AND button_text = ?", 
-                  (preset_name, button_text))
-        conn.commit()
-        conn.close()
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            c.execute("DELETE FROM presets WHERE name = ? AND button_text = ?", 
+                      (preset_name, button_text))
 
     def execute_preset(self):
         preset_name = self.preset_combo.currentText()
@@ -255,7 +251,7 @@ class MemoryWorkbench(QWidget):
         self.regex_slot.save_results_to_csv(results)
         
         # 这里可以添加代码来显示结果或进行其他操作
-        print(f"找到 {len(results)} 个配配项")
+        logger.info(f"找到 {len(results)} 个匹配项")
         # 例如，可以打开生成CSV 文件
         self.open_csv_file("output/regex_check_results.csv")
 
@@ -520,19 +516,16 @@ class MemoryWorkbench(QWidget):
             self.load_preset_names()  # 重新加载预设名称
 
     def get_preset_names_from_db(self):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        c.execute("SELECT DISTINCT name FROM presets")
-        preset_names = [row[0] for row in c.fetchall()]
-        conn.close()
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            c.execute("SELECT DISTINCT name FROM presets")
+            preset_names = [row[0] for row in c.fetchall()]
         return preset_names
 
     def delete_preset(self, preset_name):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        c.execute("DELETE FROM presets WHERE name = ?", (preset_name,))
-        conn.commit()
-        conn.close()
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            c.execute("DELETE FROM presets WHERE name = ?", (preset_name,))
 
         index = self.preset_combo.findText(preset_name)
         if index != -1:
@@ -571,11 +564,9 @@ class MemoryWorkbench(QWidget):
             QMessageBox.warning(self, "警告", "请先选择一个预设")
 
     def update_preset_name(self, old_name, new_name):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        c.execute("UPDATE presets SET name = ? WHERE name = ?", (new_name, old_name))
-        conn.commit()
-        conn.close()
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            c.execute("UPDATE presets SET name = ? WHERE name = ?", (new_name, old_name))
 
     def get_extension_from_mime(self, mime_type):
         # 这里可以根据常见MIME 类型返回对应的文件扩展名
@@ -650,12 +641,12 @@ class MemoryWorkbench(QWidget):
         pass
 
     def execute_plugin(self, file_path, plugin_data):
-        print(f"执行插件，文件路径: {file_path}")  # 调试信息
+        logger.debug(f"执行插件，文件路径: {file_path}")
 
         try:
             # 获取插件文件路径
             plugin_file_path = plugin_data["file_path"]
-            print(f"插件文件路径: {plugin_file_path}")  # 调试信息
+            logger.debug(f"插件文件路径: {plugin_file_path}")
             
             # 使用 importlib.util.spec_from_file_location 重新加载模块
             spec = importlib.util.spec_from_file_location(plugin_data["module"].__name__, plugin_file_path)
@@ -674,8 +665,7 @@ class MemoryWorkbench(QWidget):
         except Exception as e:
             error_msg = f"执行插件时发生错误{str(e)}\n\n"
             error_msg += traceback.format_exc()
-            logging.error(error_msg)
-            print(error_msg)
+            logger.error(error_msg, exc_info=True)
             QMessageBox.warning(self, "插件执行失败", error_msg)
 
     def get_full_path(self, item):
@@ -768,7 +758,7 @@ class MemoryWorkbench(QWidget):
             # 调整布局
             QTimer.singleShot(100, self.adjust_layout_visibility)
         else:
-            print("错误：找不到文件槽容器")
+            logger.error("错误：找不到文件槽容器")
 
     def adjust_layout_visibility(self):
         """根据当前可见组件调整布局空间"""
@@ -854,16 +844,15 @@ class MemoryWorkbench(QWidget):
         super().closeEvent(event)
 
     def load_preset_names(self):
-        conn = sqlite3.connect('db/presets.db')
-        c = conn.cursor()
-        
-        # 确保表存在
-        c.execute('''CREATE TABLE IF NOT EXISTS presets
-                     (name TEXT, button_text TEXT)''')
-        
-        c.execute("SELECT DISTINCT name FROM presets")
-        preset_names = c.fetchall()
-        conn.close()
+        with get_connection(PRESETS_DB) as conn:
+            c = conn.cursor()
+            
+            # 确保表存在
+            c.execute('''CREATE TABLE IF NOT EXISTS presets
+                         (name TEXT, button_text TEXT)''')
+            
+            c.execute("SELECT DISTINCT name FROM presets")
+            preset_names = c.fetchall()
 
         self.preset_combo.clear()
         self.preset_combo.addItem("选择预设")

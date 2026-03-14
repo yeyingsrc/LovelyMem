@@ -63,12 +63,21 @@ def main():
         app.setWindowIcon(QIcon(r"res\logo.ico"))
         splash_pix = QPixmap(r"res/logo_200.png")
         splash = QSplashScreen(splash_pix)
+        splash.setStyleSheet("QSplashScreen { font-size: 12px; color: #555; }")
         splash.show()
+        splash.showMessage("正在加载配置...", Qt.AlignBottom | Qt.AlignHCenter, Qt.gray)
+        app.processEvents()
+        
         # 创建主窗口
+        splash.showMessage("正在初始化界面...", Qt.AlignBottom | Qt.AlignHCenter, Qt.gray)
+        app.processEvents()
         window = MainWindow()
         setup_output_redirection(window)
 
-        # 使用定时器在0.5秒后关闭启动画面并显示主窗口
+        splash.showMessage("LovelyMem v0.97 就绪", Qt.AlignBottom | Qt.AlignHCenter, Qt.gray)
+        app.processEvents()
+
+        # 使用定时器关闭启动画面并显示主窗口
         def show_main_window():
             splash.close()
             window.show()
@@ -78,7 +87,7 @@ def main():
             if show_welcome:
                 QTimer.singleShot(500, lambda: show_first_run_reminder(window))
 
-        QTimer.singleShot(100, show_main_window)
+        QTimer.singleShot(600, show_main_window)
         
         # 检测系统是否处于深色模式
         is_dark_mode = app.palette().color(QPalette.Window).lightness() < 128

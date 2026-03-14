@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
                                QPushButton, QTreeWidget, QTreeWidgetItem, QHeaderView, 
-                               QApplication, QMenu, QMessageBox, QLabel, QFrame, QSizeGrip)
+                               QApplication, QMenu, QMessageBox, QLabel, QFrame, QSizeGrip, QLineEdit)
 from PySide6.QtCore import Qt, Signal, QPoint, QMimeData
 from PySide6.QtGui import QCursor, QDrag, QIcon, QFont
 import os
@@ -12,6 +12,8 @@ from ui.styles import (right_panel_style, background_color, text_color,
                       theme_button_color, minimize_button_color, maximize_button_color, close_button_color,
                       current_font_family)
 import logging
+
+logger = logging.getLogger(__name__)
 import traceback
 import subprocess
 import importlib.util
@@ -46,7 +48,7 @@ class CustomTreeWidget(QTreeWidget):
     
     def mouseDoubleClickEvent(self, event):
         """重写双击事件"""
-        print("树控件双击")  # 调试信息
+        logger.debug("树控件双击")
         super().mouseDoubleClickEvent(event)
         self.double_clicked_signal.emit()  # 发送双击信号
 
@@ -416,6 +418,13 @@ class FileSlot(QGroupBox):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         
+        # 添加搜索框
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("搜索文件...")
+        self.search_input.setClearButtonEnabled(True)
+        self.search_input.textChanged.connect(self._filter_file_tree)
+        layout.addWidget(self.search_input)
+        
         # 创建文件树
         self.file_tree = CustomTreeWidget()
         self.file_tree.customContextMenuRequested.connect(self.show_file_context_menu)
@@ -433,6 +442,48 @@ class FileSlot(QGroupBox):
         # 连接信号
         self.pack_button.clicked.connect(self.pack_files_signal.emit)
         self.clear_button.clicked.connect(self.clear_files_signal.emit)
+
+    def _filter_file_tree(self, text):
+        """根据搜索文本过滤文件树"""
+        keyword = text.strip().lower()
+        root = self.file_tree.invisibleRootItem()
+        if not keyword:
+            # 无搜索词时显示所有项目
+            self._set_all_visible(root, True)
+            return
+        # 递归匹配
+        self._filter_item(root, keyword)
+
+    def _filter_item(self, item, keyword):
+        """递归过滤树项目，返回该项是否应该可见"""
+        is_match = False
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child_name = child.text(0).lower()
+            if child.childCount() > 0:
+                # 文件夹: 先递归检查子项
+                child_visible = self._filter_item(child, keyword)
+                name_match = keyword in child_name
+                visible = child_visible or name_match
+                child.setHidden(not visible)
+                if visible:
+                    child.setExpanded(True)
+                    is_match = True
+            else:
+                # 文件: 直接匹配名称
+                visible = keyword in child_name
+                child.setHidden(not visible)
+                if visible:
+                    is_match = True
+        return is_match
+
+    def _set_all_visible(self, item, visible):
+        """递归设置所有项目的可见性"""
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child.setHidden(not visible)
+            if child.childCount() > 0:
+                self._set_all_visible(child, visible)
     
     def on_group_box_double_click(self, event):
         """处理GroupBox的双击事件"""
@@ -520,9 +571,9 @@ class FileSlot(QGroupBox):
                 # 将自身隐藏，不显示占位符
                 self.setVisible(False)
                 
-                print("文件槽窗口创建完成")  # 调试信息
+                logger.debug("文件槽窗口创建完成")
             except Exception as e:
-                print(f"创建文件槽窗口时出错: {e}")  # 调试信息
+                logger.error(f"创建文件槽窗口时出错: {e}")
                 # 恢复控件到原来的布局
                 self.restore_file_slot(self.file_tree, self.pack_button, self.clear_button)
     
@@ -706,8 +757,7 @@ class FileSlot(QGroupBox):
             menu.exec(global_pos)
             
         except Exception as e:
-            print(f"显示上下文菜单时出错: {e}")
-            traceback.print_exc()
+            logger.error(f"显示上下文菜单时出错: {e}", exc_info=True)
     
     def scan_with_dictionary(self, file_path):
         """使用字典进行快速检测"""
@@ -751,7 +801,7 @@ class FileSlot(QGroupBox):
 
     def quick_open_file(self, file_path):
         """快速打开文件"""
-        print(f"尝试打开文件: {file_path}")
+        logger.debug(f"尝试打开文件: {file_path}")
 
         if not os.path.exists(file_path):
             QMessageBox.warning(self, "文件不存在", f"文件 {os.path.basename(file_path)} 不存在")
@@ -767,8 +817,7 @@ class FileSlot(QGroupBox):
             else:
                 self.open_other_file(file_path)
         except Exception as e:
-            print(f"打开文件时发生错误: {str(e)}")
-            traceback.print_exc()
+            logger.error(f"打开文件时发生错误: {e}", exc_info=True)
             QMessageBox.critical(self, "错误", f"打开文件时发生错误: {str(e)}")
 
     def open_csv_file(self, file_path):
@@ -777,8 +826,7 @@ class FileSlot(QGroupBox):
             from lovelyform import show_csv_viewer
             show_csv_viewer(file_path)
         except Exception as e:
-            print(f"打开 CSV 文件时发生错误: {str(e)}")
-            traceback.print_exc()
+            logger.error(f"打开 CSV 文件时发生错误: {e}", exc_info=True)
             QMessageBox.critical(self, "错误", f"打开 CSV 文件时发生错误: {str(e)}")
 
     def open_text_file(self, file_path):
@@ -798,8 +846,7 @@ class FileSlot(QGroupBox):
             # 保存查看器引用，防止被垃圾回收
             self.viewers.append(text_viewer)
         except Exception as e:
-            print(f"打开文本文件时发生错误: {str(e)}")
-            traceback.print_exc()
+            logger.error(f"打开文本文件时发生错误: {e}", exc_info=True)
             QMessageBox.critical(self, "错误", f"打开文本文件时发生错误: {str(e)}")
 
     def open_image_file(self, file_path):
@@ -828,7 +875,7 @@ class FileSlot(QGroupBox):
         # 构建完整路径
         full_path = os.path.normpath(os.path.join(current_dir, 'output', file_path))
         
-        print(f"尝试打开目录: {full_path}")
+        logger.debug(f"尝试打开目录: {full_path}")
         if os.path.exists(full_path):
             # 在Windows上使用explorer选中文件
             subprocess.run(['explorer', '/select,', full_path])
@@ -839,14 +886,13 @@ class FileSlot(QGroupBox):
         """删除选中的文件"""
         try:
             if self.file_manager.delete_file(file_path):
-                print(f"已删除文件：{file_path}")
+                logger.info(f"已删除文件：{file_path}")
                 self.update_file_list()
                 QMessageBox.information(self, "删除成功", f"文件 {os.path.basename(file_path)} 已成功删除")
             else:
                 QMessageBox.warning(self, "删除失败", f"无法删除文件 {os.path.basename(file_path)}")
         except Exception as e:
-            print(f"删除文件时发生错误: {str(e)}")
-            traceback.print_exc()
+            logger.error(f"删除文件时发生错误: {e}", exc_info=True)
             QMessageBox.critical(self, "错误", f"删除文件时发生错误: {str(e)}")
 
     def load_plugins(self):
@@ -892,7 +938,7 @@ class FileSlot(QGroupBox):
 
     def execute_plugin(self, file_path, plugin_data):
         """执行插件"""
-        print(f"执行插件，文件路径: {file_path}")  # 调试信息
+        logger.debug(f"执行插件，文件路径: {file_path}")
 
         try:
             # 获取插件文件路径
@@ -907,7 +953,7 @@ class FileSlot(QGroupBox):
                     # 直接使用模块本身
                     plugin_file_path = plugin_data.__file__
             
-            print(f"插件文件路径: {plugin_file_path}")  # 调试信息
+            logger.debug(f"插件文件路径: {plugin_file_path}")
             
             # 确定模块名称
             if isinstance(plugin_data, dict) and "module" in plugin_data:
@@ -936,9 +982,7 @@ class FileSlot(QGroupBox):
                 
         except Exception as e:
             error_msg = f"执行插件时发生错误: {str(e)}"
-            print(error_msg)
-            traceback.print_exc()
-            logging.error(error_msg)
+            logger.error(error_msg, exc_info=True)
             logging.error(traceback.format_exc())
             QMessageBox.critical(self, "插件执行错误", error_msg)
     
